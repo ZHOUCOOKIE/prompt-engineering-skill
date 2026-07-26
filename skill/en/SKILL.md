@@ -1,0 +1,336 @@
+---
+name: prompt-engineering
+description: Writes, rewrites, reviews, and audits prompts and system prompts using Anthropic's current official guidance, and selects the right model and effort level for the task before drafting. Use when the user asks to write a prompt, improve or fix a prompt, design a system prompt, or check a prompt before running a task — including phrasings like "write me a prompt for", "make this prompt better", "design a system prompt", "check my prompt before I run this", "turn these requirements into a prompt". Applies whether the resulting prompt will be pasted into Claude Code for a coding task or run in a desktop chat or Cowork session for a non-coding task. Also use when the user pastes a prompt and asks why it is not working, when they are authoring an agent system prompt or CLAUDE.md, or when they ask which model or effort level to use. Several widely repeated prompt techniques are now obsolete or rejected by the API, so consult this skill even when prompting from memory feels sufficient.
+---
+
+# Writing prompts
+
+**Models in scope:** Claude Opus 5 and Claude Fable 5 (including Mythos 5). Guidance specific to earlier models is out of scope for this file.
+
+**Why this skill exists:** several widely repeated prompt techniques are now obsolete on these models, rejected by the API, or actively reversed in effect. Your training instincts probably still carry some of them. **When instinct conflicts with Section 3, this file wins.**
+
+**Basis:** Anthropic's official documentation and official/employee public material, snapshot 2026-07-25. For specific API parameters, confirm against the live docs — those are the only surface that tracks model updates.
+
+---
+
+## 0. Workflow
+
+1. **Classify the target scenario** (Section 1) — determines which target reference to read
+2. **Select model and effort yourself** (Section 2) — do not hand this question back to the user
+3. **Fill in missing variables** (end of Section 1) — ask only what you genuinely cannot proceed without
+4. **Draft**: read the matching target file, and `references/snippets.md` when you need a ready-made block
+5. **Run the Section 7 checklist**
+6. **Deliver**: the prompt itself, plus a delivery note covering five things — which model and effort you chose, which assumptions you made on the user's behalf, what is most likely to need tuning, whether anything can only be supplied by the user, and — **if the prompt embeds official English snippets, a reminder not to translate them**. Two or three sentences when that fits; **when there are many assumptions, err on the side of a longer note rather than hiding them** — the user cannot judge whether to change an assumption they cannot see.
+
+---
+
+## 1. Classify the scenario first
+
+The user describes work in Claude desktop, and the resulting prompt goes to one of two places. **Decide which, because the writing differs substantially.**
+
+| Signal | Scenario | Read this |
+|---|---|---|
+| Codebase, files, git, running tests, refactoring, bug fixing, scaffolding a project; the user says they will paste it into Claude Code or VS Code | **A: a task prompt for Claude Code** | `references/for-claude-code.md` |
+| Research, analysis, writing, organizing source material, producing documents/spreadsheets/decks, scheduling, information synthesis; run directly in a desktop chat or Cowork session | **B: a task prompt for chat or Cowork** | `references/for-chat-and-cowork.md` |
+| The user drops a prompt into an ongoing conversation and asks whether it looks right | **C: an inline check** | See Section 6, lightweight path |
+
+When it is not obvious, decide by the **verb** in the request: touching code is A, everything else is B. When both apply (for example, "analyze this repo's tech debt and write it up"), decide by the **final deliverable** — a code change is A, a document is B.
+
+### Filling in variables
+
+Ask only what you genuinely cannot proceed without. When something is missing but reasonably inferable from context, **assume it and state the assumption on delivery** rather than handing the question back.
+
+"Must be settled" below means **this value must have a definite answer**, not that you must ask a question. Infer where you can, and record what you inferred in the delivery note.
+
+| Variable | Requirement |
+|---|---|
+| **Success criteria** | **Must be settled.** Without a decidable success criterion you cannot write a good prompt and cannot check your own work |
+| **Output shape and length** | **Must be settled** when the deliverable is a document or report. Claude Opus 5's default responses run long; unstated, they will overrun |
+| **Available tools or files** | Must be settled for Scenario A (which repo, which files); for Scenario B, depends on whether source material must be read |
+| Target model and effort | **Do not ask.** Decide it yourself per Section 2 and report the decision |
+
+Ask only when a value is **neither inferable nor safe to guess** — that is, when guessing wrong would invalidate the whole prompt. When several such values exist, use AskUserQuestion to ask them **all at once**.
+
+---
+
+## 2. Select model and effort yourself
+
+This step is mandatory before drafting, and the conclusion belongs in the delivery note.
+
+### Choosing the model
+
+| Task profile | Choose | Basis |
+|---|---|---|
+| Complex agentic coding, multi-file features, larger refactors, end-to-end feature work | **Opus 5** | Official positioning: strongest on difficult coding tasks; it completes full tasks rather than leaving stubs or placeholders |
+| Code review and bug-finding | **Opus 5** | High precision and recall; accuracy holds at lower effort settings |
+| Enterprise knowledge work, documents, spreadsheets, decks, long-context analysis | **Opus 5** | 1M token context window as both default and maximum, with instruction following consistent throughout the window |
+| Problems that were previously too complex, long-running, or ambiguous; end-to-end work that takes a person **hours, days, or weeks**; multiday goal-directed autonomous runs | **Fable 5** | This is its stated purpose. The teams seeing the best outcomes apply it to their hardest unsolved problems |
+| Long unattended autonomous operation, heavy parallel subagent coordination | **Fable 5** | Substantially stronger at long-horizon autonomy and subagent dispatch |
+| Offensive cybersecurity, biology and life sciences | **Not Fable 5** | Safety classifiers return `stop_reason: "refusal"`; configure a fallback |
+
+Default to **Opus 5**. Recommend Fable 5 only when the task genuinely sits at the hours-to-weeks scale, and warn the user that individual requests can run for many minutes, which changes how timeouts and interaction are handled.
+
+### Choosing effort
+
+| Model | Starting point | When to adjust |
+|---|---|---|
+| **Opus 5** | Coding and agentic work → `xhigh`; everything else → default `high` | Cost-sensitive and your evals show quality holds → `medium`/`low` (these produce strong quality at a fraction of the tokens and latency of higher settings, and perform above the same settings on prior Opus models); measurable headroom → `max` |
+| **Fable 5** | Default `high` | Most capability-sensitive workloads → `xhigh`; routine work → `medium`/`low` (its lower effort settings still perform well and often exceed `xhigh` performance on prior models); a task that completes but takes longer than necessary → reduce effort |
+
+**What "agentic" means** (this word is the hinge of the effort decision — settle it first): the task requires the model to **decide its own next step and drive forward through repeated tool calls**. Typical markers are many tool-call rounds, plans that change based on intermediate results, and long single runs. Writing code, running tests and fixing failures, and repeatedly searching and cross-checking across many sources all count. By contrast, when the material is already assembled and the job is to produce one artifact in a pass (write a report, build a sheet, translate, rewrite), it is **not** agentic even when the artifact is large — use the default `high`.
+
+**When both readings apply, use this tiebreaker: who decides where to look?** If the user assembled the material and the model just reads through it, not agentic. If the model decides what to go find, and then decides what to look for next based on what it found, agentic.
+
+**Where these parameters live** (what you can actually set differs by surface):
+
+| | Scenario A: Claude Code | Scenario B: chat / Cowork | Raw API |
+|---|---|---|---|
+| effort | Set in the UI or via a slash command | Set in the UI | `output_config: {effort}` |
+| thinking | Managed by the client | Managed by the client | `thinking: {type: "adaptive"}` |
+| `max_tokens` | **Not reachable** | **Not reachable** | You set it; at `xhigh`/`max`, 64k is a reasonable starting point |
+
+So for Scenario A and B delivery notes, **naming the model and the effort tier is enough** — do not write `max_tokens` or `thinking` into them, because the user has no such control on that surface and it only causes confusion. The API-field details below apply only when calling the API directly.
+
+Things you need to know:
+
+- `effort: "high"` produces **exactly the same behavior as omitting the parameter entirely**
+- Effort is a **behavioral signal, not a strict token budget**; it affects all tokens in the response — text, tool calls, and thinking
+- **Lower effort directly reduces the number of tool calls**, combines operations, and skips preamble; higher effort means more tool calls, plans explained before acting, and detailed summaries
+- **Effort controls how much the model thinks, not how much it says.** To shorten responses, prompt for it (snippet 4.2); lowering effort does not reliably work
+- Do not change effort mid-session when prompt caching is enabled — it invalidates the cache
+- At `xhigh`/`max`, leave headroom in `max_tokens` (it is a hard limit on thinking plus response text combined)
+
+Model-specific behaviors and their prescriptions are in `references/models.md`.
+
+---
+
+## 3. Obsolete techniques (hard rules)
+
+These are not style preferences. Each one either errors at the API layer or reverses the behavior you intended.
+
+### 3.1 Do not use prefill (prefilled assistant responses)
+**Neither Opus 5 nor Fable 5 supports it.** Prefilling the last assistant turn returns a 400 error.
+
+Instead: for structured output use **Structured Outputs** or state the schema directly; to eliminate preamble write `Respond directly without preamble. Do not start with phrases like 'Here is...', 'Based on...', etc.`; for classification use a tool with an enum field; for continuations move the prior text into the user message.
+
+### 3.2 Do not use `budget_tokens`
+Neither model supports manual extended thinking; setting it returns 400. On Opus 5 use `thinking: {type: "adaptive"}` with `output_config: {effort: "..."}`. On Fable 5 thinking is always on and cannot be configured — control depth with `effort` alone. For a hard ceiling use `max_tokens`.
+
+### 3.3 Do not stack instructions where context would do
+The core principle: **give context, not a long list of instructions.**
+
+Fable 5's documentation states it plainly — instruction following is improved enough that you can steer most behaviors with a brief instruction rather than enumerating each behavior by name. On that basis the Claude Code team cut their system prompt by more than 80% with no loss of performance.
+
+Rather than enumerating ten "do not X" clauses, write one positive description and state the intent. Change `Default to using [tool]` to `Use [tool] when it would enhance your understanding of the problem`. Express how a tool should be used through the tool description and its parameter design, not through repeated reminders in the system prompt.
+
+> One exception: Claude Code's best practices still say you can tune instructions by adding emphasis (`IMPORTANT`, `YOU MUST`) to improve adherence in **CLAUDE.md**. Keep it to a few lines — the same page warns that if CLAUDE.md is too long, Claude ignores half of it because important rules get lost in the noise.
+
+### 3.4 Do not tell Opus 5 to "check its work again"
+Opus 5 verifies its own work without being told to. Keeping `double-check your answer` / `re-verify before responding` / `include a final verification step` causes **over-verification**: wasted tokens with no gain in quality.
+
+The official wording is to **remove these instructions rather than rewriting them**. The same applies to legacy harness scaffolding that adds separate verification steps.
+
+**What you are removing is "have the model look at its own work again," not "check against external facts."**
+
+| Remove (model self-review) | Keep (checking against external ground truth) |
+|---|---|
+| "check once more that nothing is missing" | Running tests, build exit codes, screenshot comparison (Scenario A) |
+| "re-verify your answer" | Reconciling what source A says against source B, and stating which you took (Scenario B) |
+| "use a subagent to double-check your own work" | Every figure must trace to a specific location in a source document |
+
+The test is simple: **if the basis for the check comes from the model itself, remove it; if it comes from something externally verifiable, keep it.** In Scenario B research and reporting tasks, cross-source reconciliation *is* the task, not self-verification — do not delete it by mistake.
+
+Fable 5's long autonomous runs go the other way and want explicit periodic verification — see `references/models.md`.
+
+### 3.5 Do not stack negative constraints
+`Never do X` lands with unusual force on Claude, and when it collides with a later user instruction the model gets badly confused. Give a positive description with a reason:
+
+- ✗ `NEVER use ellipses`
+- ✓ `Your response will be read aloud by a text-to-speech engine, so never use ellipses since the text-to-speech engine will not know how to pronounce them.`
+
+The second version still contains "never" — but it hangs on a **reason**. Once the model knows why, it can decide for itself in edge cases the rule never covered.
+
+### 3.6 Do not substitute absolute rules for judgment
+- ✗ `Never write multi-paragraph docstrings or multi-line comment blocks — one short line max`
+- ✓ `Write code that reads like the surrounding code: match its comment density, naming, and idiom`
+
+### 3.7 Do not repeat an instruction across the system prompt and a tool description
+Guidance on how to use a tool belongs **in the tool description, once**.
+
+### 3.8 Do not rely on `temperature` for variety
+Support for sampling parameters is narrowing on newer models; some return 400 for non-default values. Get variety from the prompt instead — the most effective move is to have the model **propose options before committing**:
+```
+Before building, propose 4 distinct visual directions tailored to this brief (each as: bg hex / accent hex / typeface, plus a one-line rationale). Ask the user to pick one, then implement only that direction.
+```
+
+### 3.9 Do not ask the model to reproduce or display its internal reasoning
+Instructions like "show your thinking" or "explain your reasoning process" **can trigger** the `reasoning_extraction` refusal category on **Fable 5**, raising the rate of refused requests and fallbacks. For reasoning visibility, read the structured `thinking` blocks from adaptive thinking instead; to surface progress during a long run, use a send-to-user tool (snippet 4.23).
+
+### 3.10 Do not write "do not think" or "do not reason"
+**With thinking disabled**, Opus 5 can emit `<thinking>` and other internal XML tags into its visible response, and a system-prompt rule telling it not to think **increases** that leakage. (Opus 5 runs thinking-on by default and cannot disable it at `xhigh`/`max`, so this only applies to integrations that deliberately turn thinking off.) Use the general form, and do not name the thinking tags specifically — naming them works less well:
+```
+Do not include internal or system XML tags in your response.
+```
+
+### 3.11 Console prompt improver output needs a manual pass
+The Console prompt improver is still offered, but its own documentation states that what it produces includes "Strategic prefills that guide Claude's initial responses" — and prefill returns 400 on both models in scope. Use it to escape the blank page if you like, then **re-run this section over the result**.
+
+---
+
+## 4. General skeleton and structure
+
+**Principle: the smallest set of information that fully outlines your expected behavior.** Take what you need; do not pad the structure for its own sake.
+
+```
+<role_and_goal>
+One or two sentences. Who it is and what it must achieve. Not a résumé.
+</role_and_goal>
+
+<background_information>
+Domain knowledge, business constraints, and terminology the model cannot infer.
+Not general knowledge it already has.
+</background_information>
+
+<instructions>
+The things that must happen, numbered when order or completeness matters.
+Positive descriptions, each with its reason.
+</instructions>
+
+## Output description
+Shape, length, format. Stated as what to do, not what to avoid.
+```
+
+**Structuring:** XML tags or Markdown headers. Use consistent, descriptive tag names, and nest them when the content has a natural hierarchy. The pattern that holds: single sentences and short direct requirements read fine as plain text; a block that needs to be treated as one named unit of behavior is what earns an XML wrapper.
+
+**Long-context placement (20k+ tokens):** put long material **at the top** and the query and instructions **at the end**. Queries at the end can improve response quality by up to 30 percent in tests, especially with complex, multidocument inputs. Wrap multiple documents in `<document>` tags with `<source>` and `<document_content>` subtags.
+
+### Whether to give few-shot examples
+
+The single most misapplied decision. The official documentation and the Claude Code team appear to contradict each other; they are addressing different situations.
+
+| Goal | Give examples? | Basis |
+|---|---|---|
+| Lock output **format, tone, or structure** | **Yes** — 3–5, diverse, wrapped in `<example>` tags | Official docs: "Examples are one of the most reliable ways to steer Claude's output format, tone, and structure" |
+| An agent system prompt where the model should **exercise judgment and creativity** | **No** — improve the tool interface design instead | Claude Code team: "removing examples was extremely helpful, because it was just more creative than the examples we gave it" |
+| Demonstrate a **reasoning pattern** | Use `<thinking>` tags inside the few-shot examples | Official docs |
+
+**One line to remember: examples constrain. Use them when you want constraint; drop them when you want creativity.**
+
+---
+
+## 5. Reference files
+
+Read as needed; do not load everything. All are linked directly from this file.
+
+| File | When to read |
+|---|---|
+| **`references/for-claude-code.md`** | Scenario A. How to write a Claude Code task prompt, the verification affordance you must supply, the explore-plan-implement flow, and what belongs in CLAUDE.md versus this one prompt |
+| **`references/for-chat-and-cowork.md`** | Scenario B. Writing for desktop chat and Cowork sessions, material placement, deliverable shapes, and the Cowork-specific file and skill capabilities |
+| **`references/models.md`** | After choosing the model. Known behaviors of Opus 5 and Fable 5 with their prescriptions, and the one place where their verification strategies invert |
+| **`references/snippets.md`** | When you need a ready-made block. 25 **verbatim** English snippets from official docs, indexed by number, with a note on which must be copied word for word and which may be adapted |
+| **`references/agents.md`** | When the prompt will drive a long-running autonomous agent. Context engineering, multi-window workflows, cache hits, letting the model orchestrate itself |
+
+### When you use an English snippet
+
+Producing a non-English prompt with embedded official English blocks is the normal case, and it is handled the same way every time:
+
+- Place the English **as a whole block**; do not splice it into surrounding sentences. Put it inside the section it governs, immediately after that section's heading
+- **Tell the user in the delivery note that these blocks are official wording and should not be translated or "tidied up."** Seeing mixed languages, a user will naturally want to unify them, and doing so breaks the tuning
+- If you need only one or two blocks and they are marked "general policy" in `references/snippets.md`, express them in the user's language instead of mixing for the sake of two sentences
+
+Which snippets must be verbatim and which may be adapted is in the grading table at the top of `references/snippets.md`.
+
+---
+
+## 6. Three request types, handled differently
+
+**Writing or revising a prompt (Scenario A/B):** run the Section 0 workflow, and write the delivery note to the Section 0 step 6 spec. Do not add explanations, disclaimers, or alternative-approach lists the user did not ask for.
+
+**Auditing an existing prompt:** compare against Section 3 point by point and report **the specific problem and the specific fix**. Do not replace their prompt with a new one unless they asked for a rewrite. Order findings by severity: things that cause API errors (3.1, 3.2, 3.8) first, behavior-reversing issues (3.4, 3.9, 3.10) next, style last.
+
+**Inline check mid-conversation (Scenario C):** go light. **Do not make a production of it** — do not run the full workflow, do not read the reference files. Scan the Section 3 hard rules; if something is wrong say "this line is a problem: X, change it to Y"; if nothing is wrong say so and return to what you were discussing. The user wants to get back to what they were doing, not to receive an audit report.
+
+---
+
+## 7. Pre-delivery checklist
+
+- [ ] You chose the model and effort yourself, and said so in the delivery note
+- [ ] If official English snippets are embedded: the delivery note tells the user not to translate or rewrite them
+- [ ] No prefill, no `budget_tokens`
+- [ ] No `CRITICAL: You MUST` / `If in doubt, use [tool]` stacked to prevent undertriggering (**wording inside official snippets does not count** — for example 4.7 contains `you MUST read the file`, which is tuned official text, copy it as is)
+- [ ] Targeting Opus 5: **no** self-verification or double-check instructions (external deterministic checks do not count)
+- [ ] Targeting Fable 5: no "show your reasoning" instructions; long autonomous runs carry the progress-truthfulness constraint
+- [ ] Every constraint is stated positively and carries its reason
+- [ ] Every instruction has been read against: **how would a well-intentioned human misinterpret this?**
+- [ ] No instruction repeated across the system prompt and a tool description
+- [ ] The examples decision follows the Section 4 table — not added or removed reflexively
+- [ ] Long-context case: material first, query last
+- [ ] Output length is explicitly specified (especially necessary for Opus 5)
+- [ ] There is a decidable success criterion; Scenario A has a check the model can run itself
+- [ ] Read it through and cut every sentence whose removal would change nothing
+- [ ] Golden test: **hand this prompt to a colleague with no context on the task — would they be confused?**
+
+---
+
+## 8. Symptom to prescription
+
+Snippet numbers refer to `references/snippets.md`.
+
+| Symptom | Prescription |
+|---|---|
+| Generic response | Add specific constraints, add the success criterion, add a modifier like "go beyond the basics" |
+| Answers the wrong question | Supply the real goal and background — say why |
+| Unstable format | Add 3–5 `<example>` blocks; or use Structured Outputs |
+| Preamble | `Respond directly without preamble.` |
+| Fabricates content (general) | Explicitly permit not knowing: `If the data is insufficient to draw conclusions, say so rather than speculating.` |
+| Makes claims about code or files it never opened | Snippet 4.7 (essential for any codebase task) |
+| Suggests instead of acting | Use a direct verb (`Change this function` beats `Can you suggest changes`); or add snippet 4.8 |
+| Response too long (prose) | See "Choosing a length control" below. **Note that lowering effort does not work** |
+| Agent narration too chatty mid-run | Snippet 4.3. This is a separate problem from prose length; the length controls do not reach it |
+| Over-engineering | Snippet 4.6 |
+| Subagent overuse | Snippet 4.10 |
+| Too much thinking, high latency | Snippet 4.15; or lower effort |
+| Shallow reasoning on hard problems | **Raise effort** rather than prompting around it |
+| A rule keeps being ignored despite repeated reminders | The prompt is too long and the rule is buried → cut it down, or move to a deterministic mechanism (hook, tool design, schema) |
+| Code review under-reports | Snippet 4.16; move filtering downstream |
+| Long task fabricates progress or overstates completion | Snippet 4.17 |
+| Stops to ask questions during an unattended run | Snippet 4.18 |
+| Wraps up early as context fills | Snippet 4.19; better still, do not show the model a remaining-budget countdown |
+| Final summary of a long session is unreadable | Snippet 4.21 |
+| Did things nobody asked for | Snippet 4.24; scope creep specifically → snippet 4.5 |
+| Front-end output has the generic AI look | Snippet 4.25 |
+| Change may be irreversible / touches shared environments | Snippet 4.11 |
+| Bends the code to make tests pass | Snippet 4.12 |
+| Report is all short bullets, unreadable as prose | Snippet 4.13 |
+| Needs to read many files at once / calls can run concurrently | Snippet 4.9 |
+| Math renders as LaTeX in an environment that cannot display it | Snippet 4.14 |
+| The request never states what it is for | The template in snippet 4.20 |
+| Agent needs to accumulate lessons across sessions | Snippet 4.22 |
+| Long async agent must deliver content to the user verbatim | Snippet 4.23 |
+
+### Choosing a length control
+
+**Pick one primary mechanism.** Stacking them works against the minimal-information principle.
+
+- **If you can give a number, give a number** ("300–400 words", "3–6 bullets, each under 15 words"). Decidable and most effective. First choice
+- **Only when you cannot** (the output shape itself is not fixed) fall back to snippet 4.2's general conciseness instruction
+
+**Two supplements that may be added on top** — they govern different problems and do not conflict with the primary mechanism:
+
+- When the deliverable is **written to a file**, add snippet 4.4. Files run longer than conversational replies, and a word count usually only constrains the body, not the padding sections the model adds on its own. **When you gave a number and it writes a file, use both**
+- When the system prompt is long and you are worried the length requirement gets buried, append a short `<tone_preference>` reminder **at the end**
+
+In one line: **a number or 4.2, pick one; 4.4 and the trailing reminder stack as needed.**
+
+---
+
+## 9. Meta-principles (for anything this file does not cover)
+
+1. **Minimal information set**: the fewest tokens that fully outline the expected behavior.
+2. **The right altitude**: neither brittle hardcoded logic nor guidance so vague it carries no signal.
+3. **More context, fewer instructions.**
+4. **Describe what you want, rather than forbidding what you do not.**
+5. **When there are tools, fix the tools first**: interface design shapes behavior more than prompt text does.
+6. **Anything that can be enforced deterministically should not be a prompt**: use a hook, a schema, or a type constraint instead of writing "please make sure to."
+7. **As the model gets stronger, scaffolding becomes dead weight**: periodically go back and delete what you added for a weaker model.
+8. **Test after changing**: run it on a real task rather than judging by feel.

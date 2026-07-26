@@ -1,0 +1,75 @@
+# Tuning by model: Opus 5 and Fable 5
+
+> Snippet numbers (4.2, 4.17, …) refer to `snippets.md`.
+
+## Claude Opus 5
+
+Default effort `high`; thinking on by default; 1M token context window as both default and maximum.
+
+| Known behavior | Prescription |
+|---|---|
+| User-facing responses run longer than prior Opus models'; **lowering effort does not reliably shorten visible output** | Prompt for conciseness explicitly (4.2) |
+| Narrates readily during agentic work; per-message output is often long | Describe the cadence you want (4.3) |
+| Files written to disk (reports, Markdown, summaries) run long | Add length calibration (4.4) |
+| **Verifies its own work without being told to** | **Remove** every verification instruction (SKILL.md 3.4). Official wording is remove, not rewrite |
+| Expands task scope, adding steps that were not requested | Constrain scope explicitly (4.5) |
+| Delegates to subagents more readily than prior models | Give explicit criteria or a deterministic cap (4.10) |
+| Narrates corrections to its own earlier statements more than prior models | `Only correct an earlier statement when the error would change the user's code, conclusions, or decisions. State corrections plainly and briefly, then continue the task. For slips that change nothing for the user, make the fix and move on without noting it.` |
+| Follows "only report high-severity issues" **literally** in code review | Use 4.16; move filtering downstream |
+| `low` and `medium` produce strong quality at a fraction of the tokens and latency of higher settings, and perform above the same settings on prior Opus models | Re-run an effort sweep on your own evals. **General tasks start at the default `high`; coding and agentic work start at `xhigh`** |
+| With thinking disabled, occasionally writes a tool call into user-facing text instead of emitting a `tool_use` block (the call never runs, and in agentic loops the leaked text stays in history and affects later turns) | **Keep thinking enabled** and control cost with lower effort. If you must disable it: `You may say a brief sentence before using a tool.` |
+| With thinking disabled, can emit `<thinking>` or other internal XML tags into visible output | Remove any rule telling the model not to think — it increases leakage. Use the general form and do not name the tags: `Do not include internal or system XML tags in your response.` |
+
+Thinking can be disabled only at effort `high` or below. At `xhigh`/`max`, leave headroom in `max_tokens` — 64k is a reasonable starting point. This applies only when calling the API directly.
+
+## Claude Fable 5 / Mythos 5
+
+Default effort `high`; thinking is always on and cannot be configured.
+
+Positioning: problems that were previously too complex, long-running, or ambiguous for prior models; particularly effective at end-to-end work that takes a person hours, days, or weeks. The teams seeing the best outcomes apply it to their hardest unsolved problems; testing it only on simpler workloads tends to undersell its capability range.
+
+| Known behavior | Prescription |
+|---|---|
+| **Individual requests can run for many minutes; autonomous runs can extend for hours** | Adjust client timeouts, streaming, and progress indicators before migrating; consider checking on runs asynchronously rather than blocking |
+| Overplans when the task is ambiguous | `When you have enough information to act, act. Do not re-derive facts already established in the conversation, re-litigate a decision the user has already made, or narrate options you will not pursue in user-facing messages. If you are weighing a choice, give a recommendation, not an exhaustive survey. This does not apply to thinking blocks.` |
+| At higher effort, performs unrequested tidying or refactoring | Use the **Fable 5 variant** in 4.6 |
+| **Instruction following is strong enough to steer a class of behavior with one brief instruction** | Use short instructions instead of long enumerations |
+| Can fabricate progress on long autonomous runs | **4.17 — the highest-value single snippet for this model** |
+| Takes unrequested actions (drafting an email, creating defensive git branches) | Define boundaries explicitly (4.24) |
+| Dispatches parallel subagents more readily | **Encourage it**, but give explicit delegation criteria; prefer asynchronous communication over blocking; long-lived subagents save time and cost through cache reads |
+| Deep into a long session, occasionally ends a turn stating intent without issuing the tool call | A "continue" suffices; for autonomous pipelines use 4.18 |
+| Suggests a new session when shown a remaining-token countdown | 4.19; better still, do not surface the countdown |
+| **Skills written for prior models are often too prescriptive and can degrade output quality** | Review and prune. Fable 5 also updates skills on the fly based on what it learns |
+| Instructing it to reproduce its reasoning triggers refusals | See SKILL.md 3.9 |
+
+**Scaffolding advice:** start at the top of your difficulty range — pick a task harder than what you would assign to prior models, and have it scope the work, ask clarifying questions, and execute.
+
+## Where the two models invert: verification
+
+The single easiest thing to get wrong. Two official positions look contradictory; they address different situations.
+
+| Situation | Do | Basis |
+|---|---|---|
+| **Opus 5, ordinary tasks** | **Remove** all verification and re-check instructions | It verifies itself; keeping them causes over-verification |
+| **Fable 5, long autonomous runs** | **Add** explicit periodic self-checking | Official wording: `Establish a method for checking your own work at an interval of [X] as you build. Run this every [X interval], verifying your work with subagents against the specification.` |
+
+The reconciling detail: officially, **separate, fresh-context verifier subagents tend to outperform self-critique**. So what you remove is "have the model look at its own work again"; what you add is "have a clean context check it." These are not in conflict.
+
+(This also does not conflict with 4.10's "do not use subagents to verify or double-check your own work" — 4.10 addresses Opus 5 on ordinary tasks, this addresses Fable 5 on multi-hour autonomous runs.)
+
+## Effort reference
+
+`max` > `xhigh` > `high` (default) > `medium` > `low`
+
+**The two models have different starting points — do not carry one over to the other:**
+
+- **Opus 5**: coding and agentic work start at `xhigh`; everything else at the default `high`
+- **Fable 5**: **start at the default `high`**, move to `xhigh` only for the most capability-sensitive workloads, and step down to `medium`/`low` for routine work — its lower effort settings often exceed `xhigh` performance on prior models
+
+Points that matter:
+
+- `effort: "high"` produces exactly the same behavior as omitting the parameter
+- Effort is a behavioral signal, not a strict token budget; it affects text, tool calls, and thinking alike
+- **Lower effort directly reduces the number of tool calls**, combines operations, and skips preamble
+- Do not change effort mid-session with prompt caching enabled — it invalidates the cache
+- At `xhigh`/`max`, leave headroom in `max_tokens` (thinking plus response text combined; 64k is a reasonable start). Relevant only when calling the API directly
