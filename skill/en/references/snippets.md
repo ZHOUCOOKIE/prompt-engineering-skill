@@ -1,6 +1,6 @@
 # Official prompt snippet library
 
-> Every English snippet below is **verbatim text from Anthropic's official documentation**, checked character by character. Each row below links to the page it came from — the docs change, so treat the live page as authoritative.
+> Every English snippet below **except 4.1** is **verbatim text from Anthropic's official documentation**, checked character by character; 4.1 is a decision table, not a quotation. Every quoted row links to the page it came from — the docs change, so treat the live page as authoritative.
 
 ## How to use these
 

@@ -25,7 +25,7 @@ The Claude Code team cut their own system prompt by **more than 80%** with no lo
 
 1. **Classifies the scenario.** A prompt destined for Claude Code is written very differently from one that runs in a desktop chat or Cowork session. The skill routes to the right playbook.
 2. **Picks the model and effort itself** — it does not hand that question back to you — and states the choice with its reasoning.
-3. **Drafts** against a checklist of obsolete techniques, using 25 verbatim official prompt snippets.
+3. **Drafts** against a checklist of obsolete techniques, using an indexed library of 24 verbatim official prompt snippets.
 4. **Self-checks** before delivering.
 
 It also handles two other request shapes: auditing a prompt you already have, and a lightweight inline "does this line look right?" check mid-conversation that deliberately does *not* turn into an audit report.
@@ -59,6 +59,7 @@ skill/en/            English edition — SKILL.md + 5 reference files
 skill/zh/            Chinese edition — same structure
 dist/                Packaged .skill files
 single-file/         Merged single-file editions (generated from skill/)
+docs/                Background reading — why the rules are what they are (EN + ZH)
 SOURCES.md           Every source, with what was taken from it
 ```
 
@@ -71,6 +72,12 @@ The skill uses [progressive disclosure](https://platform.claude.com/docs/en/agen
 | `models.md` | After the model is chosen — behaviors and prescriptions |
 | `snippets.md` | A ready-made official snippet is needed |
 | `agents.md` | The prompt drives a long-running autonomous agent |
+
+## Background reading
+
+The skill is written to be executed, not studied — it states rules without arguing for them. [`docs/study-guide.md`](docs/study-guide.md) is the other half: **why** each rule is what it is, which older habit it displaces, and how to read the places where Anthropic's own guidance appears to contradict itself. A [Chinese edition](docs/study-guide.zh.md) covers the same ground.
+
+It is worth reading if you want to disagree with something here on an informed basis, if you maintain prompts and need to know which parts will rot first, or if you learned prompt engineering before 2026 and want the diff.
 
 ## Scope
 
@@ -88,21 +95,25 @@ Every factual claim traces to an official Anthropic source. The following pages 
 - Skill authoring best practices
 - The prompt engineering overview
 
-The 25 English snippets were extracted programmatically from those sources and diffed character-for-character; they are byte-identical between the English and Chinese editions.
+The English snippets were extracted programmatically from those sources and diffed character-for-character; they are byte-identical between the English and Chinese editions.
 
-The skill then went through **four adversarial review rounds** with independent agents, using both a coding task and a non-coding task. Twenty-eight defects were found and fixed. Three examples of what those rounds caught:
+The skill then went through **four adversarial review rounds** with independent agents, using both a coding task and a non-coding task; twenty-eight defects were found and fixed. The English edition took a further round of its own, and each document in `docs/` took three more, run until a round stopped producing new findings. Three examples of what those rounds caught:
 
 - The headline rule "give it a check it can run" **presupposed the check exists** — which is exactly wrong for the most common request shape (legacy code, low coverage, nobody willing to touch it). The skill now has a full characterization-test path: pin current behavior *including suspected bugs*, freeze the net, then refactor.
 - The official Console prompt improver still advertises "Strategic prefills" in its output — a technique that now returns 400. The skill flags this.
 - A checklist item banning `You MUST` collided with official snippet 4.7, which contains `you MUST read the file`. Carved out.
 
-Two findings reported by reviewers were **refuted** on re-verification, both concerning the Opus 5 effort recommendation. Direct fetches of the source page across three separate attempts consistently show `for coding and agentic work, xhigh remains the recommended starting point`; the contradicting reports could not be reproduced. If you find otherwise in the live docs, please open an issue — the docs are the authority, not this repo.
+One more round happened after that, and it is the round worth reading about. Two reviewers had reported that the Opus 5 effort recommendation was "start at `high`"; three direct fetches of the source page said `xhigh` instead, so the reports were filed as unreproducible. On re-verification a day later, **the reviewers were right and the page had changed** — it now reads "Start with the default (`high`) … and step up to `xhigh` for demanding coding and agentic work," and the effort reference has gained per-model sections that did not exist before. The guidance here was corrected to match, and the whole episode is written up in [SOURCES.md](SOURCES.md#4-the-opus-5-effort-starting-point--not-a-conflict-a-documentation-change).
+
+The moral is the operating assumption of this repo: **a snapshot of fast-moving documentation is wrong by default, not by exception.** If you find a divergence, open an issue — the live docs are the authority, not this repo.
 
 ## A note on the snippets
 
-The 25 English snippets in `references/snippets.md` are **verbatim excerpts from Anthropic's public documentation** — roughly 2,100 words in total, drawn from four documentation pages. They are included verbatim because paraphrasing them discards the behavior they were tuned to produce; Anthropic publishes them precisely so that developers paste them into prompts.
+`references/snippets.md` has 25 numbered entries, of which **24 are verbatim excerpts from Anthropic's public documentation** (4.1 is a decision table, not a quotation). Counted as text: 32 quoted blocks, roughly 2,100 words, drawn from three documentation pages — the prompting best practices page and the Opus 5 and Fable 5 model pages. They are included verbatim because paraphrasing them discards the behavior they were tuned to produce; Anthropic publishes them precisely so that developers paste them into prompts.
 
-Attribution is per snippet: the index table in `snippets.md` links every entry to the page it came from, and [SOURCES.md](SOURCES.md) records what was taken from each source. All rights to that text remain with Anthropic.
+Beyond the snippet library, the rest of the skill quotes roughly 530 further words of official wording, and each study guide in [`docs/`](docs/) quotes roughly 500 more inline — individual sentences, attributed where they appear.
+
+Attribution is per snippet: the index table in `snippets.md` links every quoted entry to the page it came from, and [SOURCES.md](SOURCES.md) records what was taken from each source. All rights to that text remain with Anthropic.
 
 For context on why this seemed reasonable: Anthropic publishes [`anthropics/skills`](https://github.com/anthropics/skills) under Apache 2.0 and [`anthropics/claude-cookbooks`](https://github.com/anthropics/claude-cookbooks) under MIT, both containing prompt material intended for reuse. This repository is not affiliated with or endorsed by Anthropic. **If you are Anthropic and would prefer links to inline text, open an issue and it will be changed the same day.**
 

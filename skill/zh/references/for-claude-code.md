@@ -213,7 +213,7 @@ Claude Code 的大部分最佳实践都源自同一个约束：**上下文窗口
 | **Time-based** | `/loop 5m check my PR, address review comments, and fix failing CI` | 周期性工作、对接外部系统 |
 | **Proactive** | `/schedule every hour: check #project-feedback for bug reports` | 定义明确的持续工作流：bug 报告、issue 分诊、迁移 |
 
-控成本：**确定性的活用脚本做**（跑脚本比推理便宜），周期匹配实际变化频率，大规模跑之前先试点。官方结论——**模型和 effort 档位是循环成本上最大的两个杠杆。**
+控成本：**确定性的工作用脚本做**（跑脚本比逐 token 推理便宜），周期匹配实际变化频率，大规模跑之前先试点。官方结论——**模型和 effort 档位属于循环成本上最大的几个杠杆。**
 
 ---
 

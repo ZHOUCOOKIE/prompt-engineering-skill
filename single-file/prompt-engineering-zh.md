@@ -99,14 +99,23 @@
 
 ### 选 effort
 
-| 模型 | 起步值 | 何时调整 |
-|---|---|---|
-| **Opus 5** | 编码与 agentic 工作 → `xhigh`；其余 → 默认 `high` | 成本敏感且评测显示质量不掉 → `medium`/`low`（这两档质量强成本低，且优于旧 Opus 同档）；确有余量 → `max` |
-| **Fable 5** | 默认 `high` | 最吃能力的任务 → `xhigh`；日常例行工作 → `medium`/`low`（它的低 effort 常优于旧模型的 `xhigh`）；任务能完成但耗时超出需要 → 降 effort |
+**两个模型都从默认 `high` 起步。**你真正要判断的是什么时候往*上*调。
 
-**"agentic" 指什么**（这个词是 effort 决策的分水岭，先判断清楚）：任务需要**模型自己决定下一步做什么、并反复调用工具推进**，典型特征是多轮工具调用、中途要根据结果改变计划、单次运行时间长。写代码、跑测试改 bug、跨多份材料反复检索求证都算。反之，材料已经给全、一次性产出一份东西（写报告、做表、翻译、改写），即使产出物很大也**不算** agentic，用默认 `high` 即可。
+| 模型 | 起步值 | 什么时候上调 | 什么时候下调 |
+|---|---|---|---|
+| **Opus 5** | **`high`**（默认值） | 编码或 agentic 工作**足够重**时 → `xhigh`；任务值得不设上限地烧 token → `max` | 在意成本或延迟、且评测显示质量不掉 → `medium`/`low`，可以放开用，把它当成控制 token 成本和响应时间的主要手段。这两档质量强，而 token 与延迟只是高档位的一个零头 |
+| **Fable 5** | **`high`**（默认值） | 属于你手上最吃能力的那一档任务 → `xhigh` | 日常例行工作 → `medium`/`low`，它的低 effort 常优于旧模型的 `xhigh`；任务能完成但耗时超出需要，也该降 |
 
-**两边都沾时看这一条**：**谁决定去哪找材料？** 用户把材料攒好放在那儿、模型只是逐份读完 → 不算 agentic；模型自己决定该去查什么、查完再根据结果决定下一步查什么 → 算。
+如果你的 effort 设置是从更早的模型沿用过来的，官方要求是**在自己的评测上重新做一次 effort 扫描**，而不是直接照搬。
+
+**"足够重的 agentic 工作"指什么**（这是上调决策的分水岭，先判断清楚）。两个条件，必须同时成立：
+
+1. **agentic**：任务需要**模型自己决定下一步做什么、并反复调用工具推进**，典型特征是多轮工具调用、中途要根据结果改变计划、单次运行时间长。写代码、跑测试改 bug、跨多份材料反复检索求证都算。反之，材料已经给全、一次性产出一份东西（写报告、做表、翻译、改写），即使产出物很大也**不算** agentic。
+2. **足够重**：这一趟跑得久。官方对 `xhigh` 的定位是长周期 agentic 与编码任务——**超过 30 分钟、token 预算以百万计**。三次工具调用就能修完的 bug，是 agentic，但不够重。
+
+**拿不准算不算 agentic 时看这一条**：**谁决定去哪找材料？** 用户把材料攒好放在那儿、模型只是逐份读完 → 不算；模型自己决定该去查什么、查完再根据结果决定下一步查什么 → 算。
+
+**拿不准就留在 `high`。** 一个后来发现确实很重的任务少调了一档，代价小于把每个日常任务都跑在 `xhigh` 上。
 
 **这些参数在哪儿设**（场景不同，能碰的东西不同）：
 
@@ -555,14 +564,14 @@ Before building, propose 4 distinct visual directions tailored to this brief (ea
 </background_information>
 
 <instructions>
-按序号列出必须做的事。顺序重要时用编号。用正面描述，附上"为什么"。
+列出必须做的事；顺序或完整性重要时用编号。用正面描述，附上"为什么"。
 </instructions>
 
 ## Output description
 输出的形态、长度、格式。用"要什么"而非"不要什么"表述。
 ```
 
-**结构化手段**：XML 标签或 Markdown 标题分区。标签名一致且有描述性。规律是——单句或单段的直接要求用纯文本，成块的、需要被当作一个命名单元的行为规范才包 XML。
+**结构化手段**：XML 标签或 Markdown 标题分区。标签名一致且有描述性。官方片段库里的规律只朝一个方向成立——**凡是包了标签的都是常驻方针**，但不少常驻方针也是纯文本。判据不是长度（库里最短的带标签块只有一句话），而是**这一块需不需要被当作一个有名字的单元来对待**：与周围内容隔开，或者被别处按名字引用。
 
 **长上下文（20k+ token）摆位**：长材料放**最前面**，问题和指令放**最后面**。官方测试中这一条最多可提升 30% 的回答质量。多文档用 `<document>` 包裹，内含 `<source>` 和 `<document_content>`。
 
@@ -610,11 +619,11 @@ Before building, propose 4 distinct visual directions tailored to this brief (ea
 | 更积极派生子智能体 | 显式设限（4.10） |
 | 更频繁地口头纠正自己此前的说法 | `Only correct an earlier statement when the error would change the user's code, conclusions, or decisions. State corrections plainly and briefly, then continue the task. For slips that change nothing for the user, make the fix and move on without noting it.` |
 | 代码审查中"只报高危"会被字面执行 | 用 4.16 |
-| low / medium effort 质量强、成本低，且优于旧 Opus 模型的同档设置 | 重新做一次 effort 扫描。**一般任务从默认 `high` 起步；编码与 agent 任务官方建议起步值为 `xhigh`** |
+| `low` / `medium` effort 质量强，而 token 与延迟只是高档位的一个零头 | **从默认 `high` 起步**，只有足够重的编码与 agent 工作才上 `xhigh`。评测显示质量不掉的地方放开用 `low`/`medium`，把它当成控成本和控延迟的主要手段。设置若从更早的模型沿用而来，重新做一次 effort 扫描 |
 | 关闭 thinking 时可能把 tool call 写成文本（该调用不会执行，且泄漏文本会留在历史里污染后续轮次） | **首选保持 thinking 开启**，用低 effort 控成本。必须关闭时加：`You may say a brief sentence before using a tool.` |
 | 关闭 thinking 时可能把 `<thinking>` 等内部标签泄漏到可见输出 | 删掉 system prompt 里"不要思考/不要推理"的规则（它会加剧泄漏），改用通用形式：`Do not include internal or system XML tags in your response.` 不要点名 thinking 标签，点名反而更差 |
 
-其他：1M token 上下文为默认且最大；`xhigh`/`max` 下不能关闭 thinking（返回 400）；**在 `xhigh` 或 `max` effort 下**运行时要给 `max_tokens` 留足空间，官方建议以 64k 为合理起点。
+其他：1M token 上下文为默认且最大；`xhigh`/`max` 下不能关闭 thinking——在这两档设 `thinking: {"type": "disabled"}` 会返回 400。多数任务上，**开着 thinking 跑 `low` effort，效果好于在相近成本下关掉 thinking**。**在 `xhigh` 或 `max` effort 下**运行时要给 `max_tokens` 留足空间，官方建议以 64k 为合理起点。
 
 ### Claude Fable 5 / Mythos 5（默认 effort: high；thinking 始终开启且不可关闭）
 
@@ -653,17 +662,21 @@ Before building, propose 4 distinct visual directions tailored to this brief (ea
 
 `max`（无上限）> `xhigh`（长周期 agent/编码）> `high`（默认）> `medium`（成本敏感）> `low`（短任务、子智能体、低延迟）
 
-**两个模型的起步值不一样，这点容易照搬出错：**
+**两个模型都从默认 `high` 起步，区别在什么时候上调：**
 
-- **Opus 5**：编码与 agent 工作起步用 `xhigh`；其余从默认 `high` 起步
-- **Fable 5**：**从默认 `high` 起步**，最吃能力的任务才上 `xhigh`，日常工作降到 `medium`/`low`。它的低 effort 常常还优于旧模型的 `xhigh`
+- **Opus 5**：**足够重**的编码与 agent 工作上 `xhigh`；值得不设上限烧 token 的任务上 `max`。评测显示质量不掉的地方，放开用 `low`/`medium`，把它当成控制 token 成本和响应时间的主要手段
+- **Fable 5**：只有最吃能力的任务才上 `xhigh`，日常工作降到 `medium`/`low`。它的低 effort 常常还优于旧模型的 `xhigh`
+
+官方对 `xhigh` 的定位是"面向长周期工作的扩展能力"：**超过 30 分钟、token 预算以百万计**的长周期 agentic 与编码任务——这就是"足够重"的具体标准。`low` 的定位是"最省"，用于需要最快速度与最低成本的简单任务，官方点名的例子是子智能体。
+
+**如果 effort 设置是从更早的模型沿用过来的，要在自己的评测上重新做一次 effort 扫描，而不是直接照搬。** 两个模型的页面都写了这一条。
 
 要点：
 - `effort: "high"` 与完全不传该参数**行为完全相同**
 - effort 是**行为信号而非硬预算**，影响正文、工具调用和思考的全部 token
 - **低 effort 会直接减少工具调用次数**、合并操作、省去前言；高 effort 则更多工具调用、先讲计划、给详细总结
 - 启用 prompt caching 的会话中不要中途改 effort，会导致缓存失效
-- `xhigh`/`max` 下要给 `max_tokens` 留足空间（它是思考+正文的**总**上限，官方建议 64k 起）。此项仅在直接调 API 时需要关心
+- 要给 `max_tokens` 留足空间——它是思考加正文的**总**上限。Opus 5 在 `xhigh`/`max` 下要注意（官方建议 64k 起）；Fable 5 的页面则在 `high` 和 `xhigh` 两档都点了这件事。此项仅在直接调 API 时需要关心
 
 ---
 
@@ -882,7 +895,7 @@ Claude Code 的大部分最佳实践都源自同一个约束：**上下文窗口
 | **Time-based** | `/loop 5m check my PR, address review comments, and fix failing CI` | 周期性工作、对接外部系统 |
 | **Proactive** | `/schedule every hour: check #project-feedback for bug reports` | 定义明确的持续工作流：bug 报告、issue 分诊、迁移 |
 
-控成本：**确定性的活用脚本做**（跑脚本比推理便宜），周期匹配实际变化频率，大规模跑之前先试点。官方结论——**模型和 effort 档位是循环成本上最大的两个杠杆。**
+控成本：**确定性的工作用脚本做**（跑脚本比逐 token 推理便宜），周期匹配实际变化频率，大规模跑之前先试点。官方结论——**模型和 effort 档位属于循环成本上最大的几个杠杆。**
 
 ---
 
@@ -1225,6 +1238,7 @@ bash 杠杆大但缺乏可观测性，harness 无法拦截、把关或审计。�
 - [ ] 目标是 Fable 5：没有"展示你的思考过程"类指令；长自主运行已加进度真实性约束
 - [ ] 所有约束是正面表述，且带了「为什么」
 - [ ] 每条指令都想过：**一个善意的人类会怎么误解它？**（Claude Code 团队 Cat Wu 的自检法）
+- [ ] 同一条指令没有在 system prompt 和 tool description 里重复出现
 - [ ] 示例的取舍符合第 5 节的场景判断，不是无脑加或无脑删
 - [ ] 长上下文场景：材料在前、问题在后
 - [ ] 输出长度有明确要求（Opus 5 尤其必要）

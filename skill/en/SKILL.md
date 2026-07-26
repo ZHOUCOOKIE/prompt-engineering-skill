@@ -72,14 +72,23 @@ Default to **Opus 5**. Recommend Fable 5 only when the task genuinely sits at th
 
 ### Choosing effort
 
-| Model | Starting point | When to adjust |
-|---|---|---|
-| **Opus 5** | Coding and agentic work → `xhigh`; everything else → default `high` | Cost-sensitive and your evals show quality holds → `medium`/`low` (these produce strong quality at a fraction of the tokens and latency of higher settings, and perform above the same settings on prior Opus models); measurable headroom → `max` |
-| **Fable 5** | Default `high` | Most capability-sensitive workloads → `xhigh`; routine work → `medium`/`low` (its lower effort settings still perform well and often exceed `xhigh` performance on prior models); a task that completes but takes longer than necessary → reduce effort |
+**Both models start at the default `high`.** The decision you are actually making is when to step *up*.
 
-**What "agentic" means** (this word is the hinge of the effort decision — settle it first): the task requires the model to **decide its own next step and drive forward through repeated tool calls**. Typical markers are many tool-call rounds, plans that change based on intermediate results, and long single runs. Writing code, running tests and fixing failures, and repeatedly searching and cross-checking across many sources all count. By contrast, when the material is already assembled and the job is to produce one artifact in a pass (write a report, build a sheet, translate, rewrite), it is **not** agentic even when the artifact is large — use the default `high`.
+| Model | Start | Step up when | Step down when |
+|---|---|---|---|
+| **Opus 5** | **`high`** (the default) | The coding or agentic work is **demanding** → `xhigh`. A task that justifies unconstrained token spending → `max` | Cost or latency matters and your evals show quality holds → `medium`/`low`, used liberally as the primary control for token cost and response time. They produce strong quality at a fraction of the tokens and latency of higher settings |
+| **Fable 5** | **`high`** (the default) | The workload is among the most capability-sensitive you run → `xhigh` | Routine work → `medium`/`low`; its lower effort settings still perform well and often exceed `xhigh` performance on prior models. Also step down when a task completes but takes longer than necessary |
 
-**When both readings apply, use this tiebreaker: who decides where to look?** If the user assembled the material and the model just reads through it, not agentic. If the model decides what to go find, and then decides what to look for next based on what it found, agentic.
+If you are carrying effort settings over from an earlier model, the official instruction is to **run a fresh effort sweep on your own evals** rather than reusing them.
+
+**What "demanding agentic work" means** (this is the hinge of the step-up decision — settle it first). Two conditions, and you need both:
+
+1. **Agentic**: the task requires the model to **decide its own next step and drive forward through repeated tool calls**. Typical markers are many tool-call rounds, plans that change based on intermediate results, and long single runs. Writing code, running tests and fixing failures, and repeatedly searching and cross-checking across many sources all count. By contrast, when the material is already assembled and the job is to produce one artifact in a pass (write a report, build a sheet, translate, rewrite), it is **not** agentic even when the artifact is large.
+2. **Demanding**: the run is long. Officially `xhigh` is for long-running agentic and coding tasks — over 30 minutes, with token budgets in the millions. A three-tool-call bug fix is agentic but not demanding.
+
+**When it is unclear whether a task is agentic, use this tiebreaker: who decides where to look?** If the user assembled the material and the model just reads through it, not agentic. If the model decides what to go find, and then decides what to look for next based on what it found, agentic.
+
+**When in doubt, stay at `high`.** Being one tier low on a task that turns out to be demanding costs less than running every routine task at `xhigh`.
 
 **Where these parameters live** (what you can actually set differs by surface):
 
@@ -200,7 +209,7 @@ Positive descriptions, each with its reason.
 Shape, length, format. Stated as what to do, not what to avoid.
 ```
 
-**Structuring:** XML tags or Markdown headers. Use consistent, descriptive tag names, and nest them when the content has a natural hierarchy. The pattern that holds: single sentences and short direct requirements read fine as plain text; a block that needs to be treated as one named unit of behavior is what earns an XML wrapper.
+**Structuring:** XML tags or Markdown headers. Use consistent, descriptive tag names, and nest them when the content has a natural hierarchy. The pattern in the official library runs one way only: **every tagged block is a standing policy**, but plenty of standing policies are left plain. Length is not the criterion — the shortest tagged block is one sentence. A tag earns its place when the block needs to be **addressed as one named unit**, set apart from what surrounds it or referred to from elsewhere.
 
 **Long-context placement (20k+ tokens):** put long material **at the top** and the query and instructions **at the end**. Queries at the end can improve response quality by up to 30 percent in tests, especially with complex, multidocument inputs. Wrap multiple documents in `<document>` tags with `<source>` and `<document_content>` subtags.
 
@@ -227,7 +236,7 @@ Read as needed; do not load everything. All are linked directly from this file.
 | **`references/for-claude-code.md`** | Scenario A. How to write a Claude Code task prompt, the verification affordance you must supply, the explore-plan-implement flow, and what belongs in CLAUDE.md versus this one prompt |
 | **`references/for-chat-and-cowork.md`** | Scenario B. Writing for desktop chat and Cowork sessions, material placement, deliverable shapes, and the Cowork-specific file and skill capabilities |
 | **`references/models.md`** | After choosing the model. Known behaviors of Opus 5 and Fable 5 with their prescriptions, and the one place where their verification strategies invert |
-| **`references/snippets.md`** | When you need a ready-made block. 25 **verbatim** English snippets from official docs, indexed by number, with a note on which must be copied word for word and which may be adapted |
+| **`references/snippets.md`** | When you need a ready-made block. 25 numbered entries, 24 of them **verbatim** English text from the official docs, with a note on which must be copied word for word and which may be adapted |
 | **`references/agents.md`** | When the prompt will drive a long-running autonomous agent. Context engineering, multi-window workflows, cache hits, letting the model orchestrate itself |
 
 ### When you use an English snippet

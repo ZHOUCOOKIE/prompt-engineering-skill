@@ -16,7 +16,7 @@ Read-depth legend:
 | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) | **Full** | Most of the snippet library; long-context placement; XML structuring; the few-shot guidance; the migration section |
 | [Prompting Claude Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5) | **Full** | Verbosity, narration, written-deliverable length, scope, subagent damping, self-correction, thinking-disabled artifacts, effort guidance |
 | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) | **Full** | Long-run autonomy, progress truthfulness, `reasoning_extraction`, memory conventions, the send-to-user tool, scaffolding advice |
-| [Effort](https://platform.claude.com/docs/en/build-with-claude/effort) | **Full** | Effort levels, per-model recommendations, effort's effect on tool-call count, the `high` ≡ omitted equivalence |
+| [Effort](https://platform.claude.com/docs/en/build-with-claude/effort) | **Full** | The five effort levels and their stated use cases, the per-model recommendation sections for Opus 5 and Fable 5, effort's effect on tool-call count, the `high` ≡ omitted equivalence, cache invalidation |
 | [Prompt engineering overview](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/overview) | **Full** | The three preconditions before prompt tuning; "not every failing eval is best solved by prompt engineering" |
 | [Best practices for Claude Code](https://code.claude.com/docs/en/best-practices) | **Full** | The verification-affordance rule, explore/plan/implement, specificity contrasts, CLAUDE.md guidance, the five failure patterns, the adversarial-review caveat |
 | [Skill authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) | **Full** | The constraints this repo's own skill is built to (name/description limits, one-level references, TOC threshold, progressive disclosure) |
@@ -45,7 +45,7 @@ Read-depth legend:
 
 | Source | What was taken |
 |---|---|
-| [Fireside chat: Cat Wu & Thariq Shihipar](https://www.youtube.com/watch?v=uU5Gv2h8-9g) (AI Engineer World's Fair, 2026-07) — [transcript](https://simonwillison.net/2026/Jul/21/cat-and-thariq/) | "Removing examples was extremely helpful…"; "fewer 'do not do this' instructions…"; the well-intentioned-human misreading test; the grep/glob-vs-bash and file-edit-tool tradeoff |
+| [Fireside chat: Cat Wu & Thariq Shihipar](https://www.youtube.com/watch?v=uU5Gv2h8-9g) (AI Engineer World's Fair, 2026-07) — [transcript](https://simonwillison.net/2026/Jul/21/cat-and-thariq/) | "removing examples was extremely helpful…" (Thariq); "fewer 'do not do this' instructions…" (Thariq); the well-intentioned-human misreading test (Cat); the grep/glob-vs-bash and file-edit-tool tradeoff |
 | [Prompting 101 · Code with Claude](https://www.youtube.com/watch?v=ysPbXH0LpIE) (Applied AI team, recorded 2025-05) | Foundations only; tactics superseded by the living docs |
 | [Code with Claude 2026 sessions](https://www.youtube.com/playlist?list=PLmWCw1CzcFim2obQ-w3ohbULOfwp5lApR) | Context and background |
 
@@ -62,7 +62,7 @@ That post recommends three things the current documentation contradicts:
 | The post says | The living docs say | Resolution |
 |---|---|---|
 | Prefill the assistant response as an advanced technique | Prefill on the last assistant turn returns 400 from Claude 4.6 onward | **Docs.** Use Structured Outputs or an explicit instruction |
-| XML tags are "less necessary now" | Structuring prompts with XML tags is a recommended technique, and most official snippets use it | **Docs** |
+| XML tags are "less necessary now" | Structuring prompts with XML tags is a recommended technique, and the official snippets use it wherever a block needs to function as one named unit | **Docs** |
 | Role prompting is "often unnecessary" | Giving Claude a role focuses behavior; even one sentence helps | **Docs**, with the post's useful corollary: stating the *perspective* usually beats attaching an identity label |
 
 The post's framing sections and its "common mistakes" list remain useful.
@@ -75,13 +75,21 @@ Both are official and they are not in conflict — they address different situat
 
 Also not a conflict. What Opus 5 tells you to remove is *the model reviewing its own work*. What Fable 5's long-run guidance adds is *a separate, fresh-context verifier subagent* — which the same page notes tends to outperform self-critique. Remove self-review; keep external checking.
 
-### 4. The Opus 5 effort starting point
+### 4. The Opus 5 effort starting point — not a conflict, a documentation change
 
-Two independent review passes reported that the Opus 5 recommendation is "start at `high`." Three direct fetches of the Opus 5 page, on separate occasions, consistently returned:
+Worth recording in full, because it is the clearest demonstration of why this repo defers to the live docs.
 
-> `low` and `medium` effort produce strong quality at a fraction of the tokens and latency of higher settings, and they perform above the same settings on prior Opus models. Use them liberally as your primary control for token cost and response time wherever your evals show quality holds; **for coding and agentic work, `xhigh` remains the recommended starting point.**
+During review, two independent passes reported that the Opus 5 recommendation was "start at `high`." Three direct fetches of the Opus 5 page returned instead that `xhigh` "remains the recommended starting point" for coding and agentic work, and the effort page at that time had no Opus 5 section at all. The reports were recorded here as unreproducible.
 
-This repo follows the page. The guidance here — default `high`, `xhigh` for coding and agentic work — is compatible with both readings either way. **Verify against the live page before relying on it for cost planning.**
+They were not wrong. On re-verification the page reads:
+
+> **Efficiency at lower effort:** `low` and `medium` effort produce strong quality at a fraction of the tokens and latency of higher settings. Start with the default (`high`) and adjust based on your evals: use `low` and `medium` liberally as your primary control for token cost and response time wherever quality holds, and step up to `xhigh` for demanding coding and agentic work.
+
+The phrase "remains the recommended starting point" no longer appears anywhere on the page, and the effort page has since gained per-model sections for both Opus 5 and Fable 5. The documentation changed underneath the snapshot.
+
+**The guidance in this repo now follows the current page: start at the default `high` on both models, and step up to `xhigh` for demanding coding and agentic work.** The practical difference from the earlier wording is real — an ordinary coding task now starts at `high`, not `xhigh`.
+
+The lesson generalizes past this one parameter: **a snapshot of fast-moving documentation is wrong by default, not by exception.** For anything you are using to plan cost or latency, confirm it against the live page.
 
 ## Deliberately excluded
 
