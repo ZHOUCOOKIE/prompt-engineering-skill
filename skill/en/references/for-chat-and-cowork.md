@@ -14,6 +14,7 @@ The user describes work in Claude desktop and the resulting prompt runs directly
 - What not to put in
 - A skeleton you can lift
 - Reusable and recurring prompts
+- Sourcing note for this file
 
 ---
 
@@ -95,11 +96,13 @@ Conversely, when the task is open-ended creation or brainstorming, or you want t
 
 ## Research tasks
 
-For work that requires sourcing and synthesizing across many sources, there is a ready-made official block:
+For work that requires sourcing and synthesizing across many sources, there is a ready-made official block. **Copy it verbatim, including the self-critique sentence** — see the carve-out below it:
 
 ```
 Search for this information in a structured way. As you gather data, develop several competing hypotheses. Track your confidence levels in your progress notes to improve calibration. Regularly self-critique your approach and plan. Update a hypothesis tree or research notes file to persist information and provide transparency. Break down this complex research task systematically.
 ```
+
+> **Carve-out for SKILL.md 3.4.** That block contains `Regularly self-critique your approach and plan`, and 3.4 says to remove self-verification instructions on Opus 5. This is the same kind of exception as `you MUST read the file` inside snippet 4.7: it is **tuned official wording, so copy it as is**. The two are not the same instruction — 3.4 removes *end-of-answer self-review*, a last look at a finished deliverable; this sentence is *mid-run course correction*, re-aiming the search while evidence is still coming in. If the task is a single-pass write-up rather than a multi-step search, that sentence has nothing to correct, and you may drop that one line.
 
 Three more: **give clear success criteria** (what constitutes a successful answer to this question), **ask for source verification** across multiple sources, and **explicitly allow it to say it does not know**:
 
@@ -154,6 +157,11 @@ The three things most often over-written in Scenario B:
   </document>
 </documents>
 
+<variables_this_cycle>   (only for a recurring template — see the last section)
+Date range: …
+Material location: …
+</variables_this_cycle>
+
 <task>
 One sentence on what to do, who it is for, and what they will do with the output.
 </task>
@@ -180,7 +188,7 @@ Close with a **success criterion** — what counts as having done this correctly
 
 ## Reusable and recurring prompts
 
-When the user says "I want to fix this and use it every week," write a template rather than a one-off instruction. Add a variables block after `<task>` that collects everything that changes each cycle in one place, so the user edits only that block:
+When the user says "I want to fix this and use it every week," write a template rather than a one-off instruction. Add a variables block that collects everything that changes each cycle in one place, so the user edits only that block:
 
 ```
 <variables_this_cycle>
@@ -190,7 +198,7 @@ Previous output: (path to last cycle's file, for the delta comparison)
 </variables_this_cycle>
 ```
 
-Place it after `<task>` and before the material. That preserves the material-first placement rule (the block is short) while making it obvious which lines to edit each cycle.
+**Place it immediately before `<task>`** — that is, after the material, in the slot the skeleton above shows. This keeps the long-context rule intact (material first, instructions last) and still puts the lines the user edits each cycle right next to the instruction they parameterize.
 
 ---
 

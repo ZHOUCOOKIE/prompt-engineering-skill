@@ -1,6 +1,8 @@
 # Official prompt snippet library
 
 > Every English snippet below **except 4.1** is **verbatim text from Anthropic's official documentation**, checked character by character; 4.1 is a decision table, not a quotation. Every quoted row links to the page it came from — the docs change, so treat the live page as authoritative.
+>
+> **Two entries come from a page outside this skill's stated scope.** 4.16 and 4.25 are verbatim from the **Claude Sonnet 5** page. Sonnet 5 is a current model, not a superseded one, and both blocks are model-agnostic prompt text — but the provenance is flagged at each entry so you can decide for yourself.
 
 ## How to use these
 
@@ -36,7 +38,7 @@
 | 4.13 | Suppressing markdown in favor of flowing prose | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
 | 4.14 | Disabling LaTeX | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
 | 4.15 | Curbing overthinking | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
-| 4.16 | Code review: coverage over filtering | [Prompting Claude Opus 5  — diagnosis plus the recommended wording](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5) |
+| 4.16 | Code review: coverage over filtering | wording from [Prompting Claude Sonnet 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5); diagnosis from [Prompting Claude Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5) |
 | 4.17 | Progress truthfulness on long runs (strongly recommended for Fable 5) | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
 | 4.18 | Unattended autonomous operation | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
 | 4.19 | Reassurance about context budget | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
@@ -45,7 +47,7 @@
 | 4.22 | Memory-writing conventions | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
 | 4.23 | A send-to-user tool | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
 | 4.24 | Defining behavioral boundaries | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
-| 4.25 | Front-end design (avoiding the AI look) | [the frontend_aesthetics block from the official model pages](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
+| 4.25 | Front-end design (avoiding the AI look) | [Prompting Claude Sonnet 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5) — **not** the longer `frontend_aesthetics` block on the best practices page |
 
 ---
 
@@ -228,6 +230,8 @@ Thinking adds latency and should only be used when it will meaningfully improve 
 Report every issue you find, including ones you are uncertain about or consider low-severity. Do not filter for importance or confidence at this stage - a separate verification step will do that. Your goal here is coverage: it is better to surface a finding that later gets filtered out than to silently drop a real bug. For each finding, include your confidence level and an estimated severity so a downstream filter can rank them.
 ```
 
+> **Provenance:** the block above is verbatim from the **Claude Sonnet 5** page ("Code review harnesses"), not the Opus 5 page. It is included because the Opus 5 page independently prescribes the same move in prose — `ask it to report everything and filter in a separate pass instead` — without publishing wording for it. The block is model-agnostic prompt text; use it on Opus 5 with that caveat in mind.
+>
 > Basis: Opus 5 follows "only report high-severity issues" or "be conservative" **literally** — it investigates the code just as thoroughly and finds the bugs, then does not report findings it judges below your stated bar. This shows up as precision rising while measured recall falls. Move the filtering to a separate downstream step.
 
 ### 4.17 Progress truthfulness on long runs (strongly recommended for Fable 5)
@@ -324,6 +328,8 @@ When the user is describing a problem, asking a question, or thinking out loud r
 > The second half is easy to overlook and matters most for autonomous runs: **a signal that pattern-matches to a known failure may have a different cause.** Confirm the evidence supports that specific action before changing system state.
 
 ### 4.25 Front-end design (avoiding the AI look)
+
+> **Provenance:** both blocks below are verbatim from the **Claude Sonnet 5** page ("Design and frontend defaults"). The prompting best practices page carries a *different and much longer* `frontend_aesthetics` block — if you want that one, take it from the page rather than from here.
 
 ```
 <frontend_aesthetics>

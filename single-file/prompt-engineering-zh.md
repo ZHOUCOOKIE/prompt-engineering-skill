@@ -5,7 +5,7 @@
 
 **这份 skill 存在的理由**：一批广为流传的 prompt 技法在这两个模型上已经失效、被 API 拒绝、或效果反了。你的训练直觉里很可能仍带着它们。**当直觉与第 3 节冲突时，以本文件为准。**
 
-**基准**：Anthropic 官方文档与官方/员工公开材料，快照日期 2026-07-25。涉及具体 API 参数时回原文档确认——那是唯一会随模型更新的地方。
+**基准**：Anthropic 官方文档与官方/员工公开材料，快照日期 2026-07-26。涉及具体 API 参数时回原文档确认——那是唯一会随模型更新的地方。
 
 ---
 
@@ -123,7 +123,7 @@
 |---|---|---|---|
 | effort | 用界面或斜杠命令设 | 用界面设 | `output_config: {effort}` |
 | thinking | 由客户端管理 | 由客户端管理 | `thinking: {type: "adaptive"}` |
-| `max_tokens` | **管不到** | **管不到** | 自己设，`xhigh`/`max` 下建议 64k 起 |
+| `max_tokens` | **管不到** | **管不到** | 自己设；官方建议 `xhigh`/`max` 下从 64k 起步再按需调 |
 
 所以给场景 A、B 写交付说明时，**只说"用哪个模型、设成哪档 effort"就够了**，不要把 `max_tokens`、`thinking` 这些 API 字段写进去——用户在那个界面里根本没有这些开关，写了只会让人困惑。下面几条里带 API 字段的部分，只在直接调 API 时才需要交代。
 
@@ -148,7 +148,7 @@
 ### 3.1 不要用 prefill（预填充助手回复）
 Opus 5 和 Fable 5 **均不支持**，在最后一个 assistant turn 预填充会返回 400。
 
-替代：结构化输出用 **Structured Outputs** 或直接说明 schema；去开场白写 `Respond directly without preamble. Do not start with phrases like 'Here is...', 'Based on...', etc.`；分类任务用带 enum 的 tool；续写把上文放进 user 消息。
+官方给的替代是 **structured outputs、system prompt 指令、或 `output_config.format`**。具体来说：结构化输出用 Structured Outputs、`output_config.format`，或直接说明 schema；去开场白写 `Respond directly without preamble. Do not start with phrases like 'Here is...', 'Based on...', etc.`（迁移指南原文）；分类任务用带 enum 的 tool；续写把上文放进 user 消息。
 
 ### 3.2 不要用 `budget_tokens`
 两个模型均不支持手动 extended thinking，设置返回 400。Opus 5 用 `thinking: {type: "adaptive"}` 加 `output_config: {effort: "..."}`；Fable 5 thinking 始终开启且无法配置，只用 `effort` 控深度。需要硬上限用 `max_tokens`。
@@ -156,9 +156,9 @@ Opus 5 和 Fable 5 **均不支持**，在最后一个 assistant turn 预填充�
 ### 3.3 不要用堆砌指令代替上下文
 核心原则：**给上下文，别给一长串指令。**
 
-Fable 5 官方原话——指令遵循已经好到一句简短指令就能管住一类行为，不必逐条枚举。Claude Code 团队据此把系统提示词砍掉 80% 以上而性能不降。
+Fable 5 官方文档的说法是——指令遵循已经好到一句简短指令就能管住一类行为，不必逐条枚举。Claude Code 团队据此把系统提示词砍掉 80% 以上而性能不降。
 
-与其枚举十条"不要 X"，写一句正面描述加说明意图。把 `Default to using [tool]` 改成 `Use [tool] when it would enhance your understanding of the problem`。
+与其枚举十条"不要 X"，写一句正面描述加说明意图。把 `Default to using [tool]` 改成 `Use [tool] when it would enhance your understanding of the problem`。工具该怎么用，靠 tool description 和参数设计表达，不要在 system prompt 里反复提醒。
 
 > 一处例外：Claude Code 最佳实践仍写着，可以在 **CLAUDE.md** 里加 `IMPORTANT` 或 `YOU MUST` 提高某条规则的遵守度。但只用在少数几行上——同一份文档也警告：CLAUDE.md 太长时 Claude 会忽略其中一半，因为重要规则淹没在噪音里。
 
@@ -173,7 +173,7 @@ Opus 5 无需提示即自行验证。保留 `double-check your answer` / `re-ver
 |---|---|
 | "最后检查一遍有没有遗漏" | 跑测试、看构建退出码、对比截图（场景 A） |
 | "再核对一次你的答案" | 把 A 材料的说法和 B 材料对上，冲突时说明取谁（场景 B） |
-| "用子智能体复查你自己的工作" | 数字必须能追溯到某份原始材料的具体位置 |
+| "用子智能体复查你自己的工作"——指连同模型自己的判据一起交出去的那种 | 数字必须能追溯到某份原始材料的具体位置。**换到干净上下文、带独立判据的 verifier** 不在这一行删除之列，见 第 6 节 |
 
 判据很简单：**检查的依据来自模型自己，就删；来自外部可查证的东西，就留。** 场景 B 的研究与报告类任务里，跨来源交叉核对是任务本身，不是自我验证，写 prompt 时不要误删。
 
@@ -194,14 +194,17 @@ Fable 5 的长自主运行方向相反，要显式加周期验证——见 第 6
 ### 3.7 不要在 system prompt 与 tool description 之间重复
 工具的使用说明**只写在 tool description 一处**。
 
+> **一处例外：触发时机。** 片段 4.23 就是官方给的例子——Fable 5 光靠 tool description 很少会去调 `send_to_user`，所以官方在工具之外还配了一句写进 system prompt 的话，告诉它**什么时候**该用这个工具。这条规则禁的是把同一份**使用说明**写两遍，不是禁止给工具配一句它确实需要的触发说明。
+
 ### 3.8 不要靠 `temperature` 制造多样性
 新一代模型对采样参数的支持在收紧，部分模型设非默认值直接返回 400。用 prompt 求多样性——让模型**先给选项再落地**：
 ```
 Before building, propose 4 distinct visual directions tailored to this brief (each as: bg hex / accent hex / typeface, plus a one-line rationale). Ask the user to pick one, then implement only that direction.
 ```
+（片段 4.25，逐字取自 Claude Sonnet 5 页面，照抄即可。）
 
 ### 3.9 不要要求模型复述或展示内部推理
-"show your thinking"、"把思考过程写出来"这类指令在 **Fable 5** 上**可能触发** `reasoning_extraction` 拒绝类别，请求被拒、回落备用模型的比例上升。需要推理可见性改读结构化 `thinking` 块。
+"show your thinking"、"把思考过程写出来"这类指令在 **Fable 5** 上**可能触发** `reasoning_extraction` 拒绝类别，请求被拒、回落备用模型的比例上升。需要推理可见性改读结构化 `thinking` 块；需要在长时运行中把进度呈现给用户，用 send-to-user 工具（片段 4.23）。
 
 ### 3.10 不要写"不要思考 / 不要推理"
 **在关闭 thinking 的情况下**，Opus 5 可能把 `<thinking>` 等内部 XML 标签泄漏到可见输出，而 system prompt 里这类规则会**加剧**泄漏。（Opus 5 默认开启 thinking，`xhigh`/`max` 下还无法关闭，所以这条只对刻意关闭 thinking 的集成有效。）写通用形式，且不要点名 thinking 标签：
@@ -255,7 +258,7 @@ Do not include internal or system XML tags in your response.
 | 4.13 | 抑制 Markdown、改为流畅散文 | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
 | 4.14 | 关闭 LaTeX | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
 | 4.15 | 抑制过度思考 | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
-| 4.16 | 代码审查（要覆盖率而非过滤） | [Prompting Claude Opus 5 的诊断 + 官方推荐措辞](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5) |
+| 4.16 | 代码审查（要覆盖率而非过滤） | 措辞出自 [Prompting Claude Sonnet 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5)；诊断出自 [Prompting Claude Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5) |
 | 4.17 | 长任务进度真实性（Fable 5 强烈推荐） | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
 | 4.18 | 无人值守自主运行 | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
 | 4.19 | 上下文预算安抚 | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
@@ -264,7 +267,7 @@ Do not include internal or system XML tags in your response.
 | 4.22 | 记忆系统的写入规范 | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
 | 4.23 | send_to_user 工具 | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
 | 4.24 | 划定行为边界 | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
-| 4.25 | 前端设计（避免 AI 味） | [官方模型专页的 frontend_aesthetics 片段](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
+| 4.25 | 前端设计（避免 AI 味） | [Prompting Claude Sonnet 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5) —— **不是**最佳实践页上那段更长的 frontend_aesthetics |
 
 ---
 
@@ -444,6 +447,8 @@ Thinking adds latency and should only be used when it will meaningfully improve 
 Report every issue you find, including ones you are uncertain about or consider low-severity. Do not filter for importance or confidence at this stage - a separate verification step will do that. Your goal here is coverage: it is better to surface a finding that later gets filtered out than to silently drop a real bug. For each finding, include your confidence level and an estimated severity so a downstream filter can rank them.
 ```
 
+> **出处说明**：上面这段逐字取自 **Claude Sonnet 5** 页面（"Code review harnesses"），不是 Opus 5 页面。收进来是因为 Opus 5 页面自己也用散文给出了同一条处方——`ask it to report everything and filter in a separate pass instead`——但没有配套措辞。这段是与模型无关的通用提示词，用在 Opus 5 上时请知悉这一点。
+>
 > 依据：Opus 5 会**字面执行**"只报高危"、"保守一点"这类指令——它会同样深入地调查代码、同样找到 bug，然后把自己判定为低于你所设门槛的发现**不报出来**。表现为精确率上升、召回率下降。把过滤动作移到独立的下游步骤。
 
 ### 4.17 长任务进度真实性（Fable 5 强烈推荐）
@@ -538,6 +543,8 @@ When the user is describing a problem, asking a question, or thinking out loud r
 
 ### 4.25 前端设计（避免 AI 味）
 
+> **出处说明**：下面两段都逐字取自 **Claude Sonnet 5** 页面（"Design and frontend defaults"）。最佳实践页上另有一段**内容不同、长得多**的 `frontend_aesthetics`——想要那一段的话请直接去原页面取，不要用这里这段。
+
 ```
 <frontend_aesthetics>
 NEVER use generic AI-generated aesthetics like overused font families (Inter, Roboto, Arial, system fonts), cliched color schemes (particularly purple gradients on white or dark backgrounds), predictable layouts and component patterns, and cookie-cutter design that lacks context-specific character. Use unique fonts, cohesive colors and themes, and animations for effects and micro-interactions.
@@ -606,6 +613,8 @@ Before building, propose 4 distinct visual directions tailored to this brief (ea
 ## 6. 按模型调校：Opus 5 与 Fable 5
 
 > 片段编号（如 4.2）指向 `snippets.md`。
+>
+> 下表"处方"列里的英文块，**全部是官方文档原文**，照抄即可，不要翻译或改写。
 
 ### Claude Opus 5（默认 effort: high；thinking 默认开启）
 
@@ -618,16 +627,24 @@ Before building, propose 4 distinct visual directions tailored to this brief (ea
 | 自行扩大任务范围 | 范围约束（4.5） |
 | 更积极派生子智能体 | 显式设限（4.10） |
 | 更频繁地口头纠正自己此前的说法 | `Only correct an earlier statement when the error would change the user's code, conclusions, or decisions. State corrections plainly and briefly, then continue the task. For slips that change nothing for the user, make the fix and move on without noting it.` |
-| 代码审查中"只报高危"会被字面执行 | 用 4.16 |
+| 代码审查中"只报高危"会被字面执行 | 用 4.16；把过滤动作移到独立的下游步骤 |
 | `low` / `medium` effort 质量强，而 token 与延迟只是高档位的一个零头 | **从默认 `high` 起步**，只有足够重的编码与 agent 工作才上 `xhigh`。评测显示质量不掉的地方放开用 `low`/`medium`，把它当成控成本和控延迟的主要手段。设置若从更早的模型沿用而来，重新做一次 effort 扫描 |
-| 关闭 thinking 时可能把 tool call 写成文本（该调用不会执行，且泄漏文本会留在历史里污染后续轮次） | **首选保持 thinking 开启**，用低 effort 控成本。必须关闭时加：`You may say a brief sentence before using a tool.` |
-| 关闭 thinking 时可能把 `<thinking>` 等内部标签泄漏到可见输出 | 删掉 system prompt 里"不要思考/不要推理"的规则（它会加剧泄漏），改用通用形式：`Do not include internal or system XML tags in your response.` 不要点名 thinking 标签，点名反而更差 |
+| 关闭 thinking 时可能把 tool call 写成文本（该调用不会执行，且泄漏文本会留在历史里污染后续轮次） | **首选保持 thinking 开启**，用低 effort 控成本。官方说法：多数任务上，开着 thinking 跑 `low` effort，效果好于在相近成本下关掉 thinking |
+| 关闭 thinking 时可能把 `<thinking>` 等内部标签泄漏到可见输出 | 删掉 system prompt 里"不要思考/不要推理"的规则（它会加剧泄漏）；点名 thinking 标签的效果差于通用形式 |
 
-其他：1M token 上下文为默认且最大；`xhigh`/`max` 下不能关闭 thinking——在这两档设 `thinking: {"type": "disabled"}` 会返回 400。多数任务上，**开着 thinking 跑 `low` effort，效果好于在相近成本下关掉 thinking**。**在 `xhigh` 或 `max` effort 下**运行时要给 `max_tokens` 留足空间，官方建议以 64k 为合理起点。
+必须关闭 thinking 的集成，官方给的是**一条同时兜住这两个问题的合并指令**：
+
+```
+When you use a tool, you may say a brief sentence first. If no tool can express what the user asked for, say so instead of guessing. Do not include internal or system XML tags in your response.
+```
+
+其他：1M token 上下文为默认且最大；`xhigh`/`max` 下不能关闭 thinking——在这两档设 `thinking: {"type": "disabled"}` 会返回 400。多数任务上，**开着 thinking 跑 `low` effort，效果好于在相近成本下关掉 thinking**。**在 `xhigh` 或 `max` effort 下**运行时要给 `max_tokens` 留足空间，官方建议以 64k 为合理起点。此项仅在直接调 API 时需要关心。
 
 ### Claude Fable 5 / Mythos 5（默认 effort: high；thinking 始终开启且不可关闭）
 
-定位：处理此前"太复杂、太长、太模糊"的问题，擅长人类需要数小时到数周的端到端工作。
+定位：官方称其为 **Anthropic 目前最强的公开发布模型**。面向此前"太复杂、太长、太模糊"的问题，擅长人类需要数小时到数周的端到端工作。效果最好的团队把它用在自己最难的未解问题上；只拿简单任务测它，往往会低估它的能力范围。
+
+> 注意官方选型建议里的分工：**复杂 agentic 编码和企业任务从 Opus 5 起步；需要最高能力上限的负载才用 Fable 5。**"最强"和"默认该选哪个"不是同一个问题。
 
 | 已知倾向 | 处方 |
 |---|---|
@@ -639,8 +656,8 @@ Before building, propose 4 distinct visual directions tailored to this brief (ea
 | 会做未被要求的动作（自动起草邮件、建防御性 git 分支） | 明确划边界，用 4.24 |
 | 更主动派并行子智能体 | **鼓励使用**，但给明确的委派判据；优先异步通信而非阻塞等待；长生命周期子智能体能靠缓存读取省时省钱 |
 | 深入长会话后偶尔只说"我这就去做 X"却不发工具调用 | 一句 "continue" 即可；自主管线用 4.18 |
-| 看到剩余 token 倒计时会提议开新会话 | 4.19 |
-| **为旧模型写的 skills 往往过于规定化，会降低 Fable 5 的输出质量** | 审查并删减；Fable 5 也能根据任务自行更新 skill |
+| 看到剩余 token 倒计时会提议开新会话 | 4.19；更好的做法是别把倒计时暴露给模型 |
+| **为旧模型写的 skills 往往过于规定化，可能降低 Fable 5 的输出质量** | 审查并删减；Fable 5 也能根据任务自行更新 skill |
 | 让它复述内部推理会触发拒绝 | 见 3.9 |
 
 **脚手架建议**：从你难度范围的**上限**开始试（挑一个比你会派给旧模型更难的任务），让它先界定范围、提澄清问题、再执行。
@@ -656,7 +673,7 @@ Before building, propose 4 distinct visual directions tailored to this brief (ea
 
 关键区别：官方同时指出，**独立的、干净上下文的 verifier 子智能体，效果优于模型自我批评**。所以"删验证"删的是**让模型自己再看一遍**，"加验证"加的是**换一个上下文来查**。两者不冲突。
 
-（注意这与 4.10「不要用子智能体验证自己的工作」也不冲突——4.10 针对 Opus 5 的常规任务，此处针对 Fable 5 的多小时自主运行。）
+（注意这与 4.10「不要用子智能体验证自己的工作」也不冲突。4.10 要按同一条「上下文是否干净」的轴来读：它禁的是**把自我复查外包出去**——把模型自己的产出连同它自己的判断标准一起交给子智能体，等于为 Opus 5 本来就会做的判断付两遍钱。**换到干净上下文、带独立判据的 verifier**，在两个模型上都是允许的。Fable 5 的长跑加的不是许可，而是**周期性**：把这个检查按间隔反复跑，而不是只在最后跑一次。）
 
 ### effort 取值参考
 
@@ -687,8 +704,11 @@ Before building, propose 4 distinct visual directions tailored to this brief (ea
 ### 本节导航
 
 - 第一优先：给一个它自己能跑的检查
+- 这个检查「卡」得有多硬
+- 如果这个检查还不存在怎么办
 - 一次说清楚，不要指望多轮补充
 - 具体到什么程度
+- 只有用户能提供的值怎么处理
 - 探索、规划、实现、提交
 - 大特性：让它先面试用户生成 SPEC
 - 上下文是第一约束
@@ -703,6 +723,8 @@ Before building, propose 4 distinct visual directions tailored to this brief (ea
 ### 第一优先：给一个它自己能跑的检查
 
 这是官方最佳实践里排第一的一条，也是这个场景和场景 B 最大的区别。
+
+官方原文的第二人称说的是读者，在这里指的是**你的用户**而不是你，所以下面这段是改写而非原文：
 
 > Claude 在"看起来做完了"的时候就会停。如果没有它能运行的检查，"看起来做完了"就是唯一的信号，而**用户自己就变成了验证回路**——每个错误都要等他去发现。给它一个能产出 pass/fail 的东西，这个回路就自己闭合了。
 
@@ -719,6 +741,19 @@ Before building, propose 4 distinct visual directions tailored to this brief (ea
 > **注意与 3.4 的区别**：3.4 说的是删掉"让模型自己再看一遍"这类主观复查指令。这里给的是**外部确定性检查**——跑测试、看退出码、对比截图。前者要删，后者必须给。
 
 还要求它**给出证据**而不是断言成功：测试输出、跑了什么命令返回了什么、结果截图。审阅证据比自己重跑一遍快，而且对用户没盯着的会话同样有效。
+
+### 这个检查「卡」得有多硬
+
+检查存在之后还有第二个决定，而这个决定光靠 prompt 做不到。官方给了四档，用配置成本换「这趟运行需要多少人盯着」：
+
+| 档位 | 是什么 | 什么时候值得配 |
+|---|---|---|
+| **写在一条 prompt 里** | 在同一条消息里要求它跑检查并迭代 | 任何任务，立刻可用。你正在写的这条 prompt 就是这一档 |
+| **贯穿整个会话** | 把检查设成 `/goal` 条件——每轮结束后由独立评估器复查 | 用户希望它一直跑到标准达成为止 |
+| **确定性闸门** | `Stop` hook 把检查当脚本跑，不通过就不许结束这一轮（连续挡 8 次后 Claude Code 会强制放行） | 这个检查不能被跳过 |
+| **换个人评** | 验证子智能体，让干活的和打分的不是同一个 | 正确性比速度重要 |
+
+**这一档位在交付说明里值得点一句。** 一条 prompt 天然只能做到第一档；如果用户说的是无人值守的长跑，就告诉他真正让它「没人看着也能正确收工」的是 `/goal` 或 `Stop` hook。
 
 ### 如果这个检查还不存在怎么办
 
@@ -817,7 +852,10 @@ Claude Code 的大部分最佳实践都源自同一个约束：**上下文窗口
 
 - **把探索隔离出去**：`Use subagents to investigate how our authentication system handles token refresh, and whether we have any existing OAuth utilities I should reuse.` 子智能体在独立上下文里读一堆文件，只回报摘要
 
-> **子智能体的统一判据**（这条散落在几处，这里说全）：**大范围只读探索要鼓励用，复查自己的工作不要用。** 前者是它最大的价值——把读几十个文件的开销挡在主上下文外面；后者是 Opus 5 已经会做的事，派子智能体去做只是加倍成本。介于两者之间的判断标准是片段 4.10：几次工具调用就能自己做完的，不要派。
+> **子智能体的统一判据**（这条散落在几处，这里说全）：**大范围只读探索要鼓励用，让模型在自己的上下文里重看一遍自己的产出不要用。** 换到**干净上下文**的独立 verifier 子智能体是例外，官方指出它优于自我批评——上文「换个人评」那一档、以及本文末尾对抗式审查那段说的都是这一种。
+>
+> 所以：前者是它最大的价值——把读几十个文件的开销挡在主上下文外面；后者是 Opus 5 已经会做的事，派子智能体去做只是加倍成本。介于两者之间的判断标准是片段 4.10：几次工具调用就能自己做完的，不要派。
+
 - **不要写成开放式调研**：`investigate X` 不划范围会让它读几百个文件把上下文填满
 - 提醒用户：不相关的任务之间用 `/clear`；同一个问题纠正两次还不对，就 `/clear` 重来并把学到的写进新 prompt
 
@@ -867,7 +905,7 @@ Claude Code 的大部分最佳实践都源自同一个约束：**上下文窗口
 | 主指令 | `SKILL.md` 正文 | Claude 判断相关时 |
 | 附加文件 | 从 SKILL.md 引用的其他文件 | 只在真正需要那个场景时 |
 
-`name` 和 `description` 是激活的关键，没触发要先改这两句。正文臃肿就拆文件。可以打包可执行代码——"用 token 生成来排序列表，比直接跑排序算法昂贵得多"。**在 Fable 5 上，为旧模型写的过度规定化 skill 会主动降低输出质量** —— 面向它时要定期删减。
+`name` 和 `description` 是激活的关键，没触发要先改这两句。正文臃肿就拆文件。可以打包可执行代码——"用 token 生成来排序列表，比直接跑排序算法昂贵得多"。**在 Fable 5 上，为旧模型写的 skill 往往过于规定化，可能降低输出质量** —— 面向它时要定期删减。
 
 ---
 
@@ -911,7 +949,7 @@ Claude Code 的大部分最佳实践都源自同一个约束：**上下文窗口
 | **信任但没验证** | 看起来合理但边界情况没处理 | 永远提供验证手段；**验证不了的东西不要发布** |
 | **无边界探索** | "调研一下"结果读了几百个文件 | 收窄范围，或用 subagent 隔离 |
 
-**对抗式审查的一个重要提醒**：让一个子智能体在干净上下文里审查 diff 很有效，但官方同时警告——**被要求找问题的审查者通常总能报出一些问题，即使工作本身没问题**，因为那是它被要求做的事。追着每条发现改会导致过度工程。所以审查 prompt 要写明：**只报影响正确性或既定需求的问题，其余视为可选。**
+**对抗式审查的一个重要提醒**：让一个子智能体在干净上下文里审查 diff 很有效，但官方同时警告——**被要求找问题的审查者通常总能报出一些问题，即使工作本身没问题**，因为那是它被要求做的事。追着每条发现改会导致过度工程。所以审查 prompt 要写明：**只报影响正确性或既定需求的问题，其余视为可选。**这是一条过滤指令，只适用于**由你来做过滤**的场合。如果发现要交给下游的排序或分诊步骤，改用片段 4.16、让审查者全报——第 6 节 提醒过：Opus 5 会字面执行你设的严重度门槛，低于门槛的发现会被直接不报。
 
 ---
 
@@ -930,6 +968,8 @@ Claude Code 的大部分最佳实践都源自同一个约束：**上下文窗口
 - Cowork 特有：会自动接管的 skill
 - 不要写进去的东西
 - 一个可直接套用的骨架
+- 可复用 / 周期性 prompt 的变量块
+- 信源
 
 ---
 
@@ -1019,11 +1059,13 @@ Claude Code 的大部分最佳实践都源自同一个约束：**上下文窗口
 
 ### 研究类任务
 
-需要跨多个来源查证、综合的任务，官方给了一段现成的结构化指令：
+需要跨多个来源查证、综合的任务，官方给了一段现成的结构化指令。**照抄，包括里面那句自我批评在内**——理由见下方的例外说明：
 
 ```
 Search for this information in a structured way. As you gather data, develop several competing hypotheses. Track your confidence levels in your progress notes to improve calibration. Regularly self-critique your approach and plan. Update a hypothesis tree or research notes file to persist information and provide transparency. Break down this complex research task systematically.
 ```
+
+> **这是 3.4 的一处例外。** 这段里有 `Regularly self-critique your approach and plan`，而 3.4 说 Opus 5 上要删掉自我验证类指令。这和片段 4.7 里那句 `you MUST read the file` 属于同一类例外：**它是调校过的官方原文，照抄即可**。两者说的不是一回事——3.4 删的是*答案写完后再自审一遍*；这句是*跑的过程中随时纠偏*，证据还在陆续进来的时候调整方向。如果任务是一次性写一篇东西、而不是多步检索，那这句没有可纠的对象，可以只删掉这一行。
 
 另外三条：**给清晰的成功标准**（什么样的答案算回答了这个问题）、**要求跨来源交叉验证**、**显式允许说不知道**：
 
@@ -1069,7 +1111,7 @@ Cowork 里装了一批输出格式 skill（docx、xlsx、pptx、pdf 等）。它
 
 场景 B 里最容易多写的三类：
 
-1. **自我验证指令**（"最后检查一遍"、"再核对一次"）——Opus 5 自己会做，写了造成过度验证。见 3.4
+1. **自我验证指令**（"最后检查一遍"、"再核对一次"）——Opus 5 自己会做，写了造成过度验证。见 3.4。注意 3.4 划的那条界线：**跨来源交叉核对是任务本身，不是自我验证**——研究类 prompt 里不要连它一起删掉
 2. **人设铺垫**（"你是一位有二十年经验的资深分析师"）——对现行模型没有增益，纯占 token。要影响视角就直接说关注什么：`Analyze this portfolio, focusing on risk tolerance and long-term growth`
 3. **一长串"不要"**——改成正面描述加原因。见 3.5
 
@@ -1085,6 +1127,11 @@ Cowork 里装了一批输出格式 skill（docx、xlsx、pptx、pdf 等）。它
     <document_content>……</document_content>
   </document>
 </documents>
+
+<variables_this_cycle>   （只有周期性模板才需要，见最后一节）
+时间范围：……
+素材位置：……
+</variables_this_cycle>
 
 <task>
 一句话说清要做什么，以及这是为谁做的、他拿到之后要用来干什么。
@@ -1112,17 +1159,17 @@ Cowork 里装了一批输出格式 skill（docx、xlsx、pptx、pdf 等）。它
 
 ### 可复用 / 周期性 prompt 的变量块
 
-用户说"我想固定下来每周用"时，prompt 要写成模板而不是一次性指令。在 `<task>` 之后加一个变量块，把每期会变的东西集中在一处，用户只改这一块：
+用户说"我想固定下来每周用"时，prompt 要写成模板而不是一次性指令。加一个变量块，把每期会变的东西集中在一处，用户只改这一块：
 
 ```
-<本期变量>
+<variables_this_cycle>
 时间范围：2026-07-20 ~ 2026-07-26
 素材位置：（文件夹路径）
 上期产出：（上一期文件路径，用于对比增量）
-</本期变量>
+</variables_this_cycle>
 ```
 
-放在 `<task>` 之后、材料之前。这样既不破坏"长材料在前"的摆位（变量块很短），又让用户一眼看到每期要改哪几行。
+**放在 `<task>` 正前面**——也就是材料之后，就是上面骨架里的那个位置。这样"长材料在前、指令在后"的摆位规则不受影响，同时用户每期要改的那几行就紧挨着它所参数化的那条指令。
 
 ---
 
@@ -1135,41 +1182,43 @@ Cowork 里装了一批输出格式 skill（docx、xlsx、pptx、pdf 等）。它
 ## 9. Agent 与长任务：上下文工程
 
 > 片段编号（如 4.17）指向 `snippets.md`。
+>
+> 本文件中的英文块均为 Anthropic 官方长任务指引**原文**（见 `SOURCES.md`），照抄即可，不要翻译或改写。
 
-### 6.1 上下文是第一约束
+### 上下文是第一约束
 性能随上下文填充而下降（context rot）。目标是「能最大化达成目标概率的**最小高信噪比 token 集**」。
 
-### 6.2 跨上下文窗口的工作流
+### 跨上下文窗口的工作流
 1. **第一个上下文窗口用不同的 prompt**：先搭框架（写测试、建 setup 脚本），后续窗口再迭代 todo list
 2. **让模型用结构化格式写测试**（如 `tests.json`），并提醒：`It is unacceptable to remove or edit tests because this could lead to missing or buggy functionality.`
-3. **建生活质量脚本**（`init.sh`）：起服务、跑测试、跑 lint
+3. **建 `init.sh` 之类的脚本**：起服务、跑测试、跑 lint——避免每个新窗口重复劳动
 4. **可以考虑用「全新窗口」代替 compaction**：现行模型极擅长从文件系统恢复状态，**某些场景下**这比压缩更划算（官方措辞是 "consider" / "in some cases"，不是一律如此）。这时开场要具体：
    - `Call pwd; you can only read and write files in this directory.`
    - `Review progress.txt, tests.json, and the git logs.`
    - `Manually run through a fundamental integration test before moving on to implementing new features.`
-5. **提供验证工具**（Playwright MCP、computer use 等）
+5. **提供验证工具**（浏览器自动化、computer use 等）——任务越长、越自主，模型就越需要在没有持续人类反馈的情况下自行验证正确性
 6. **鼓励用满上下文**：
 ```
 This is a very long task, so it may be beneficial to plan out your work clearly. It's encouraged to spend your entire output context working on the task - just make sure you don't run out of context with significant uncommitted work. Continue working systematically until you have completed this task.
 ```
 
-### 6.3 状态管理
+### 状态管理
 - 结构化数据（测试结果、任务状态）→ JSON
 - 进度笔记 → 自由文本
 - 版本与检查点 → git（现行模型用得很好）
 - 明确要求增量推进
 
-### 6.4 上下文压缩感知
+### 上下文压缩感知
 ```
 Your context window will be automatically compacted as it approaches its limit, allowing you to continue working indefinitely from where you left off. Therefore, do not stop tasks early due to token budget concerns. As you approach your token budget limit, save your current progress and state to memory before the context window refreshes. Always be as persistent and autonomous as possible and complete tasks fully, even if the end of your budget is approaching. Never artificially stop any task early regardless of the context remaining.
 ```
 
-### 6.5 复杂研究任务
+### 复杂研究任务
 ```
 Search for this information in a structured way. As you gather data, develop several competing hypotheses. Track your confidence levels in your progress notes to improve calibration. Regularly self-critique your approach and plan. Update a hypothesis tree or research notes file to persist information and provide transparency. Break down this complex research task systematically.
 ```
 
-### 6.6 让 Claude 自己编排，而不是把一切塞进上下文
+### 让 Claude 自己编排，而不是把一切塞进上下文
 
 这是 harness 层面收益最大的一条。**不要把每个工具结果都当 token 塞回上下文窗口**，也不要把过滤逻辑硬编码进工具设计。
 
@@ -1181,7 +1230,7 @@ Search for this information in a structured way. As you gather data, develop sev
 
 > 出处说明：以上三组数字来自 Anthropic 在**更早一代模型**上的实测。文章本身的论点是这个趋势会随模型变强而延续——模型越强，越该把决策交还给它。
 
-### 6.7 设计上下文以最大化缓存命中
+### 设计上下文以最大化缓存命中
 
 **缓存 token 的成本只有基础输入 token 的 10%**，所以这是纯粹的成本杠杆。五条原则：
 
@@ -1195,7 +1244,7 @@ Search for this information in a structured way. As you gather data, develop sev
 
 > 直接后果：**中途修改 effort 会作废缓存**，同理（见 第 2 节）。
 
-### 6.8 什么时候该把 bash 动作提升为专用工具
+### 什么时候该把 bash 动作提升为专用工具
 
 bash 杠杆大但缺乏可观测性，harness 无法拦截、把关或审计。以下四种情况应当做成专用的声明式工具：
 
@@ -1206,13 +1255,13 @@ bash 杠杆大但缺乏可观测性，harness 无法拦截、把关或审计。�
 
 （低风险工作可以走另一条路：用第二个 Claude 实例判断 bash 命令是否安全，这是 Claude Code auto 模式的做法，可以减少专用工具的数量。）
 
-### 6.9 工具设计优先于提示词
+### 工具设计优先于提示词
 有工具的场景下，**改工具比改提示词更有效**：
-- 每个工具功能互不重叠，模型能一眼分清何时调用哪个
-- 参数名语义明确（`user_id` 而非 `user`）
+- 每个工具功能互不重叠，模型能一眼分清何时调用哪个。判断法很直接——**如果工程师自己都说不清某个场景该用哪个工具，agent 更不可能分得清**
+- 参数名语义明确（`user_id` 而非 `user`）——把无语义的 UUID 解析成可读名称能显著提升精度
 - 按服务和资源类型做命名空间（`asana_projects_search`）
-- 返回值 token 高效：分页、范围选择、过滤、截断，并给默认上限
-- 提供 `ResponseFormat` 枚举（`concise` / `detailed`）
+- 返回值 token 高效：分页、范围选择、过滤、截断，并给合理默认上限（Claude Code 的默认是 25000 token）
+- 提供 `ResponseFormat` 枚举（`concise` / `detailed`）——官方给的例子里详细版 206 token、精简版 72 token，省 65%
 - 错误信息要可执行：说清怎么改，附正确格式示例，而不是抛栈
 - 工具描述当作给新同事的入职说明来写，把隐含前提写明
 
@@ -1234,11 +1283,11 @@ bash 杠杆大但缺乏可观测性，harness 无法拦截、把关或审计。�
 - [ ] 如果用了英文官方片段：交付说明里写了「这几段是官方原文，请不要翻译或改写」的提醒
 - [ ] 没有 prefill、没有 `budget_tokens`
 - [ ] 没有为防欠触发而堆的 `CRITICAL: You MUST` / `If in doubt, use [tool]`（**官方片段里的原文措辞不算**，例如 4.7 内含的 `you MUST read the file` 是调校过的原文，照抄即可）
-- [ ] 目标是 Opus 5：**没有**任何自我验证或双重检查类指令（外部确定性检查不算）
+- [ ] 目标是 Opus 5：**没有**任何自我验证或双重检查类指令（外部确定性检查不算；官方研究片段里那句 `Regularly self-critique your approach and plan` 也不算，见 第 8 节）
 - [ ] 目标是 Fable 5：没有"展示你的思考过程"类指令；长自主运行已加进度真实性约束
-- [ ] 所有约束是正面表述，且带了「为什么」
+- [ ] **你自己写的**约束都是正面表述，且带了「为什么」（**官方片段里的原文措辞不算**——4.6、4.13、4.25 本身就是成串的否定式，例如 4.25 开头的 `NEVER use generic AI-generated aesthetics…`，是调校过的原文，照抄即可）
 - [ ] 每条指令都想过：**一个善意的人类会怎么误解它？**（Claude Code 团队 Cat Wu 的自检法）
-- [ ] 同一条指令没有在 system prompt 和 tool description 里重复出现
+- [ ] 同一条指令没有在 system prompt 和 tool description 里重复出现（**模型确实需要的触发说明不算**——例如片段 4.23 配套的那句 system prompt，见 3.7）
 - [ ] 示例的取舍符合第 5 节的场景判断，不是无脑加或无脑删
 - [ ] 长上下文场景：材料在前、问题在后
 - [ ] 输出长度有明确要求（Opus 5 尤其必要）
@@ -1269,7 +1318,7 @@ bash 杠杆大但缺乏可观测性，harness 无法拦截、把关或审计。�
 | 思考过多、延迟高 | 片段 4.15；或降 effort |
 | 复杂问题推理太浅 | **提高 effort**，而不是加 prompt 绕过 |
 | 反复叮嘱某规则仍不生效 | prompt 太长、规则被淹没 → 精简，或改用确定性手段（hook、工具设计、schema） |
-| 代码审查漏报 | 片段 4.16，把过滤移到下游 |
+| 代码审查漏报 | 片段 4.16，把过滤移到下游。第 7 节 里对抗式审查那条提醒是反过来的情形——没有下游过滤，只能由审查者自己过滤 |
 | 长任务编造进度或谎报完成 | 片段 4.17 |
 | 无人值守时中途停下来问问题 | 片段 4.18 |
 | 快到上下文上限时自行收工 | 片段 4.19；首选是别让模型看见剩余预算数字 |
@@ -1289,7 +1338,7 @@ bash 杠杆大但缺乏可观测性，harness 无法拦截、把关或审计。�
 
 **主控手段只选一个**，叠加会和「最小信息集」原则冲突：
 
-- **能给出具体数字就给数字**（"300–400 字"、"每条不超过 40 字"）。可判定、最有效，首选
+- **能给出具体数字就给数字**（"300–400 字"、"3–6 条，每条不超过 40 字"）。可判定、最有效，首选
 - **给不出数字时**（输出形态本身不固定）才用片段 4.2 的通用简洁指令
 
 **两个可以叠加的补充项**（它们管的是别的问题，不与主控手段冲突）：

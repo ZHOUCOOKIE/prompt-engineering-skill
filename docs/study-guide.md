@@ -2,11 +2,11 @@
 
 > Background reading for the `prompt-engineering` skill. The skill tells you **what to do**; this document explains **why** — the official basis for each rule, which older habit it displaces, and how to read the two places where Anthropic's own guidance appears to contradict itself.
 >
-> Snapshot **2026-07-25**, with the effort guidance revised **2026-07-26** after the source page changed. Everything here traces to Anthropic's official documentation and official or employee public material; guidance predating the Claude 5 generation has been removed rather than left in. Sources are itemized in [SOURCES.md](../SOURCES.md).
+> Snapshot **2026-07-26**. Two different kinds of correction went into it: a source page that changed under the snapshot (the effort guidance), and an exact-string verification pass that caught two snippet attributions this document had got wrong on its own. Everything here traces to Anthropic's official documentation and official or employee public material; guidance predating the Claude 5 generation has been removed rather than left in. Sources are itemized in [SOURCES.md](../SOURCES.md).
 >
 > **How to read it.** Sections 1–3 build the frame. Section 4 is the important one — if you learned prompt engineering before 2026, it will contradict part of what you know. Sections 5 and 5b are the two decisions people most often get wrong, both arising from official guidance that looks contradictory and is not. Section 6 onward is reference material.
 >
-> **Scope: Claude Opus 5 and Claude Fable 5** (including Mythos 5), plus techniques verified as current and non-conflicting. Guidance specific to earlier models has been deliberately excluded.
+> **Scope: Claude Opus 5 and Claude Fable 5** (including Mythos 5), plus techniques verified as current and non-conflicting. Guidance specific to earlier models has been deliberately excluded. (Two entries in the skill's snippet library are verbatim from the current Sonnet 5 page — deliberate, and flagged at each entry.)
 >
 > **One disclaimer.** For specific API parameters, the live documentation is authoritative. The appendix records a real lesson on this point: a passage quoted in this document was rewritten by Anthropic *during* the verification process.
 
@@ -123,7 +123,7 @@ The second version still contains "never." The difference is that it hangs on a 
 
 ### 3.3 Structure with XML tags
 
-> ⚠️ A November 2025 official blog post says XML tags are "less necessary now." **The current documentation contradicts this** — see the excluded-material table in Section 10, and "Known conflicts" in [SOURCES.md](../SOURCES.md).
+> ⚠️ A November 2025 official blog post says XML tags are "less necessary now." **The current documentation contradicts this** — see reading-list entry 6 in Section 10, and "Known conflicts" in [SOURCES.md](../SOURCES.md).
 
 Official wording:
 
@@ -362,13 +362,13 @@ So the actual rule is:
 | | Remove | Add |
 |---|---|---|
 | **Form** | The model **looking at its own work again** ("double-check", "re-verify", "add a final verification step") | A **clean context** doing the checking (a fresh-context verifier subagent) |
-| **Situation** | Ordinary tasks, where the model self-corrects in one pass | Multi-hour autonomous runs, where error accumulates |
+| **Situation** | Ordinary tasks, where the model self-corrects in one pass | Any task where correctness matters more than speed — long autonomous runs additionally make the check *periodic* rather than one-off |
 
 One line to remember:
 
 > **Delete "check yourself." Keep "have someone else check."**
 
-This also explains the other pair that looks like a collision: the Opus 5 guidance says not to use subagents to verify or double-check its own work, while the Fable 5 guidance recommends subagents verifying against the specification on an interval. The first addresses **ordinary tasks that finish in a handful of tool calls**; the second addresses **autonomous runs measured in hours**. Change the duration and the cost-benefit calculus inverts.
+This also explains the other pair that looks like a collision: the Opus 5 guidance says not to use subagents to verify or double-check its own work, while the Fable 5 guidance recommends subagents verifying against the specification on an interval. Read them on the same axis, and they stop colliding. What 4.10 forbids is **delegating self-review** — handing a subagent the model's own work *together with its own criteria*, which pays twice for a judgment Opus 5 already makes. A **separate verifier with independent criteria in a fresh context** is a different thing, and stays permitted on both models at any duration. What Fable 5's long runs add is not permission but **periodicity**: run that check on an interval instead of once at the end.
 
 There is a trap one level down: **the word "verification" slides between two meanings.** What you remove is the model subjectively reconsidering whether it got it right. What you must **not** remove is running the tests, reading the build exit code, diffing a screenshot against the design — **external deterministic checks**. Those are not self-verification; they are the signal that lets the loop close. Section 8's headline rule is about exactly those.
 
@@ -394,11 +394,21 @@ Positioned for complex agentic coding and enterprise work, with strength on long
 | Follows "only report high-severity issues" **literally** in code review | Change to "report everything; filter downstream" |
 | `low` and `medium` produce strong quality at a fraction of the tokens and latency of higher settings | **Start at the default `high`** and step up to `xhigh` only for demanding coding and agentic work. If you carried settings over from an earlier model, run a fresh effort sweep |
 
-**One trap.** With thinking disabled, Opus 5 occasionally writes a tool call into user-facing text instead of emitting a `tool_use` block — the call never runs, and in an agentic loop the leaked text stays in history and affects later turns. It can also leak `<thinking>` tags into visible output. The official advice is to **keep thinking enabled and control cost with lower effort** rather than turning it off. (At `xhigh` and `max` you cannot turn it off in any case; those requests return 400.)
+**One trap.** With thinking disabled, Opus 5 occasionally writes a tool call into user-facing text instead of emitting a `tool_use` block — the call never runs, and in an agentic loop the leaked text stays in history and affects later turns. It can also leak `<thinking>` tags into visible output. The official advice is to **keep thinking enabled and control cost with lower effort** rather than turning it off; for most tasks, thinking enabled at `low` effort beats thinking disabled at similar cost. (At `xhigh` and `max` you cannot turn it off in any case; those requests return 400.)
+
+If an integration must keep thinking disabled, the official mitigation is a single combined instruction covering both artifacts:
+
+```
+When you use a tool, you may say a brief sentence first. If no tool can express what the user asked for, say so instead of guessing. Do not include internal or system XML tags in your response.
+```
+
+Naming the thinking tags specifically works less well than that general form.
 
 ### 6.2 Claude Fable 5 / Mythos 5
 
-Positioned very differently: for **problems that were previously too complex, long-running, or ambiguous**, and particularly for end-to-end work that takes a person hours, days, or weeks. Thinking is always on and cannot be configured.
+Officially **Anthropic's most capable widely released model**, and positioned very differently from Opus 5: for **problems that were previously too complex, long-running, or ambiguous**, and particularly for end-to-end work that takes a person hours, days, or weeks. Thinking is always on and cannot be configured.
+
+Worth separating two questions that get conflated here. The official selection advice is to **start with Opus 5 for complex agentic coding and enterprise work, and reach for Fable 5 when a workload needs the highest available capability.** "Most capable" is not the same as "what you should default to."
 
 One line worth noting: **the teams seeing the best outcomes apply it to their hardest unsolved problems; testing it only on simpler workloads tends to undersell its capability range.**
 
@@ -456,7 +466,7 @@ Points that matter:
 - **Lower effort directly reduces the number of tool calls**, combines operations, skips preamble, and produces terse confirmations. Higher effort means more tool calls, plans explained before acting, and detailed summaries. This is the part people miss — **effort is not only how long it thinks; it is how much it does**
 - **Set effort deliberately per workload** rather than letting one setting ride across everything you run
 - **Do not change effort mid-session with prompt caching enabled.** Official wording: `Changing the effort value between requests invalidates prompt caching, so vary effort across workloads rather than within a conversation that relies on cache hits.`
-- At high effort, leave headroom in `max_tokens` — it is a hard limit on thinking plus response text combined, and without headroom you get a response truncated because thinking consumed the budget. On Opus 5 at `xhigh`/`max`, 64k is the suggested starting point
+- At high effort, leave headroom in `max_tokens` — it is a hard limit on thinking plus response text combined, and without headroom you get a response truncated because thinking consumed the budget. On Opus 5 at `xhigh`/`max`, official guidance is to start at 64k and tune from there
 
 > Aside: `ultracode` in Claude Code is **not** an additional API effort tier. It is `xhigh` plus a standing authorization to launch multi-agent workflows.
 
@@ -691,6 +701,8 @@ The contrasts:
 | `make the dashboard look better` | `[paste screenshot] implement this design. take a screenshot of the result and compare it to the original. list differences and fix them` |
 | `the build is failing` | `the build fails with this error: [paste error]. fix it and verify the build succeeds. address the root cause, don't suppress the error` |
 
+Once the check exists, there is a second question the prompt cannot answer by itself: **how hard does it gate the stop?** The official ladder runs from weakest to strongest — ask for the check in the prompt; set it as a `/goal` condition so a separate evaluator re-checks after every turn; make it a `Stop` hook that blocks the turn from ending until it passes (overridden after 8 consecutive blocks); or hand it to a verification subagent so the agent doing the work is not the one grading it. Each step trades setup for attention. The prompt version works today on any task; the `/goal` and hook versions are what let an unattended run finish correctly without you.
+
 **What if the check does not exist yet?** That is the most common case — legacy code, low coverage, nobody willing to touch it. Do not skip verification and start editing. **Make building the check the first phase:** write **characterization tests** that pin current behavior, **asserting suspected bugs exactly as they currently behave** (this has to be stated explicitly, because a well-intentioned reader told to pin current behavior will very naturally fix the bugs they find, which destroys the net). Freeze the net once it exists — the refactor phase must not modify these tests. Only then refactor. Fixing the bugs belongs in a **separate later round**; mix the two and a red test leaves you unable to tell whether the refactor broke something or the behavior simply changed.
 
 Another practical technique — **have Claude interview you:**
@@ -715,7 +727,7 @@ Then execute that spec in a **fresh session**, where the context is clean and en
 | **The trust-then-verify gap** | Plausible-looking implementation that misses edge cases | Always provide verification. **If you cannot verify it, do not ship it** |
 | **The infinite exploration** | "Investigate this" without scope; hundreds of files read | Narrow the scope, or isolate it in a subagent |
 
-**One important caveat on adversarial review.** Having a subagent review the diff in a fresh context is effective, but the official guidance also warns that **a reviewer prompted to find gaps will usually report some, even when the work is sound, because that is what it was asked to do.** Chasing every finding leads to over-engineering. The review prompt must therefore say: **flag only gaps that affect correctness or the stated requirements, and treat the rest as optional.**
+**One important caveat on adversarial review.** Having a subagent review the diff in a fresh context is effective, but the official guidance also warns that **a reviewer prompted to find gaps will usually report some, even when the work is sound, because that is what it was asked to do.** Chasing every finding leads to over-engineering. The review prompt must therefore say: **flag only gaps that affect correctness or the stated requirements, and treat the rest as optional.** This is a filtering instruction, so it belongs only where **you** are the filter. If the findings feed a downstream ranking or triage step instead, invert it and have the reviewer report everything (the "report everything; filter downstream" row in Section 6) — Opus 5 applies a stated severity bar literally and silently drops whatever falls below it.
 
 ---
 
@@ -762,6 +774,7 @@ The full source list, the read depth for each, and the adjudication of known con
 3. **Consult as needed:** [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) plus the page for the model you use — reference material, not a read-through
 4. **For the underlying principles:** [Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) (2025-09)
 5. **To hear it from the people who did it:** [Fireside chat: Cat Wu and Thariq Shihipar](https://www.youtube.com/watch?v=uU5Gv2h8-9g) (2026-07), with a [transcript](https://simonwillison.net/2026/Jul/21/cat-and-thariq/)
+6. **Read with care:** [Prompt engineering best practices for 2026](https://claude.com/blog/best-practices-for-prompt-engineering) (2025-11). Its framing sections and its "common mistakes" list are still worth reading, and Section 3.4 borrows a useful corollary from it. But it **contradicts the current documentation in three places** — it recommends prefill (now rejected by the API) and calls XML tags and role prompting unnecessary (both still recommended). On those three, the docs win
 
 ### ⚠️ Deliberately excluded
 
@@ -769,7 +782,6 @@ The full source list, the read depth for each, and the adjudication of known con
 |---|---|
 | [prompt-eng-interactive-tutorial](https://github.com/anthropics/prompt-eng-interactive-tutorial) | Still targets **Claude 3 Haiku**, and the techniques it teaches most prominently have since been reversed. **In fairness:** the official overview page still lists it for interactive learners and does not deprecate it — but the same page designates Prompting best practices as "the living reference; start there." Fine for concepts; defer to the living reference on every specific technique |
 | ["AI prompt engineering: a deep dive"](https://www.youtube.com/watch?v=T9aRN5JkmL8) (2024-12) | The most widely shared panel on the subject. The mental models hold up; the tactics do not |
-| [Prompt engineering best practices for 2026](https://claude.com/blog/best-practices-for-prompt-engineering) (2025-11) | **Contradicts the current documentation in three places**: it recommends prefill (now rejected) and calls XML tags and role prompting unnecessary (both still recommended). The framing sections are useful; on those three points, the docs win |
 | Third-party "ultimate guide to prompting Claude" articles | Secondhand summaries |
 
 ---

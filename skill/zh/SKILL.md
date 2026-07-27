@@ -9,7 +9,7 @@ description: Writes, rewrites, reviews, and audits prompts and system prompts us
 
 **这份 skill 存在的理由**：一批广为流传的 prompt 技法在这两个模型上已经失效、被 API 拒绝、或效果反了。你的训练直觉里很可能仍带着它们。**当直觉与第 3 节冲突时，以本文件为准。**
 
-**基准**：Anthropic 官方文档与官方/员工公开材料，快照日期 2026-07-25。涉及具体 API 参数时回原文档确认——那是唯一会随模型更新的地方。
+**基准**：Anthropic 官方文档与官方/员工公开材料，快照日期 2026-07-26。涉及具体 API 参数时回原文档确认——那是唯一会随模型更新的地方。
 
 ---
 
@@ -98,7 +98,7 @@ description: Writes, rewrites, reviews, and audits prompts and system prompts us
 |---|---|---|---|
 | effort | 用界面或斜杠命令设 | 用界面设 | `output_config: {effort}` |
 | thinking | 由客户端管理 | 由客户端管理 | `thinking: {type: "adaptive"}` |
-| `max_tokens` | **管不到** | **管不到** | 自己设，`xhigh`/`max` 下建议 64k 起 |
+| `max_tokens` | **管不到** | **管不到** | 自己设；官方建议 `xhigh`/`max` 下从 64k 起步再按需调 |
 
 所以给场景 A、B 写交付说明时，**只说"用哪个模型、设成哪档 effort"就够了**，不要把 `max_tokens`、`thinking` 这些 API 字段写进去——用户在那个界面里根本没有这些开关，写了只会让人困惑。下面几条里带 API 字段的部分，只在直接调 API 时才需要交代。
 
@@ -122,7 +122,7 @@ description: Writes, rewrites, reviews, and audits prompts and system prompts us
 ### 3.1 不要用 prefill（预填充助手回复）
 Opus 5 和 Fable 5 **均不支持**，在最后一个 assistant turn 预填充会返回 400。
 
-替代：结构化输出用 **Structured Outputs** 或直接说明 schema；去开场白写 `Respond directly without preamble. Do not start with phrases like 'Here is...', 'Based on...', etc.`；分类任务用带 enum 的 tool；续写把上文放进 user 消息。
+官方给的替代是 **structured outputs、system prompt 指令、或 `output_config.format`**。具体来说：结构化输出用 Structured Outputs、`output_config.format`，或直接说明 schema；去开场白写 `Respond directly without preamble. Do not start with phrases like 'Here is...', 'Based on...', etc.`（迁移指南原文）；分类任务用带 enum 的 tool；续写把上文放进 user 消息。
 
 ### 3.2 不要用 `budget_tokens`
 两个模型均不支持手动 extended thinking，设置返回 400。Opus 5 用 `thinking: {type: "adaptive"}` 加 `output_config: {effort: "..."}`；Fable 5 thinking 始终开启且无法配置，只用 `effort` 控深度。需要硬上限用 `max_tokens`。
@@ -130,9 +130,9 @@ Opus 5 和 Fable 5 **均不支持**，在最后一个 assistant turn 预填充�
 ### 3.3 不要用堆砌指令代替上下文
 核心原则：**给上下文，别给一长串指令。**
 
-Fable 5 官方原话——指令遵循已经好到一句简短指令就能管住一类行为，不必逐条枚举。Claude Code 团队据此把系统提示词砍掉 80% 以上而性能不降。
+Fable 5 官方文档的说法是——指令遵循已经好到一句简短指令就能管住一类行为，不必逐条枚举。Claude Code 团队据此把系统提示词砍掉 80% 以上而性能不降。
 
-与其枚举十条"不要 X"，写一句正面描述加说明意图。把 `Default to using [tool]` 改成 `Use [tool] when it would enhance your understanding of the problem`。
+与其枚举十条"不要 X"，写一句正面描述加说明意图。把 `Default to using [tool]` 改成 `Use [tool] when it would enhance your understanding of the problem`。工具该怎么用，靠 tool description 和参数设计表达，不要在 system prompt 里反复提醒。
 
 > 一处例外：Claude Code 最佳实践仍写着，可以在 **CLAUDE.md** 里加 `IMPORTANT` 或 `YOU MUST` 提高某条规则的遵守度。但只用在少数几行上——同一份文档也警告：CLAUDE.md 太长时 Claude 会忽略其中一半，因为重要规则淹没在噪音里。
 
@@ -147,7 +147,7 @@ Opus 5 无需提示即自行验证。保留 `double-check your answer` / `re-ver
 |---|---|
 | "最后检查一遍有没有遗漏" | 跑测试、看构建退出码、对比截图（场景 A） |
 | "再核对一次你的答案" | 把 A 材料的说法和 B 材料对上，冲突时说明取谁（场景 B） |
-| "用子智能体复查你自己的工作" | 数字必须能追溯到某份原始材料的具体位置 |
+| "用子智能体复查你自己的工作"——指连同模型自己的判据一起交出去的那种 | 数字必须能追溯到某份原始材料的具体位置。**换到干净上下文、带独立判据的 verifier** 不在这一行删除之列，见 `references/models.md` |
 
 判据很简单：**检查的依据来自模型自己，就删；来自外部可查证的东西，就留。** 场景 B 的研究与报告类任务里，跨来源交叉核对是任务本身，不是自我验证，写 prompt 时不要误删。
 
@@ -168,14 +168,17 @@ Fable 5 的长自主运行方向相反，要显式加周期验证——见 `refe
 ### 3.7 不要在 system prompt 与 tool description 之间重复
 工具的使用说明**只写在 tool description 一处**。
 
+> **一处例外：触发时机。** 片段 4.23 就是官方给的例子——Fable 5 光靠 tool description 很少会去调 `send_to_user`，所以官方在工具之外还配了一句写进 system prompt 的话，告诉它**什么时候**该用这个工具。这条规则禁的是把同一份**使用说明**写两遍，不是禁止给工具配一句它确实需要的触发说明。
+
 ### 3.8 不要靠 `temperature` 制造多样性
 新一代模型对采样参数的支持在收紧，部分模型设非默认值直接返回 400。用 prompt 求多样性——让模型**先给选项再落地**：
 ```
 Before building, propose 4 distinct visual directions tailored to this brief (each as: bg hex / accent hex / typeface, plus a one-line rationale). Ask the user to pick one, then implement only that direction.
 ```
+（片段 4.25，逐字取自 Claude Sonnet 5 页面，照抄即可。）
 
 ### 3.9 不要要求模型复述或展示内部推理
-"show your thinking"、"把思考过程写出来"这类指令在 **Fable 5** 上**可能触发** `reasoning_extraction` 拒绝类别，请求被拒、回落备用模型的比例上升。需要推理可见性改读结构化 `thinking` 块。
+"show your thinking"、"把思考过程写出来"这类指令在 **Fable 5** 上**可能触发** `reasoning_extraction` 拒绝类别，请求被拒、回落备用模型的比例上升。需要推理可见性改读结构化 `thinking` 块；需要在长时运行中把进度呈现给用户，用 send-to-user 工具（片段 4.23）。
 
 ### 3.10 不要写"不要思考 / 不要推理"
 **在关闭 thinking 的情况下**，Opus 5 可能把 `<thinking>` 等内部 XML 标签泄漏到可见输出，而 system prompt 里这类规则会**加剧**泄漏。（Opus 5 默认开启 thinking，`xhigh`/`max` 下还无法关闭，所以这条只对刻意关闭 thinking 的集成有效。）写通用形式，且不要点名 thinking 标签：
@@ -267,11 +270,11 @@ Do not include internal or system XML tags in your response.
 - [ ] 如果用了英文官方片段：交付说明里写了「这几段是官方原文，请不要翻译或改写」的提醒
 - [ ] 没有 prefill、没有 `budget_tokens`
 - [ ] 没有为防欠触发而堆的 `CRITICAL: You MUST` / `If in doubt, use [tool]`（**官方片段里的原文措辞不算**，例如 4.7 内含的 `you MUST read the file` 是调校过的原文，照抄即可）
-- [ ] 目标是 Opus 5：**没有**任何自我验证或双重检查类指令（外部确定性检查不算）
+- [ ] 目标是 Opus 5：**没有**任何自我验证或双重检查类指令（外部确定性检查不算；官方研究片段里那句 `Regularly self-critique your approach and plan` 也不算，见 `references/for-chat-and-cowork.md`）
 - [ ] 目标是 Fable 5：没有"展示你的思考过程"类指令；长自主运行已加进度真实性约束
-- [ ] 所有约束是正面表述，且带了「为什么」
+- [ ] **你自己写的**约束都是正面表述，且带了「为什么」（**官方片段里的原文措辞不算**——4.6、4.13、4.25 本身就是成串的否定式，例如 4.25 开头的 `NEVER use generic AI-generated aesthetics…`，是调校过的原文，照抄即可）
 - [ ] 每条指令都想过：**一个善意的人类会怎么误解它？**（Claude Code 团队 Cat Wu 的自检法）
-- [ ] 同一条指令没有在 system prompt 和 tool description 里重复出现
+- [ ] 同一条指令没有在 system prompt 和 tool description 里重复出现（**模型确实需要的触发说明不算**——例如片段 4.23 配套的那句 system prompt，见 3.7）
 - [ ] 示例的取舍符合第 4 节的场景判断，不是无脑加或无脑删
 - [ ] 长上下文场景：材料在前、问题在后
 - [ ] 输出长度有明确要求（Opus 5 尤其必要）
@@ -301,7 +304,7 @@ Do not include internal or system XML tags in your response.
 | 思考过多、延迟高 | 片段 4.15；或降 effort |
 | 复杂问题推理太浅 | **提高 effort**，而不是加 prompt 绕过 |
 | 反复叮嘱某规则仍不生效 | prompt 太长、规则被淹没 → 精简，或改用确定性手段（hook、工具设计、schema） |
-| 代码审查漏报 | 片段 4.16，把过滤移到下游 |
+| 代码审查漏报 | 片段 4.16，把过滤移到下游。`references/for-claude-code.md` 里对抗式审查那条提醒是反过来的情形——没有下游过滤，只能由审查者自己过滤 |
 | 长任务编造进度或谎报完成 | 片段 4.17 |
 | 无人值守时中途停下来问问题 | 片段 4.18 |
 | 快到上下文上限时自行收工 | 片段 4.19；首选是别让模型看见剩余预算数字 |
@@ -321,7 +324,7 @@ Do not include internal or system XML tags in your response.
 
 **主控手段只选一个**，叠加会和「最小信息集」原则冲突：
 
-- **能给出具体数字就给数字**（"300–400 字"、"每条不超过 40 字"）。可判定、最有效，首选
+- **能给出具体数字就给数字**（"300–400 字"、"3–6 条，每条不超过 40 字"）。可判定、最有效，首选
 - **给不出数字时**（输出形态本身不固定）才用片段 4.2 的通用简洁指令
 
 **两个可以叠加的补充项**（它们管的是别的问题，不与主控手段冲突）：

@@ -5,6 +5,7 @@ The user describes work in Claude desktop; you produce a prompt they paste into 
 ## Contents
 
 - First priority: give it a check it can run
+- How hard the check gates the stop
 - When the check does not exist yet
 - Say it all at once
 - How specific to be
@@ -24,7 +25,9 @@ The user describes work in Claude desktop; you produce a prompt they paste into 
 
 This is the first rule in the official best practices, and it is the largest difference between this scenario and Scenario B.
 
-Official wording, with the second person pointed at your user rather than at you: Claude stops when the work looks done. Without a check it can run, "looks done" is the only signal available, and **the user becomes the verification loop** — every mistake waits for them to notice it. Give Claude something that produces a pass or fail, and the loop closes on its own.
+Adapted from the official wording — the second person there addresses the reader, which here means your user rather than you:
+
+> Claude stops when the work looks done. Without a check it can run, "looks done" is the only signal available, and **the user becomes the verification loop** — every mistake waits for them to notice it. Give Claude something that produces a pass or fail, and the loop closes on its own.
 
 The check is anything that returns a signal the model can read: a test suite, a build exit code, a linter, a script that diffs output against a fixture, or a browser screenshot compared against a design.
 
@@ -39,6 +42,19 @@ The check is anything that returns a signal the model can read: a test suite, a 
 > **Distinguish this from SKILL.md 3.4.** That section is about removing subjective self-review instructions. This is about supplying **external deterministic checks** — running tests, reading exit codes, comparing screenshots. Remove the former; you must supply the latter.
 
 Also require **evidence rather than assertion**: the test output, the command run and what it returned, a screenshot of the result. Reviewing evidence is faster than re-running the verification yourself, and it works for sessions nobody was watching.
+
+## How hard the check gates the stop
+
+Once the check exists, there is a second decision the prompt alone cannot make. Official guidance gives four levels, trading setup effort for how little attention the run needs:
+
+| Level | What it is | When it earns the setup |
+|---|---|---|
+| **In one prompt** | Ask it to run the check and iterate in the same message | Any task, today. This is what the prompt you are writing does |
+| **Across a session** | Set the check as a `/goal` condition — a separate evaluator re-checks after every turn | The user wants it to keep going until the criterion holds |
+| **A deterministic gate** | A `Stop` hook runs the check as a script and blocks the turn from ending until it passes (Claude Code overrides after 8 consecutive blocks) | The check must not be skippable |
+| **A second opinion** | A verification subagent, so the agent doing the work is not the one grading it | Correctness matters more than speed |
+
+**Mention the level in the delivery note when it matters.** A prompt is level one by definition; if the user described an unattended run, say that `/goal` or a `Stop` hook is what actually lets it finish correctly without them.
 
 ## When the check does not exist yet
 
@@ -104,6 +120,24 @@ Planning earns its cost when you are uncertain about the approach, when the chan
 
 So the four-phase flow needs a confirmation step after planning. Write that checkpoint explicitly: have it produce the plan and **stop for confirmation** before implementing. When the user will not be present to confirm, drop "verify against the plan" and rely on tests and other genuinely external checks.
 
+## Larger features: have it interview the user into a SPEC
+
+When the request is large and the user has not fully thought it through, the prompt you hand them can be this one:
+
+```text
+I want to build [brief description]. Interview me in detail using the AskUserQuestion tool.
+
+Ask about technical implementation, UI/UX, edge cases, concerns, and tradeoffs. Don't ask obvious questions, dig into the hard parts I might not have considered.
+
+Keep interviewing until we've covered everything, then write a complete spec to SPEC.md.
+```
+
+Then execute that spec in a **fresh session** — clean context, focused entirely on implementation.
+
+Two official points worth passing on: **time spent making the spec precise pays off more than time spent watching the implementation**, and the most useful specs are **self-contained** — they name the files and interfaces involved, state what is out of scope, and end with an end-to-end verification step that proves the feature works.
+
+---
+
 ## Context is the binding constraint
 
 Most of the Claude Code best practices derive from one constraint: **the context window fills fast, and performance degrades as it fills.** A single debugging session or codebase exploration can consume tens of thousands of tokens.
@@ -112,7 +146,9 @@ What the prompt can do about it:
 
 - **Push exploration outside the main context**: `Use subagents to investigate how our authentication system handles token refresh, and whether we have any existing OAuth utilities I should reuse.` The subagent reads many files in its own context and reports back a summary
 
-> **The unified subagent criterion** (this is scattered across sources; stated fully here): **encourage them for wide read-only exploration, forbid them for reviewing the model's own work.** The first is their greatest value — keeping the cost of reading dozens of files out of the main context. The second is something Opus 5 already does, so delegating it merely doubles the cost. For everything in between, snippet 4.10 is the test: if you can finish it yourself in a handful of tool calls, do not delegate.
+> **The unified subagent criterion** (this is scattered across sources; stated fully here): **encourage them for wide read-only exploration, forbid them for re-reviewing the model's own work in its own context.** A *separate, fresh-context* verifier is the exception, and officially outperforms self-critique — that is what the "second opinion" level above and the adversarial-review note at the end of this file both refer to.
+>
+> So: The first is their greatest value — keeping the cost of reading dozens of files out of the main context. The second is something Opus 5 already does, so delegating it merely doubles the cost. For everything in between, snippet 4.10 is the test: if you can finish it yourself in a handful of tool calls, do not delegate.
 
 - **Do not write open-ended investigations**: `investigate X` without a boundary reads hundreds of files and fills the context
 - Remind the user: `/clear` between unrelated tasks; after two failed corrections on the same issue, `/clear` and rewrite the prompt with what was learned
@@ -197,4 +233,4 @@ Worth passing on to the user alongside the prompt:
 | **The trust-then-verify gap** | Plausible-looking implementation that misses edge cases | Always provide verification. **If you cannot verify it, do not ship it** |
 | **The infinite exploration** | "Investigate this" without scope; hundreds of files read | Narrow the scope, or isolate it in a subagent |
 
-**One important caveat on adversarial review.** Having a subagent review the diff in a fresh context is effective, but the official guidance also warns: **a reviewer prompted to find gaps will usually report some, even when the work is sound, because that is what it was asked to do.** Chasing every finding leads to over-engineering. So the review prompt must say: **flag only gaps that affect correctness or the stated requirements, and treat the rest as optional.**
+**One important caveat on adversarial review.** Having a subagent review the diff in a fresh context is effective, but the official guidance also warns: **a reviewer prompted to find gaps will usually report some, even when the work is sound, because that is what it was asked to do.** Chasing every finding leads to over-engineering. So the review prompt must say: **flag only gaps that affect correctness or the stated requirements, and treat the rest as optional.** This is a filtering instruction, so it belongs only where **you** are the filter. If the findings feed a downstream ranking or triage step instead, use snippet 4.16 and let the reviewer report everything — `references/models.md` warns that Opus 5 applies a stated severity bar literally and silently drops whatever falls below it.

@@ -1,8 +1,10 @@
 # 按模型调校：Opus 5 与 Fable 5
 
 > 片段编号（如 4.2）指向 `snippets.md`。
+>
+> 下表"处方"列里的英文块，**全部是官方文档原文**，照抄即可，不要翻译或改写。
 
-### Claude Opus 5（默认 effort: high；thinking 默认开启）
+## Claude Opus 5（默认 effort: high；thinking 默认开启）
 
 | 已知倾向 | 处方 |
 |---|---|
@@ -13,16 +15,24 @@
 | 自行扩大任务范围 | 范围约束（4.5） |
 | 更积极派生子智能体 | 显式设限（4.10） |
 | 更频繁地口头纠正自己此前的说法 | `Only correct an earlier statement when the error would change the user's code, conclusions, or decisions. State corrections plainly and briefly, then continue the task. For slips that change nothing for the user, make the fix and move on without noting it.` |
-| 代码审查中"只报高危"会被字面执行 | 用 4.16 |
+| 代码审查中"只报高危"会被字面执行 | 用 4.16；把过滤动作移到独立的下游步骤 |
 | `low` / `medium` effort 质量强，而 token 与延迟只是高档位的一个零头 | **从默认 `high` 起步**，只有足够重的编码与 agent 工作才上 `xhigh`。评测显示质量不掉的地方放开用 `low`/`medium`，把它当成控成本和控延迟的主要手段。设置若从更早的模型沿用而来，重新做一次 effort 扫描 |
-| 关闭 thinking 时可能把 tool call 写成文本（该调用不会执行，且泄漏文本会留在历史里污染后续轮次） | **首选保持 thinking 开启**，用低 effort 控成本。必须关闭时加：`You may say a brief sentence before using a tool.` |
-| 关闭 thinking 时可能把 `<thinking>` 等内部标签泄漏到可见输出 | 删掉 system prompt 里"不要思考/不要推理"的规则（它会加剧泄漏），改用通用形式：`Do not include internal or system XML tags in your response.` 不要点名 thinking 标签，点名反而更差 |
+| 关闭 thinking 时可能把 tool call 写成文本（该调用不会执行，且泄漏文本会留在历史里污染后续轮次） | **首选保持 thinking 开启**，用低 effort 控成本。官方说法：多数任务上，开着 thinking 跑 `low` effort，效果好于在相近成本下关掉 thinking |
+| 关闭 thinking 时可能把 `<thinking>` 等内部标签泄漏到可见输出 | 删掉 system prompt 里"不要思考/不要推理"的规则（它会加剧泄漏）；点名 thinking 标签的效果差于通用形式 |
 
-其他：1M token 上下文为默认且最大；`xhigh`/`max` 下不能关闭 thinking——在这两档设 `thinking: {"type": "disabled"}` 会返回 400。多数任务上，**开着 thinking 跑 `low` effort，效果好于在相近成本下关掉 thinking**。**在 `xhigh` 或 `max` effort 下**运行时要给 `max_tokens` 留足空间，官方建议以 64k 为合理起点。
+必须关闭 thinking 的集成，官方给的是**一条同时兜住这两个问题的合并指令**：
 
-### Claude Fable 5 / Mythos 5（默认 effort: high；thinking 始终开启且不可关闭）
+```
+When you use a tool, you may say a brief sentence first. If no tool can express what the user asked for, say so instead of guessing. Do not include internal or system XML tags in your response.
+```
 
-定位：处理此前"太复杂、太长、太模糊"的问题，擅长人类需要数小时到数周的端到端工作。
+其他：1M token 上下文为默认且最大；`xhigh`/`max` 下不能关闭 thinking——在这两档设 `thinking: {"type": "disabled"}` 会返回 400。多数任务上，**开着 thinking 跑 `low` effort，效果好于在相近成本下关掉 thinking**。**在 `xhigh` 或 `max` effort 下**运行时要给 `max_tokens` 留足空间，官方建议以 64k 为合理起点。此项仅在直接调 API 时需要关心。
+
+## Claude Fable 5 / Mythos 5（默认 effort: high；thinking 始终开启且不可关闭）
+
+定位：官方称其为 **Anthropic 目前最强的公开发布模型**。面向此前"太复杂、太长、太模糊"的问题，擅长人类需要数小时到数周的端到端工作。效果最好的团队把它用在自己最难的未解问题上；只拿简单任务测它，往往会低估它的能力范围。
+
+> 注意官方选型建议里的分工：**复杂 agentic 编码和企业任务从 Opus 5 起步；需要最高能力上限的负载才用 Fable 5。**"最强"和"默认该选哪个"不是同一个问题。
 
 | 已知倾向 | 处方 |
 |---|---|
@@ -34,13 +44,13 @@
 | 会做未被要求的动作（自动起草邮件、建防御性 git 分支） | 明确划边界，用 4.24 |
 | 更主动派并行子智能体 | **鼓励使用**，但给明确的委派判据；优先异步通信而非阻塞等待；长生命周期子智能体能靠缓存读取省时省钱 |
 | 深入长会话后偶尔只说"我这就去做 X"却不发工具调用 | 一句 "continue" 即可；自主管线用 4.18 |
-| 看到剩余 token 倒计时会提议开新会话 | 4.19 |
-| **为旧模型写的 skills 往往过于规定化，会降低 Fable 5 的输出质量** | 审查并删减；Fable 5 也能根据任务自行更新 skill |
+| 看到剩余 token 倒计时会提议开新会话 | 4.19；更好的做法是别把倒计时暴露给模型 |
+| **为旧模型写的 skills 往往过于规定化，可能降低 Fable 5 的输出质量** | 审查并删减；Fable 5 也能根据任务自行更新 skill |
 | 让它复述内部推理会触发拒绝 | 见 SKILL.md 3.9 |
 
 **脚手架建议**：从你难度范围的**上限**开始试（挑一个比你会派给旧模型更难的任务），让它先界定范围、提澄清问题、再执行。
 
-### ⚠️ 验证指令：Opus 5 与 Fable 5 方向相反
+## ⚠️ 验证指令：Opus 5 与 Fable 5 方向相反
 
 这是最容易搞错的一处，两条官方指引看似矛盾，实则场景不同：
 
@@ -51,9 +61,9 @@
 
 关键区别：官方同时指出，**独立的、干净上下文的 verifier 子智能体，效果优于模型自我批评**。所以"删验证"删的是**让模型自己再看一遍**，"加验证"加的是**换一个上下文来查**。两者不冲突。
 
-（注意这与 4.10「不要用子智能体验证自己的工作」也不冲突——4.10 针对 Opus 5 的常规任务，此处针对 Fable 5 的多小时自主运行。）
+（注意这与 4.10「不要用子智能体验证自己的工作」也不冲突。4.10 要按同一条「上下文是否干净」的轴来读：它禁的是**把自我复查外包出去**——把模型自己的产出连同它自己的判断标准一起交给子智能体，等于为 Opus 5 本来就会做的判断付两遍钱。**换到干净上下文、带独立判据的 verifier**，在两个模型上都是允许的。Fable 5 的长跑加的不是许可，而是**周期性**：把这个检查按间隔反复跑，而不是只在最后跑一次。）
 
-### effort 取值参考
+## effort 取值参考
 
 `max`（无上限）> `xhigh`（长周期 agent/编码）> `high`（默认）> `medium`（成本敏感）> `low`（短任务、子智能体、低延迟）
 

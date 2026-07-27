@@ -1,6 +1,8 @@
 # Tuning by model: Opus 5 and Fable 5
 
 > Snippet numbers (4.2, 4.17, …) refer to `snippets.md`.
+>
+> Every English block in the Prescription column below is **verbatim official wording** — copy it as is rather than translating or tidying it.
 
 ## Claude Opus 5
 
@@ -17,16 +19,24 @@ Default effort `high`; thinking on by default; 1M token context window as both d
 | Narrates corrections to its own earlier statements more than prior models | `Only correct an earlier statement when the error would change the user's code, conclusions, or decisions. State corrections plainly and briefly, then continue the task. For slips that change nothing for the user, make the fix and move on without noting it.` |
 | Follows "only report high-severity issues" **literally** in code review | Use 4.16; move filtering downstream |
 | `low` and `medium` produce strong quality at a fraction of the tokens and latency of higher settings | **Start at the default `high`** and step up to `xhigh` only for demanding coding and agentic work. Use `low`/`medium` liberally as the primary control for token cost and latency wherever your evals show quality holds. If you carried settings over from an earlier model, run a fresh effort sweep |
-| With thinking disabled, occasionally writes a tool call into user-facing text instead of emitting a `tool_use` block (the call never runs, and in agentic loops the leaked text stays in history and affects later turns) | **Keep thinking enabled** and control cost with lower effort. If you must disable it: `You may say a brief sentence before using a tool.` |
-| With thinking disabled, can emit `<thinking>` or other internal XML tags into visible output | Remove any rule telling the model not to think — it increases leakage. Use the general form and do not name the tags: `Do not include internal or system XML tags in your response.` |
+| With thinking disabled, occasionally writes a tool call into user-facing text instead of emitting a `tool_use` block (the call never runs, and in agentic loops the leaked text stays in history and affects later turns) | **Keep thinking enabled** and control cost with lower effort. Officially: for most tasks, thinking enabled at `low` effort performs better than thinking disabled at similar cost |
+| With thinking disabled, can emit `<thinking>` or other internal XML tags into visible output | Remove any rule telling the model not to think — it increases leakage, and naming the thinking tags specifically works less well than the general form |
 
-Thinking can be disabled only at effort `high` or below; a request setting `thinking: {"type": "disabled"}` at `xhigh` or `max` returns a 400 error. For most tasks, thinking enabled at `low` effort performs better than thinking disabled at similar cost. At `xhigh`/`max`, leave headroom in `max_tokens` — 64k is a reasonable starting point. This applies only when calling the API directly.
+For integrations that must keep thinking disabled, official guidance is **one combined instruction that mitigates both artifacts**:
+
+```
+When you use a tool, you may say a brief sentence first. If no tool can express what the user asked for, say so instead of guessing. Do not include internal or system XML tags in your response.
+```
+
+Thinking can be disabled only at effort `high` or below; a request setting `thinking: {"type": "disabled"}` at `xhigh` or `max` returns a 400 error. For most tasks, thinking enabled at `low` effort performs better than thinking disabled at similar cost. At `xhigh`/`max`, leave headroom in `max_tokens`; officially, starting at 64k and tuning from there is a reasonable default. This applies only when calling the API directly.
 
 ## Claude Fable 5 / Mythos 5
 
 Default effort `high`; thinking is always on and cannot be configured.
 
-Positioning: problems that were previously too complex, long-running, or ambiguous for prior models; particularly effective at end-to-end work that takes a person hours, days, or weeks. The teams seeing the best outcomes apply it to their hardest unsolved problems; testing it only on simpler workloads tends to undersell its capability range.
+Positioning: officially **Anthropic's most capable widely released model**. Aimed at problems that were previously too complex, long-running, or ambiguous for prior models; particularly effective at end-to-end work that takes a person hours, days, or weeks. The teams seeing the best outcomes apply it to their hardest unsolved problems; testing it only on simpler workloads tends to undersell its capability range.
+
+> Note the split in the official model-selection advice: **start with Opus 5 for complex agentic coding and enterprise work; use Fable 5 for workloads that need the highest available capability.** "Most capable" and "what you should reach for by default" are not the same question.
 
 | Known behavior | Prescription |
 |---|---|
@@ -55,7 +65,7 @@ The single easiest thing to get wrong. Two official positions look contradictory
 
 The reconciling detail: officially, **separate, fresh-context verifier subagents tend to outperform self-critique**. So what you remove is "have the model look at its own work again"; what you add is "have a clean context check it." These are not in conflict.
 
-(This also does not conflict with 4.10's "do not use subagents to verify or double-check your own work" — 4.10 addresses Opus 5 on ordinary tasks, this addresses Fable 5 on multi-hour autonomous runs.)
+(This also does not conflict with 4.10's "do not use subagents to verify or double-check your own work." Read 4.10 on the same freshness axis: what it forbids is **delegating self-review** — handing a subagent the model's own work and its own criteria, which just pays twice for a judgment Opus 5 already makes. A **separate verifier with independent criteria in a fresh context** stays permitted on both models. What Fable 5's long runs add is not permission but **periodicity**: run that check on an interval instead of once at the end.)
 
 ## Effort reference
 
@@ -76,4 +86,4 @@ Points that matter:
 - Effort is a behavioral signal, not a strict token budget; it affects text, tool calls, and thinking alike
 - **Lower effort directly reduces the number of tool calls**, combines operations, and skips preamble
 - Do not change effort mid-session with prompt caching enabled — it invalidates the cache
-- Leave headroom in `max_tokens` — it is a hard limit on thinking plus response text combined. On Opus 5 this matters at `xhigh`/`max` (64k is a reasonable start); on Fable 5 it is called out at `high` and `xhigh`. Relevant only when calling the API directly
+- Leave headroom in `max_tokens` — it is a hard limit on thinking plus response text combined. On Opus 5 this matters at `xhigh`/`max`, where official guidance is to start at 64k and tune from there; on Fable 5 it is called out at `high` and `xhigh`. Relevant only when calling the API directly

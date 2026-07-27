@@ -2,11 +2,11 @@
 
 > 这是 `prompt-engineering` skill 的背景读物。skill 讲的是**怎么做**，这份文档讲的是**为什么是这样**——每条规则背后的官方依据、它推翻了什么旧习惯、以及两处看起来矛盾的官方指引该怎么解释。
 >
-> 快照日期 **2026-07-25**（effort 相关内容于 2026-07-26 依据文档更新做过修订）。全部内容来自 Anthropic 官方文档与官方 / 员工公开分享，Claude 5 世代之前的专属指引已剔除，而不是留着当"应该还能用"。信源逐条列在 [SOURCES.md](../SOURCES.md)。
+> 快照日期 **2026-07-26**。其间有两类修正：官方页面本身改过（effort 建议），以及一轮逐字复核纠正了两条片段的出处标注（那是本文这边的错，不是官方改的）。全部内容来自 Anthropic 官方文档与官方 / 员工公开分享，Claude 5 世代之前的专属指引已剔除，而不是留着当"应该还能用"。信源逐条列在 [SOURCES.md](../SOURCES.md)。
 >
 > **阅读方式**：第 1、2、3 章是理解框架；第 4 章是最重要的「排毒」章节（如果你以前学过 prompt 工程，那一章会推翻你的一部分认知）；第 5 和 5b 章是两个最容易搞错的单点，都源于两条官方指引看起来打架、实则场景不同；第 6 章往后按需查阅。
 >
-> **适用范围**：**Claude Opus 5 和 Claude Fable 5**（含 Mythos 5），以及已验证与现行标准无冲突的通用技法。所有更早模型（Opus 4.x、Sonnet 系列）的专属指引已剔除。
+> **适用范围**：**Claude Opus 5 和 Claude Fable 5**（含 Mythos 5），以及已验证与现行标准无冲突的通用技法。Opus 4.x 与已被取代的 Sonnet 旧版本的专属指引已剔除。（skill 的片段库里有两条逐字取自现役的 Sonnet 5 页面，属于有意为之，已在对应条目上标注。）
 >
 > **一句免责**：涉及具体 API 参数时，以官方文档的实时版本为准。文末附录记录了一次真实的教训——本文引用的某段官方措辞，在核查期间就被官方改掉了。
 
@@ -127,7 +127,7 @@ Thariq Shihipar 在同一场对谈里的原话：
 
 ### 3.3 用 XML 标签做结构
 
-> ⚠️ 有一篇 2025 年 11 月的官方博客说 XML「现在不太必要了」。**这条已被现行文档否定**，裁定见第 10 章的排除清单和 [SOURCES.md](../SOURCES.md) 的「Known conflicts」。
+> ⚠️ 有一篇 2025 年 11 月的官方博客说 XML「现在不太必要了」。**这条已被现行文档否定**，裁定见第 10 章阅读顺序第 6 条和 [SOURCES.md](../SOURCES.md) 的「Known conflicts」。
 
 当你的 prompt 混合了指令、背景、示例和变量输入时，XML 标签能显著减少误读。官方原文：
 
@@ -366,13 +366,13 @@ Claude Code 团队之所以删示例，是因为他们写的是一个通用编�
 | | 该删 | 该加 |
 |---|---|---|
 | **形式** | 让模型**自己再看一遍**（`double-check`、`re-verify`、「最后加一步验证」） | 换**一个干净上下文**来查（fresh-context verifier subagent） |
-| **场景** | 常规任务，模型一次就能自我纠错 | 多小时的自主长跑，误差会累积 |
+| **场景** | 常规任务，模型一次就能自我纠错 | 任何正确性比速度更重要的任务；长自主运行额外要求把这个检查**按周期反复跑**，而不是只跑一次 |
 
 一句话记忆：
 
 > **删掉「自己检查自己」，保留「换个人检查」。**
 
-这同时解释了另一处看起来打架的地方：Opus 5 的官方建议里有「不要用子智能体来复查自己的工作」，而 Fable 5 建议「用子智能体按周期对照规格验证」。前者说的是**几次工具调用就能完成的常规任务**，后者说的是**跑几小时的自主流程**。任务时长不同，成本收益就反过来了。
+这同时解释了另一处看起来打架的地方：Opus 5 的官方建议里有「不要用子智能体来复查自己的工作」，而 Fable 5 建议「用子智能体按周期对照规格验证」。把它们放在同一条轴上看就不打架了：4.10 禁的是**把自我复查外包出去**——把模型自己的产出连同它自己的判断标准一起交给子智能体，等于为 Opus 5 本来就会做的判断付两遍钱。**换到干净上下文、带独立判据的 verifier** 是另一回事，在两个模型上、任何时长下都允许。Fable 5 的长跑加的不是许可，而是**周期性**：按间隔反复跑，而不是只在最后跑一次。
 
 还有一个更容易踩的坑：**「验证」这个词在两个意思之间滑动。** 该删的是「让模型主观地再想一遍对不对」；**不该删**的是「跑一遍测试、看构建退出码、把截图和设计稿比对」这类**外部确定性检查**——那不是自我验证，那是给模型一个它自己能读的信号。第 8 章的头条规则讲的正是后者。
 
@@ -398,11 +398,21 @@ Claude Code 团队之所以删示例，是因为他们写的是一个通用编�
 | 代码审查时会**字面执行**「只报高危」 | 改成「全报，下游再过滤」 |
 | `low`/`medium` 质量强，而 token 与延迟只是高档位的一个零头 | **从默认 `high` 起步**，足够重的编码 / agent 工作才上 `xhigh`。设置若从更早的模型沿用而来，重新做一次 effort 扫描 |
 
-**一个坑**：关闭 thinking 时，Opus 5 偶尔会把 tool call 写成普通文本（调用不会执行，而且这段文本会留在对话历史里污染后续轮次），或者把 `<thinking>` 标签泄漏到可见输出。官方建议是**保持 thinking 开启，用低 effort 控成本**，而不是关掉它。（在 `xhigh` / `max` 档位下也确实关不掉，请求会返回 400。）
+**一个坑**：关闭 thinking 时，Opus 5 偶尔会把 tool call 写成普通文本（调用不会执行，而且这段文本会留在对话历史里污染后续轮次），或者把 `<thinking>` 标签泄漏到可见输出。官方建议是**保持 thinking 开启，用低 effort 控成本**，而不是关掉它——多数任务上，开着 thinking 跑 `low` effort，效果好于在相近成本下关掉 thinking。（在 `xhigh` / `max` 档位下也确实关不掉，请求会返回 400。）
+
+如果某个集成必须关闭 thinking，官方给的是一条同时兜住这两个问题的合并指令：
+
+```
+When you use a tool, you may say a brief sentence first. If no tool can express what the user asked for, say so instead of guessing. Do not include internal or system XML tags in your response.
+```
+
+点名 thinking 标签的效果差于上面这种通用写法。
 
 ### 6.2 Claude Fable 5 / Mythos 5
 
-定位很不一样：**专门用来接此前「太复杂、太长、太模糊」而做不了的问题**，擅长人类要花数小时到数周的端到端工作。thinking 始终开启且不能关闭。
+官方称它是 **Anthropic 目前最强的公开发布模型**，定位与 Opus 5 很不一样：**专门用来接此前「太复杂、太长、太模糊」而做不了的问题**，擅长人类要花数小时到数周的端到端工作。thinking 始终开启且不能关闭。
+
+这里有两个问题容易被混为一谈。官方的选型建议是：**复杂 agentic 编码和企业任务从 Opus 5 起步，需要最高能力上限的负载才用 Fable 5。**「最强」和「默认该选哪个」不是同一件事。
 
 官方有句话值得注意：**效果最好的团队是把它用在自己最难的未解问题上；只拿简单任务测试，往往会低估它的能力范围。**
 
@@ -506,7 +516,7 @@ Claude Code 团队之所以删示例，是因为他们写的是一个通用编�
 1. **第一个窗口用不同的 prompt**：先搭框架（写测试、建 setup 脚本），后续窗口才迭代 todo list
 2. **让模型用结构化格式写测试**（`tests.json`），并明确告诉它：`It is unacceptable to remove or edit tests because this could lead to missing or buggy functionality.`
 3. **建 `init.sh` 之类的脚本**：起服务、跑测试、跑 lint，避免每个新窗口重复劳动
-4. **可以考虑用「全新窗口」代替 compaction**——这条反直觉但有依据：现行模型极擅长从文件系统恢复状态，某些场景下这比压缩更划算（官方措辞是「考虑」和「在某些情况下」，不是一律如此）。这时开场要具体：`Call pwd`、`Review progress.txt, tests.json, and the git logs`、`Manually run through a fundamental integration test before moving on`
+4. **可以考虑用「全新窗口」代替 compaction**——这条反直觉但有依据：现行模型极擅长从文件系统恢复状态，某些场景下这比压缩更划算（官方措辞是 `consider` 和 `in some cases`，不是一律如此）。这时开场要具体，官方给的三句原文是：`Call pwd; you can only read and write files in this directory.`、`Review progress.txt, tests.json, and the git logs.`、`Manually run through a fundamental integration test before moving on to implementing new features.`
 5. **提供验证工具**（浏览器自动化、computer use 等）——任务越长越自主，模型越需要在没有人类反馈的情况下自我验证
 6. **鼓励用满上下文**，明确告诉它不要因为怕超预算而提前收工
 
@@ -703,6 +713,8 @@ skill 的整个架构就是一件事——**每层信息只在需要时才进上
 | `make the dashboard look better` | `[paste screenshot] implement this design. take a screenshot of the result and compare it to the original. list differences and fix them` |
 | `the build is failing` | `the build fails with this error: [paste error]. fix it and verify the build succeeds. address the root cause, don't suppress the error` |
 
+检查存在之后还有一个 prompt 本身答不了的问题：**它「卡」得有多硬？** 官方给的梯子由弱到强——在 prompt 里要求跑检查；设成 `/goal` 条件，每轮结束后由独立评估器复查；做成 `Stop` hook，不通过就不让这一轮结束（连续挡 8 次后强制放行）；或者交给验证子智能体，让干活的和打分的不是同一个。每上一档都是用配置成本换「不用人盯着」。写在 prompt 里的版本今天就能用；`/goal` 和 hook 那两档才是让无人值守的长跑正确收工的东西。
+
 **如果检查还不存在呢？** 这是最常见的情况——遗留代码、覆盖率低、没人愿意碰。别跳过验证直接改，**把「造出这个检查」当成第一阶段**：先写**特征测试（characterization tests）**把当前行为钉住，**包括你怀疑是 bug 的行为也照原样断言**（这一点必须在 prompt 里明说，否则一个善意的执行者会顺手把 bug 修掉，那张网就废了）；网建好之后冻结它，重构阶段不许改测试；然后才开始重构。修 bug 属于**之后另一轮**的事——两件事混在一起，测试变红时你分不清是重构写坏了还是行为本来就该变。
 
 另外一个很实用的技巧——**让 Claude 反过来面试你**：
@@ -727,7 +739,7 @@ Keep interviewing until we've covered everything, then write a complete spec to 
 | **信任但没验证** | 看起来合理但边界情况没处理 | 永远提供验证手段；**验证不了的东西不要发布** |
 | **无边界探索** | 让它「调研一下」，结果读了几百个文件 | 收窄范围，或用 subagent 隔离探索 |
 
-**关于对抗式审查的一条重要提醒**：让子智能体用干净上下文来审 diff 确实有效，但官方同时警告——**一个被要求「找缺口」的审查者，即使工作本身没问题，通常也会报出一些缺口，因为那正是它被要求做的事**。逐条去追每个发现会导致过度工程。所以审查 prompt 必须写清楚：**只标出影响正确性或既定需求的缺口，其余视为可选。**
+**关于对抗式审查的一条重要提醒**：让子智能体用干净上下文来审 diff 确实有效，但官方同时警告——**一个被要求「找缺口」的审查者，即使工作本身没问题，通常也会报出一些缺口，因为那正是它被要求做的事**。逐条去追每个发现会导致过度工程。所以审查 prompt 必须写清楚：**只标出影响正确性或既定需求的缺口，其余视为可选。**这是一条过滤指令，只适用于**由你来做过滤**的场合。如果发现要交给下游的排序或分诊步骤，就该反过来让审查者全报（第 6.1 节那条「全报，下游再过滤」）——Opus 5 会字面执行你设的严重度门槛，低于门槛的发现会被直接不报。
 
 ---
 
@@ -784,14 +796,14 @@ Lance Martin 的表述是：随着 Claude 变强，harness 里的假设会过期
 3. **查阅**：[Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) + 你在用的模型专页 —— 当工具书查，不必通读
 4. **理解原理**：[Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)（2025-09）
 5. **听人怎么说**：[Fireside Chat: Cat Wu & Thariq](https://www.youtube.com/watch?v=uU5Gv2h8-9g)（2026-07）—— 有 [文字稿](https://simonwillison.net/2026/Jul/21/cat-and-thariq/)
+6. **要带着保留读**：[Prompt engineering best practices for 2026](https://claude.com/blog/best-practices-for-prompt-engineering)（2025-11）。总纲部分和「常见错误」清单仍然值得看，第 3.4 节也从它那儿取了一条有价值的补充。但它**有三处与现行文档矛盾**——推荐 prefill（现在 API 会拒绝）、称 XML 和 role prompting「不再必要」（两者文档都仍在推荐）。这三处以文档为准
 
 ### ⚠️ 刻意排除的材料
 
 | 材料 | 排除理由 |
 |---|---|
 | [prompt-eng-interactive-tutorial](https://github.com/anthropics/prompt-eng-interactive-tutorial) | 仍以 **Claude 3 Haiku** 为目标模型，主推的技法已被推翻。**需要说公道话**：官方 overview 页至今仍把它列为「交互式学习者」的入口，所以它并未被官方废弃；但同一页明确写着 Prompting best practices 才是 `the living reference; start there`。当概念入门可以，具体技法一律以 living reference 为准 |
-| ["AI prompt engineering: a deep dive"](https://www.youtube.com/watch?v=T9aRN5JkmL8)（2024-12） | 网上转载最多，但战术层面已被取代 |
-| [Prompt engineering best practices for 2026](https://claude.com/blog/best-practices-for-prompt-engineering)（2025-11） | **部分内容与现行文档矛盾**：它推荐 prefill（已禁用）、称 XML 和 role prompting「不再必要」（文档仍在推荐）。总纲部分可看，这三处以文档为准 |
+| ["AI prompt engineering: a deep dive"](https://www.youtube.com/watch?v=T9aRN5JkmL8)（2024-12） | 网上转载最多。心智模型仍然成立，但战术层面已被取代 |
 | 各类第三方「2026 终极指南」 | SEO 二手内容 |
 
 ---
@@ -821,7 +833,7 @@ Lance Martin 的表述是：随着 Claude 变强，harness 里的假设会过期
 - **新增第 5b 节**——发现 Opus 5「删验证」与 Fable 5「加验证」看似矛盾，实为场景不同，这是原稿完全没处理的一处冲突
 - **四篇信源此前只有薄摘要**：Agent Skills 工程文（其实从未抓取）、Agent Harness Design、验证回路、Loop engineering。补读后带出 skill 的三层渐进披露架构、缓存命中五原则、「让 Claude 自己编排」的三组实测数字、验证回路的四种部署模式、四类循环的具体命令
 - **Console prompt improver 的链接已失效**（302 跳走），且该页仍在推荐**已被 API 禁用的 prefill**——这是个会让人直接踩坑的问题
-- 按适用范围做了裁剪：移除所有更早模型（Opus 4.x、Sonnet 系列）的专属指引，只保留 Opus 5、Fable 5 和已验证的通用内容
+- 按适用范围做了裁剪：移除 Opus 4.x 与已被取代的 Sonnet 旧版本的专属指引，只保留 Opus 5、Fable 5 和已验证的通用内容
 
 ### 一次真实的教训：文档在核查期间被改了
 

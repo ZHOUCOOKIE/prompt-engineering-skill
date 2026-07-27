@@ -1,6 +1,8 @@
 # 官方提示词片段库
 
 > 除 4.1 外，所有英文片段均为 Anthropic 官方文档**逐字原文**，已逐字符核对；4.1 是一张判断表，不是引文。凡是引文的条目都标了出处页面，方便你回原文核对——文档会更新，以线上为准。
+>
+> **有两条出自本 skill 适用范围之外的页面。** 4.16 和 4.25 逐字取自 **Claude Sonnet 5** 页面。Sonnet 5 是现役模型而非被取代的旧模型，且这两段都是与模型无关的通用提示词——但出处已在对应条目上标注，你可以自行判断。
 
 ## 怎么用这些片段
 
@@ -20,7 +22,7 @@
 
 **中文部分是使用说明，不要放进 prompt。**
 
-## 目录
+## 片段索引
 
 | 编号 | 用途 | 出处 |
 |---|---|---|
@@ -39,7 +41,7 @@
 | 4.13 | 抑制 Markdown、改为流畅散文 | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
 | 4.14 | 关闭 LaTeX | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
 | 4.15 | 抑制过度思考 | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
-| 4.16 | 代码审查（要覆盖率而非过滤） | [Prompting Claude Opus 5 的诊断 + 官方推荐措辞](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5) |
+| 4.16 | 代码审查（要覆盖率而非过滤） | 措辞出自 [Prompting Claude Sonnet 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5)；诊断出自 [Prompting Claude Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5) |
 | 4.17 | 长任务进度真实性（Fable 5 强烈推荐） | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
 | 4.18 | 无人值守自主运行 | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
 | 4.19 | 上下文预算安抚 | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
@@ -48,7 +50,7 @@
 | 4.22 | 记忆系统的写入规范 | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
 | 4.23 | send_to_user 工具 | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
 | 4.24 | 划定行为边界 | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
-| 4.25 | 前端设计（避免 AI 味） | [官方模型专页的 frontend_aesthetics 片段](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
+| 4.25 | 前端设计（避免 AI 味） | [Prompting Claude Sonnet 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5) —— **不是**最佳实践页上那段更长的 frontend_aesthetics |
 
 ---
 
@@ -228,6 +230,8 @@ Thinking adds latency and should only be used when it will meaningfully improve 
 Report every issue you find, including ones you are uncertain about or consider low-severity. Do not filter for importance or confidence at this stage - a separate verification step will do that. Your goal here is coverage: it is better to surface a finding that later gets filtered out than to silently drop a real bug. For each finding, include your confidence level and an estimated severity so a downstream filter can rank them.
 ```
 
+> **出处说明**：上面这段逐字取自 **Claude Sonnet 5** 页面（"Code review harnesses"），不是 Opus 5 页面。收进来是因为 Opus 5 页面自己也用散文给出了同一条处方——`ask it to report everything and filter in a separate pass instead`——但没有配套措辞。这段是与模型无关的通用提示词，用在 Opus 5 上时请知悉这一点。
+>
 > 依据：Opus 5 会**字面执行**"只报高危"、"保守一点"这类指令——它会同样深入地调查代码、同样找到 bug，然后把自己判定为低于你所设门槛的发现**不报出来**。表现为精确率上升、召回率下降。把过滤动作移到独立的下游步骤。
 
 ### 4.17 长任务进度真实性（Fable 5 强烈推荐）
@@ -321,6 +325,8 @@ When the user is describing a problem, asking a question, or thinking out loud r
 > 后半句常被忽略，但对自主运行很关键：**"这个现象长得像某个已知故障"不等于"就是那个故障"**，动系统状态前要确认证据真的支持这个具体动作。
 
 ### 4.25 前端设计（避免 AI 味）
+
+> **出处说明**：下面两段都逐字取自 **Claude Sonnet 5** 页面（"Design and frontend defaults"）。最佳实践页上另有一段**内容不同、长得多**的 `frontend_aesthetics`——想要那一段的话请直接去原页面取，不要用这里这段。
 
 ```
 <frontend_aesthetics>

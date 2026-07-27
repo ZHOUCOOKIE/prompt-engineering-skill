@@ -50,7 +50,9 @@ Swap `skill/en` for `skill/zh` for the Chinese edition.
 
 ### Without installing
 
-[`single-file/`](single-file/) contains the whole thing merged into one Markdown file per language. Attach it to a conversation, paste it into another model, or read it offline. It is generated from the skill sources, so the two never drift.
+[`single-file/`](single-file/) contains the whole thing merged into one Markdown file per language. Attach it to a conversation, paste it into another model, or read it offline. It is merged from the skill sources rather than maintained by hand, so the two say the same thing.
+
+> **If you fork and edit:** `single-file/` and `dist/` are derived from `skill/`. The merge and packaging step is not committed here, so after editing `skill/` you have to regenerate both yourself — concatenate the six source files per language for `single-file/`, and re-zip `skill/<lang>/` as `prompt-engineering/…` for `dist/`. Edit the sources, not the derived copies.
 
 ## Repository layout
 
@@ -83,7 +85,9 @@ It is worth reading if you want to disagree with something here on an informed b
 
 **Claude Opus 5 and Claude Fable 5** (including Mythos 5), plus techniques verified as current and non-conflicting. Guidance specific to earlier models has been deliberately removed rather than left in as "still probably fine."
 
-Snapshot date: **2026-07-25**. Anthropic's documentation moves; for specific API parameters, confirm against the live docs. See [SOURCES.md](SOURCES.md).
+Two snippets (4.16 and 4.25) are verbatim from the **Claude Sonnet 5** page. That is deliberate and flagged at the point of use — Sonnet 5 is a current model, not a superseded one. 4.16 is model-agnostic prompt text for a fix the Opus 5 page prescribes in prose without publishing wording for; 4.25 is the short `frontend_aesthetics` block, which the best practices page carries only in a different and much longer form. [SOURCES.md](SOURCES.md#a-note-on-scope) explains the call; drop those two entries if you would rather not mix pages.
+
+Snapshot date: **2026-07-26**. Anthropic's documentation moves — it moved twice during the making of this repo — so for specific API parameters, confirm against the live docs. See [SOURCES.md](SOURCES.md).
 
 ## How this was verified
 
@@ -94,8 +98,11 @@ Every factual claim traces to an official Anthropic source. The following pages 
 - The effort parameter reference
 - Skill authoring best practices
 - The prompt engineering overview
+- The Console prompting tools page
 
-The English snippets were extracted programmatically from those sources and diffed character-for-character; they are byte-identical between the English and Chinese editions.
+Read in part, for specific strings only: the Sonnet 5 model page, the model migration guide, the models overview, and the Claude Cookbook.
+
+The English snippets were extracted programmatically from those sources and diffed character-for-character; they are byte-identical between the English and Chinese editions. In the final pass every snippet was re-checked by exact-string presence against the live pages, using deliberately fabricated control strings in the same queries to catch a checker that answers yes to everything. That pass found two snippets attributed to the wrong page and one instruction that was not official wording at all; all three are fixed and the provenance is now stated per entry.
 
 The skill then went through **four adversarial review rounds** with independent agents, using both a coding task and a non-coding task; twenty-eight defects were found and fixed. The English edition took a further round of its own, and each document in `docs/` took three more, run until a round stopped producing new findings. Three examples of what those rounds caught:
 
@@ -109,9 +116,9 @@ The moral is the operating assumption of this repo: **a snapshot of fast-moving 
 
 ## A note on the snippets
 
-`references/snippets.md` has 25 numbered entries, of which **24 are verbatim excerpts from Anthropic's public documentation** (4.1 is a decision table, not a quotation). Counted as text: 32 quoted blocks, roughly 2,100 words, drawn from three documentation pages — the prompting best practices page and the Opus 5 and Fable 5 model pages. They are included verbatim because paraphrasing them discards the behavior they were tuned to produce; Anthropic publishes them precisely so that developers paste them into prompts.
+`references/snippets.md` has 25 numbered entries, of which **24 are verbatim excerpts from Anthropic's public documentation** (4.1 is a decision table, not a quotation). Counted as text: 32 quoted blocks, roughly 2,100 words, drawn from four documentation pages — the prompting best practices page and the Opus 5, Fable 5 and Sonnet 5 model pages. They are included verbatim because paraphrasing them discards the behavior they were tuned to produce; Anthropic publishes them precisely so that developers paste them into prompts.
 
-Beyond the snippet library, the rest of the skill quotes roughly 530 further words of official wording, and each study guide in [`docs/`](docs/) quotes roughly 500 more inline — individual sentences, attributed where they appear.
+Beyond the snippet library, the rest of the skill quotes roughly 530 further words of official wording — including a short string from the model migration guide — and each study guide in [`docs/`](docs/) quotes roughly 500 more inline — individual sentences, attributed where they appear.
 
 Attribution is per snippet: the index table in `snippets.md` links every quoted entry to the page it came from, and [SOURCES.md](SOURCES.md) records what was taken from each source. All rights to that text remain with Anthropic.
 

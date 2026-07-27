@@ -1,6 +1,6 @@
 # Sources
 
-Snapshot date **2026-07-25**. Anthropic's documentation is revised frequently — where this repo and the live docs disagree, **the live docs are correct**.
+Snapshot date **2026-07-26**. Anthropic's documentation is revised frequently — twice during the making of this repo — so where this repo and the live docs disagree, **the live docs are correct**.
 
 Read-depth legend:
 
@@ -16,7 +16,10 @@ Read-depth legend:
 | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) | **Full** | Most of the snippet library; long-context placement; XML structuring; the few-shot guidance; the migration section |
 | [Prompting Claude Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5) | **Full** | Verbosity, narration, written-deliverable length, scope, subagent damping, self-correction, thinking-disabled artifacts, effort guidance |
 | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) | **Full** | Long-run autonomy, progress truthfulness, `reasoning_extraction`, memory conventions, the send-to-user tool, scaffolding advice |
-| [Effort](https://platform.claude.com/docs/en/build-with-claude/effort) | **Full** | The five effort levels and their stated use cases, the per-model recommendation sections for Opus 5 and Fable 5, effort's effect on tool-call count, the `high` ≡ omitted equivalence, cache invalidation |
+| [Prompting Claude Sonnet 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5) | Targeted | **Two snippets only** — 4.16 (code review coverage) and 4.25 (front-end aesthetics). Both are model-agnostic prompt text; see "A note on scope" below |
+| [Model migration guide](https://platform.claude.com/docs/en/about-claude/models/migration-guide) | Targeted | The prefill 400 statements per model line; the official replacement list (structured outputs, system prompt instructions, `output_config.format`); the no-preamble string |
+| [Models overview](https://platform.claude.com/docs/en/about-claude/models/overview) | Targeted | Which models are current; Fable 5 as "Anthropic's most capable widely released model"; the start-with-Opus-5 selection guidance |
+| [Effort](https://platform.claude.com/docs/en/build-with-claude/effort) | **Full** | The five effort levels and their stated use cases, the per-model recommendation sections for Opus 5 and Fable 5, effort's effect on tool-call count, the `high` ≡ omitted equivalence, cache invalidation, the 400 on disabling thinking at `xhigh`/`max`, and the `max_tokens` guidance (start at 64k and tune) |
 | [Prompt engineering overview](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/overview) | **Full** | The three preconditions before prompt tuning; "not every failing eval is best solved by prompt engineering" |
 | [Best practices for Claude Code](https://code.claude.com/docs/en/best-practices) | **Full** | The verification-affordance rule, explore/plan/implement, specificity contrasts, CLAUDE.md guidance, the five failure patterns, the adversarial-review caveat |
 | [Skill authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) | **Full** | The constraints this repo's own skill is built to (name/description limits, one-level references, TOC threshold, progressive disclosure) |
@@ -91,11 +94,20 @@ The phrase "remains the recommended starting point" no longer appears anywhere o
 
 The lesson generalizes past this one parameter: **a snapshot of fast-moving documentation is wrong by default, not by exception.** For anything you are using to plan cost or latency, confirm it against the live page.
 
+## A note on scope
+
+The stated scope is Opus 5 and Fable 5. Two snippets nonetheless come from the **Claude Sonnet 5** page, and this is deliberate rather than an oversight:
+
+- **4.16 (code review: coverage over filtering).** The Opus 5 page independently diagnoses the behavior and prescribes the fix in prose — `ask it to report everything and filter in a separate pass instead` — but publishes no wording for it. The Sonnet 5 page publishes wording for the same prescription. The block is model-agnostic prompt text.
+- **4.25 (front-end aesthetics).** The short `frontend_aesthetics` block and the four-visual-directions prompt both come from the Sonnet 5 page. The prompting best practices page carries a **different and much longer** `frontend_aesthetics` block; they are not interchangeable, and this repo ships the short one.
+
+Sonnet 5 is a current model, not a superseded one, so this does not reintroduce stale guidance. Both entries carry a provenance note at the point of use. If you would rather not mix pages, drop 4.16 and 4.25 — nothing else depends on them.
+
 ## Deliberately excluded
 
 | Excluded | Why |
 |---|---|
 | [prompt-eng-interactive-tutorial](https://github.com/anthropics/prompt-eng-interactive-tutorial) | Still targets Claude 3 Haiku; the techniques it teaches most prominently have since been reversed. **In fairness:** the official overview page still lists it for interactive learners, and does not deprecate it — but the same page designates Prompting best practices as "the living reference; start there" |
 | ["AI prompt engineering: a deep dive"](https://www.youtube.com/watch?v=T9aRN5JkmL8) (2024-12) | The most-shared panel on the topic. Mental models hold up; tactics do not |
-| Guidance specific to Opus 4.x and the Sonnet line | Out of scope by design — kept out rather than left in as "probably still fine" |
+| Guidance specific to Opus 4.x and to superseded Sonnet versions | Out of scope by design — kept out rather than left in as "probably still fine." The two Sonnet 5 snippets in "A note on scope" above are the deliberate exception |
 | Third-party "ultimate guide to prompting Claude" articles | Secondhand summaries; not used |

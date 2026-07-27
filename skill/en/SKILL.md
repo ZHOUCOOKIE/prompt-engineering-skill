@@ -9,7 +9,7 @@ description: Writes, rewrites, reviews, and audits prompts and system prompts us
 
 **Why this skill exists:** several widely repeated prompt techniques are now obsolete on these models, rejected by the API, or actively reversed in effect. Your training instincts probably still carry some of them. **When instinct conflicts with Section 3, this file wins.**
 
-**Basis:** Anthropic's official documentation and official/employee public material, snapshot 2026-07-25. For specific API parameters, confirm against the live docs — those are the only surface that tracks model updates.
+**Basis:** Anthropic's official documentation and official/employee public material, snapshot 2026-07-26. For specific API parameters, confirm against the live docs — those are the only surface that tracks model updates.
 
 ---
 
@@ -96,7 +96,7 @@ If you are carrying effort settings over from an earlier model, the official ins
 |---|---|---|---|
 | effort | Set in the UI or via a slash command | Set in the UI | `output_config: {effort}` |
 | thinking | Managed by the client | Managed by the client | `thinking: {type: "adaptive"}` |
-| `max_tokens` | **Not reachable** | **Not reachable** | You set it; at `xhigh`/`max`, 64k is a reasonable starting point |
+| `max_tokens` | **Not reachable** | **Not reachable** | You set it; officially, at `xhigh`/`max`, starting at 64k and tuning from there is a reasonable default |
 
 So for Scenario A and B delivery notes, **naming the model and the effort tier is enough** — do not write `max_tokens` or `thinking` into them, because the user has no such control on that surface and it only causes confusion. The API-field details below apply only when calling the API directly.
 
@@ -120,7 +120,7 @@ These are not style preferences. Each one either errors at the API layer or reve
 ### 3.1 Do not use prefill (prefilled assistant responses)
 **Neither Opus 5 nor Fable 5 supports it.** Prefilling the last assistant turn returns a 400 error.
 
-Instead: for structured output use **Structured Outputs** or state the schema directly; to eliminate preamble write `Respond directly without preamble. Do not start with phrases like 'Here is...', 'Based on...', etc.`; for classification use a tool with an enum field; for continuations move the prior text into the user message.
+The official replacements are **structured outputs, system prompt instructions, or `output_config.format`**. In practice: for structured output use Structured Outputs, `output_config.format`, or state the schema directly; to eliminate preamble write `Respond directly without preamble. Do not start with phrases like 'Here is...', 'Based on...', etc.` (verbatim from the migration guide); for classification use a tool with an enum field; for continuations move the prior text into the user message.
 
 ### 3.2 Do not use `budget_tokens`
 Neither model supports manual extended thinking; setting it returns 400. On Opus 5 use `thinking: {type: "adaptive"}` with `output_config: {effort: "..."}`. On Fable 5 thinking is always on and cannot be configured — control depth with `effort` alone. For a hard ceiling use `max_tokens`.
@@ -145,7 +145,7 @@ The official wording is to **remove these instructions rather than rewriting the
 |---|---|
 | "check once more that nothing is missing" | Running tests, build exit codes, screenshot comparison (Scenario A) |
 | "re-verify your answer" | Reconciling what source A says against source B, and stating which you took (Scenario B) |
-| "use a subagent to double-check your own work" | Every figure must trace to a specific location in a source document |
+| "use a subagent to double-check your own work" — that is, one given the model's own work *and its own criteria* | Every figure must trace to a specific location in a source document. A **fresh-context verifier with independent criteria** is not what this row removes — see `references/models.md` |
 
 The test is simple: **if the basis for the check comes from the model itself, remove it; if it comes from something externally verifiable, keep it.** In Scenario B research and reporting tasks, cross-source reconciliation *is* the task, not self-verification — do not delete it by mistake.
 
@@ -166,11 +166,14 @@ The second version still contains "never" — but it hangs on a **reason**. Once
 ### 3.7 Do not repeat an instruction across the system prompt and a tool description
 Guidance on how to use a tool belongs **in the tool description, once**.
 
+> **One exception: the invocation trigger.** Snippet 4.23 is the official case — Fable 5 rarely calls `send_to_user` from the tool description alone, so the official guidance pairs the tool with a short system-prompt line telling it *when* to reach for the tool. What this rule forbids is restating the same **usage guidance** in two places, not pairing a tool description with a trigger the model demonstrably needs.
+
 ### 3.8 Do not rely on `temperature` for variety
 Support for sampling parameters is narrowing on newer models; some return 400 for non-default values. Get variety from the prompt instead — the most effective move is to have the model **propose options before committing**:
 ```
 Before building, propose 4 distinct visual directions tailored to this brief (each as: bg hex / accent hex / typeface, plus a one-line rationale). Ask the user to pick one, then implement only that direction.
 ```
+(Snippet 4.25 — verbatim from the Claude Sonnet 5 page. Copy it as is.)
 
 ### 3.9 Do not ask the model to reproduce or display its internal reasoning
 Instructions like "show your thinking" or "explain your reasoning process" **can trigger** the `reasoning_extraction` refusal category on **Fable 5**, raising the rate of refused requests and fallbacks. For reasoning visibility, read the structured `thinking` blocks from adaptive thinking instead; to surface progress during a long run, use a send-to-user tool (snippet 4.23).
@@ -267,17 +270,17 @@ Which snippets must be verbatim and which may be adapted is in the grading table
 - [ ] If official English snippets are embedded: the delivery note tells the user not to translate or rewrite them
 - [ ] No prefill, no `budget_tokens`
 - [ ] No `CRITICAL: You MUST` / `If in doubt, use [tool]` stacked to prevent undertriggering (**wording inside official snippets does not count** — for example 4.7 contains `you MUST read the file`, which is tuned official text, copy it as is)
-- [ ] Targeting Opus 5: **no** self-verification or double-check instructions (external deterministic checks do not count)
+- [ ] Targeting Opus 5: **no** self-verification or double-check instructions (external deterministic checks do not count; nor does `Regularly self-critique your approach and plan` inside the official research block — see `references/for-chat-and-cowork.md`)
 - [ ] Targeting Fable 5: no "show your reasoning" instructions; long autonomous runs carry the progress-truthfulness constraint
-- [ ] Every constraint is stated positively and carries its reason
+- [ ] Every constraint **you wrote** is stated positively and carries its reason (**wording inside official snippets does not count** — 4.6, 4.13 and 4.25 are stacked negatives by design; 4.25 opens `NEVER use generic AI-generated aesthetics…`, which is tuned official text, copy it as is)
 - [ ] Every instruction has been read against: **how would a well-intentioned human misinterpret this?**
-- [ ] No instruction repeated across the system prompt and a tool description
+- [ ] No instruction repeated across the system prompt and a tool description (**a tool-invocation trigger the model needs does not count** — for example the system-prompt line shipped with snippet 4.23; see 3.7)
 - [ ] The examples decision follows the Section 4 table — not added or removed reflexively
 - [ ] Long-context case: material first, query last
 - [ ] Output length is explicitly specified (especially necessary for Opus 5)
 - [ ] There is a decidable success criterion; Scenario A has a check the model can run itself
 - [ ] Read it through and cut every sentence whose removal would change nothing
-- [ ] Golden test: **hand this prompt to a colleague with no context on the task — would they be confused?**
+- [ ] Golden test: **hand this prompt to a colleague with no context on the task — could they follow it?**
 
 ---
 
@@ -301,7 +304,7 @@ Snippet numbers refer to `references/snippets.md`.
 | Too much thinking, high latency | Snippet 4.15; or lower effort |
 | Shallow reasoning on hard problems | **Raise effort** rather than prompting around it |
 | A rule keeps being ignored despite repeated reminders | The prompt is too long and the rule is buried → cut it down, or move to a deterministic mechanism (hook, tool design, schema) |
-| Code review under-reports | Snippet 4.16; move filtering downstream |
+| Code review under-reports | Snippet 4.16; move filtering downstream. The adversarial-review caveat in `references/for-claude-code.md` is the opposite case — no downstream filter, so the reviewer must filter |
 | Long task fabricates progress or overstates completion | Snippet 4.17 |
 | Stops to ask questions during an unattended run | Snippet 4.18 |
 | Wraps up early as context fills | Snippet 4.19; better still, do not show the model a remaining-budget countdown |

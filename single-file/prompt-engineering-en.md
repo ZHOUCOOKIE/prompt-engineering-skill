@@ -5,7 +5,7 @@
 
 **Why this skill exists:** several widely repeated prompt techniques are now obsolete on these models, rejected by the API, or actively reversed in effect. Your training instincts probably still carry some of them. **When instinct conflicts with Section 3, this file wins.**
 
-**Basis:** Anthropic's official documentation and official/employee public material, snapshot 2026-07-25. For specific API parameters, confirm against the live docs — those are the only surface that tracks model updates.
+**Basis:** Anthropic's official documentation and official/employee public material, snapshot 2026-07-26. For specific API parameters, confirm against the live docs — those are the only surface that tracks model updates.
 
 ---
 
@@ -121,7 +121,7 @@ If you are carrying effort settings over from an earlier model, the official ins
 |---|---|---|---|
 | effort | Set in the UI or via a slash command | Set in the UI | `output_config: {effort}` |
 | thinking | Managed by the client | Managed by the client | `thinking: {type: "adaptive"}` |
-| `max_tokens` | **Not reachable** | **Not reachable** | You set it; at `xhigh`/`max`, 64k is a reasonable starting point |
+| `max_tokens` | **Not reachable** | **Not reachable** | You set it; officially, at `xhigh`/`max`, starting at 64k and tuning from there is a reasonable default |
 
 So for Scenario A and B delivery notes, **naming the model and the effort tier is enough** — do not write `max_tokens` or `thinking` into them, because the user has no such control on that surface and it only causes confusion. The API-field details below apply only when calling the API directly.
 
@@ -146,7 +146,7 @@ These are not style preferences. Each one either errors at the API layer or reve
 ### 3.1 Do not use prefill (prefilled assistant responses)
 **Neither Opus 5 nor Fable 5 supports it.** Prefilling the last assistant turn returns a 400 error.
 
-Instead: for structured output use **Structured Outputs** or state the schema directly; to eliminate preamble write `Respond directly without preamble. Do not start with phrases like 'Here is...', 'Based on...', etc.`; for classification use a tool with an enum field; for continuations move the prior text into the user message.
+The official replacements are **structured outputs, system prompt instructions, or `output_config.format`**. In practice: for structured output use Structured Outputs, `output_config.format`, or state the schema directly; to eliminate preamble write `Respond directly without preamble. Do not start with phrases like 'Here is...', 'Based on...', etc.` (verbatim from the migration guide); for classification use a tool with an enum field; for continuations move the prior text into the user message.
 
 ### 3.2 Do not use `budget_tokens`
 Neither model supports manual extended thinking; setting it returns 400. On Opus 5 use `thinking: {type: "adaptive"}` with `output_config: {effort: "..."}`. On Fable 5 thinking is always on and cannot be configured — control depth with `effort` alone. For a hard ceiling use `max_tokens`.
@@ -171,7 +171,7 @@ The official wording is to **remove these instructions rather than rewriting the
 |---|---|
 | "check once more that nothing is missing" | Running tests, build exit codes, screenshot comparison (Scenario A) |
 | "re-verify your answer" | Reconciling what source A says against source B, and stating which you took (Scenario B) |
-| "use a subagent to double-check your own work" | Every figure must trace to a specific location in a source document |
+| "use a subagent to double-check your own work" — that is, one given the model's own work *and its own criteria* | Every figure must trace to a specific location in a source document. A **fresh-context verifier with independent criteria** is not what this row removes — see Section 6 |
 
 The test is simple: **if the basis for the check comes from the model itself, remove it; if it comes from something externally verifiable, keep it.** In Scenario B research and reporting tasks, cross-source reconciliation *is* the task, not self-verification — do not delete it by mistake.
 
@@ -192,11 +192,14 @@ The second version still contains "never" — but it hangs on a **reason**. Once
 ### 3.7 Do not repeat an instruction across the system prompt and a tool description
 Guidance on how to use a tool belongs **in the tool description, once**.
 
+> **One exception: the invocation trigger.** Snippet 4.23 is the official case — Fable 5 rarely calls `send_to_user` from the tool description alone, so the official guidance pairs the tool with a short system-prompt line telling it *when* to reach for the tool. What this rule forbids is restating the same **usage guidance** in two places, not pairing a tool description with a trigger the model demonstrably needs.
+
 ### 3.8 Do not rely on `temperature` for variety
 Support for sampling parameters is narrowing on newer models; some return 400 for non-default values. Get variety from the prompt instead — the most effective move is to have the model **propose options before committing**:
 ```
 Before building, propose 4 distinct visual directions tailored to this brief (each as: bg hex / accent hex / typeface, plus a one-line rationale). Ask the user to pick one, then implement only that direction.
 ```
+(Snippet 4.25 — verbatim from the Claude Sonnet 5 page. Copy it as is.)
 
 ### 3.9 Do not ask the model to reproduce or display its internal reasoning
 Instructions like "show your thinking" or "explain your reasoning process" **can trigger** the `reasoning_extraction` refusal category on **Fable 5**, raising the rate of refused requests and fallbacks. For reasoning visibility, read the structured `thinking` blocks from adaptive thinking instead; to surface progress during a long run, use a send-to-user tool (snippet 4.23).
@@ -250,7 +253,7 @@ The Console prompt improver is still offered, but its own documentation states t
 | 4.13 | Suppressing markdown in favor of flowing prose | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
 | 4.14 | Disabling LaTeX | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
 | 4.15 | Curbing overthinking | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
-| 4.16 | Code review: coverage over filtering | [Prompting Claude Opus 5  — diagnosis plus the recommended wording](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5) |
+| 4.16 | Code review: coverage over filtering | wording from [Prompting Claude Sonnet 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5); diagnosis from [Prompting Claude Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5) |
 | 4.17 | Progress truthfulness on long runs (strongly recommended for Fable 5) | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
 | 4.18 | Unattended autonomous operation | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
 | 4.19 | Reassurance about context budget | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
@@ -259,7 +262,7 @@ The Console prompt improver is still offered, but its own documentation states t
 | 4.22 | Memory-writing conventions | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
 | 4.23 | A send-to-user tool | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
 | 4.24 | Defining behavioral boundaries | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
-| 4.25 | Front-end design (avoiding the AI look) | [the frontend_aesthetics block from the official model pages](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
+| 4.25 | Front-end design (avoiding the AI look) | [Prompting Claude Sonnet 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5) — **not** the longer `frontend_aesthetics` block on the best practices page |
 
 ---
 
@@ -442,6 +445,8 @@ Thinking adds latency and should only be used when it will meaningfully improve 
 Report every issue you find, including ones you are uncertain about or consider low-severity. Do not filter for importance or confidence at this stage - a separate verification step will do that. Your goal here is coverage: it is better to surface a finding that later gets filtered out than to silently drop a real bug. For each finding, include your confidence level and an estimated severity so a downstream filter can rank them.
 ```
 
+> **Provenance:** the block above is verbatim from the **Claude Sonnet 5** page ("Code review harnesses"), not the Opus 5 page. It is included because the Opus 5 page independently prescribes the same move in prose — `ask it to report everything and filter in a separate pass instead` — without publishing wording for it. The block is model-agnostic prompt text; use it on Opus 5 with that caveat in mind.
+>
 > Basis: Opus 5 follows "only report high-severity issues" or "be conservative" **literally** — it investigates the code just as thoroughly and finds the bugs, then does not report findings it judges below your stated bar. This shows up as precision rising while measured recall falls. Move the filtering to a separate downstream step.
 
 ### 4.17 Progress truthfulness on long runs (strongly recommended for Fable 5)
@@ -539,6 +544,8 @@ When the user is describing a problem, asking a question, or thinking out loud r
 
 ### 4.25 Front-end design (avoiding the AI look)
 
+> **Provenance:** both blocks below are verbatim from the **Claude Sonnet 5** page ("Design and frontend defaults"). The prompting best practices page carries a *different and much longer* `frontend_aesthetics` block — if you want that one, take it from the page rather than from here.
+
 ```
 <frontend_aesthetics>
 NEVER use generic AI-generated aesthetics like overused font families (Inter, Roboto, Arial, system fonts), cliched color schemes (particularly purple gradients on white or dark backgrounds), predictable layouts and component patterns, and cookie-cutter design that lacks context-specific character. Use unique fonts, cohesive colors and themes, and animations for effects and micro-interactions.
@@ -610,6 +617,8 @@ Which snippets must be verbatim and which may be adapted is in the grading table
 ## 6. Tuning by model: Opus 5 and Fable 5
 
 > Snippet numbers (4.2, 4.17, …) refer to `snippets.md`.
+>
+> Every English block in the Prescription column below is **verbatim official wording** — copy it as is rather than translating or tidying it.
 
 ### Claude Opus 5
 
@@ -626,16 +635,24 @@ Default effort `high`; thinking on by default; 1M token context window as both d
 | Narrates corrections to its own earlier statements more than prior models | `Only correct an earlier statement when the error would change the user's code, conclusions, or decisions. State corrections plainly and briefly, then continue the task. For slips that change nothing for the user, make the fix and move on without noting it.` |
 | Follows "only report high-severity issues" **literally** in code review | Use 4.16; move filtering downstream |
 | `low` and `medium` produce strong quality at a fraction of the tokens and latency of higher settings | **Start at the default `high`** and step up to `xhigh` only for demanding coding and agentic work. Use `low`/`medium` liberally as the primary control for token cost and latency wherever your evals show quality holds. If you carried settings over from an earlier model, run a fresh effort sweep |
-| With thinking disabled, occasionally writes a tool call into user-facing text instead of emitting a `tool_use` block (the call never runs, and in agentic loops the leaked text stays in history and affects later turns) | **Keep thinking enabled** and control cost with lower effort. If you must disable it: `You may say a brief sentence before using a tool.` |
-| With thinking disabled, can emit `<thinking>` or other internal XML tags into visible output | Remove any rule telling the model not to think — it increases leakage. Use the general form and do not name the tags: `Do not include internal or system XML tags in your response.` |
+| With thinking disabled, occasionally writes a tool call into user-facing text instead of emitting a `tool_use` block (the call never runs, and in agentic loops the leaked text stays in history and affects later turns) | **Keep thinking enabled** and control cost with lower effort. Officially: for most tasks, thinking enabled at `low` effort performs better than thinking disabled at similar cost |
+| With thinking disabled, can emit `<thinking>` or other internal XML tags into visible output | Remove any rule telling the model not to think — it increases leakage, and naming the thinking tags specifically works less well than the general form |
 
-Thinking can be disabled only at effort `high` or below; a request setting `thinking: {"type": "disabled"}` at `xhigh` or `max` returns a 400 error. For most tasks, thinking enabled at `low` effort performs better than thinking disabled at similar cost. At `xhigh`/`max`, leave headroom in `max_tokens` — 64k is a reasonable starting point. This applies only when calling the API directly.
+For integrations that must keep thinking disabled, official guidance is **one combined instruction that mitigates both artifacts**:
+
+```
+When you use a tool, you may say a brief sentence first. If no tool can express what the user asked for, say so instead of guessing. Do not include internal or system XML tags in your response.
+```
+
+Thinking can be disabled only at effort `high` or below; a request setting `thinking: {"type": "disabled"}` at `xhigh` or `max` returns a 400 error. For most tasks, thinking enabled at `low` effort performs better than thinking disabled at similar cost. At `xhigh`/`max`, leave headroom in `max_tokens`; officially, starting at 64k and tuning from there is a reasonable default. This applies only when calling the API directly.
 
 ### Claude Fable 5 / Mythos 5
 
 Default effort `high`; thinking is always on and cannot be configured.
 
-Positioning: problems that were previously too complex, long-running, or ambiguous for prior models; particularly effective at end-to-end work that takes a person hours, days, or weeks. The teams seeing the best outcomes apply it to their hardest unsolved problems; testing it only on simpler workloads tends to undersell its capability range.
+Positioning: officially **Anthropic's most capable widely released model**. Aimed at problems that were previously too complex, long-running, or ambiguous for prior models; particularly effective at end-to-end work that takes a person hours, days, or weeks. The teams seeing the best outcomes apply it to their hardest unsolved problems; testing it only on simpler workloads tends to undersell its capability range.
+
+> Note the split in the official model-selection advice: **start with Opus 5 for complex agentic coding and enterprise work; use Fable 5 for workloads that need the highest available capability.** "Most capable" and "what you should reach for by default" are not the same question.
 
 | Known behavior | Prescription |
 |---|---|
@@ -664,7 +681,7 @@ The single easiest thing to get wrong. Two official positions look contradictory
 
 The reconciling detail: officially, **separate, fresh-context verifier subagents tend to outperform self-critique**. So what you remove is "have the model look at its own work again"; what you add is "have a clean context check it." These are not in conflict.
 
-(This also does not conflict with 4.10's "do not use subagents to verify or double-check your own work" — 4.10 addresses Opus 5 on ordinary tasks, this addresses Fable 5 on multi-hour autonomous runs.)
+(This also does not conflict with 4.10's "do not use subagents to verify or double-check your own work." Read 4.10 on the same freshness axis: what it forbids is **delegating self-review** — handing a subagent the model's own work and its own criteria, which just pays twice for a judgment Opus 5 already makes. A **separate verifier with independent criteria in a fresh context** stays permitted on both models. What Fable 5's long runs add is not permission but **periodicity**: run that check on an interval instead of once at the end.)
 
 ### Effort reference
 
@@ -685,7 +702,7 @@ Points that matter:
 - Effort is a behavioral signal, not a strict token budget; it affects text, tool calls, and thinking alike
 - **Lower effort directly reduces the number of tool calls**, combines operations, and skips preamble
 - Do not change effort mid-session with prompt caching enabled — it invalidates the cache
-- Leave headroom in `max_tokens` — it is a hard limit on thinking plus response text combined. On Opus 5 this matters at `xhigh`/`max` (64k is a reasonable start); on Fable 5 it is called out at `high` and `xhigh`. Relevant only when calling the API directly
+- Leave headroom in `max_tokens` — it is a hard limit on thinking plus response text combined. On Opus 5 this matters at `xhigh`/`max`, where official guidance is to start at 64k and tune from there; on Fable 5 it is called out at `high` and `xhigh`. Relevant only when calling the API directly
 
 ---
 
@@ -696,6 +713,7 @@ The user describes work in Claude desktop; you produce a prompt they paste into 
 ### Section map
 
 - First priority: give it a check it can run
+- How hard the check gates the stop
 - When the check does not exist yet
 - Say it all at once
 - How specific to be
@@ -715,7 +733,9 @@ The user describes work in Claude desktop; you produce a prompt they paste into 
 
 This is the first rule in the official best practices, and it is the largest difference between this scenario and Scenario B.
 
-Official wording, with the second person pointed at your user rather than at you: Claude stops when the work looks done. Without a check it can run, "looks done" is the only signal available, and **the user becomes the verification loop** — every mistake waits for them to notice it. Give Claude something that produces a pass or fail, and the loop closes on its own.
+Adapted from the official wording — the second person there addresses the reader, which here means your user rather than you:
+
+> Claude stops when the work looks done. Without a check it can run, "looks done" is the only signal available, and **the user becomes the verification loop** — every mistake waits for them to notice it. Give Claude something that produces a pass or fail, and the loop closes on its own.
 
 The check is anything that returns a signal the model can read: a test suite, a build exit code, a linter, a script that diffs output against a fixture, or a browser screenshot compared against a design.
 
@@ -730,6 +750,19 @@ The check is anything that returns a signal the model can read: a test suite, a 
 > **Distinguish this from 3.4.** That section is about removing subjective self-review instructions. This is about supplying **external deterministic checks** — running tests, reading exit codes, comparing screenshots. Remove the former; you must supply the latter.
 
 Also require **evidence rather than assertion**: the test output, the command run and what it returned, a screenshot of the result. Reviewing evidence is faster than re-running the verification yourself, and it works for sessions nobody was watching.
+
+### How hard the check gates the stop
+
+Once the check exists, there is a second decision the prompt alone cannot make. Official guidance gives four levels, trading setup effort for how little attention the run needs:
+
+| Level | What it is | When it earns the setup |
+|---|---|---|
+| **In one prompt** | Ask it to run the check and iterate in the same message | Any task, today. This is what the prompt you are writing does |
+| **Across a session** | Set the check as a `/goal` condition — a separate evaluator re-checks after every turn | The user wants it to keep going until the criterion holds |
+| **A deterministic gate** | A `Stop` hook runs the check as a script and blocks the turn from ending until it passes (Claude Code overrides after 8 consecutive blocks) | The check must not be skippable |
+| **A second opinion** | A verification subagent, so the agent doing the work is not the one grading it | Correctness matters more than speed |
+
+**Mention the level in the delivery note when it matters.** A prompt is level one by definition; if the user described an unattended run, say that `/goal` or a `Stop` hook is what actually lets it finish correctly without them.
 
 ### When the check does not exist yet
 
@@ -795,6 +828,24 @@ Planning earns its cost when you are uncertain about the approach, when the chan
 
 So the four-phase flow needs a confirmation step after planning. Write that checkpoint explicitly: have it produce the plan and **stop for confirmation** before implementing. When the user will not be present to confirm, drop "verify against the plan" and rely on tests and other genuinely external checks.
 
+### Larger features: have it interview the user into a SPEC
+
+When the request is large and the user has not fully thought it through, the prompt you hand them can be this one:
+
+```text
+I want to build [brief description]. Interview me in detail using the AskUserQuestion tool.
+
+Ask about technical implementation, UI/UX, edge cases, concerns, and tradeoffs. Don't ask obvious questions, dig into the hard parts I might not have considered.
+
+Keep interviewing until we've covered everything, then write a complete spec to SPEC.md.
+```
+
+Then execute that spec in a **fresh session** — clean context, focused entirely on implementation.
+
+Two official points worth passing on: **time spent making the spec precise pays off more than time spent watching the implementation**, and the most useful specs are **self-contained** — they name the files and interfaces involved, state what is out of scope, and end with an end-to-end verification step that proves the feature works.
+
+---
+
 ### Context is the binding constraint
 
 Most of the Claude Code best practices derive from one constraint: **the context window fills fast, and performance degrades as it fills.** A single debugging session or codebase exploration can consume tens of thousands of tokens.
@@ -803,7 +854,9 @@ What the prompt can do about it:
 
 - **Push exploration outside the main context**: `Use subagents to investigate how our authentication system handles token refresh, and whether we have any existing OAuth utilities I should reuse.` The subagent reads many files in its own context and reports back a summary
 
-> **The unified subagent criterion** (this is scattered across sources; stated fully here): **encourage them for wide read-only exploration, forbid them for reviewing the model's own work.** The first is their greatest value — keeping the cost of reading dozens of files out of the main context. The second is something Opus 5 already does, so delegating it merely doubles the cost. For everything in between, snippet 4.10 is the test: if you can finish it yourself in a handful of tool calls, do not delegate.
+> **The unified subagent criterion** (this is scattered across sources; stated fully here): **encourage them for wide read-only exploration, forbid them for re-reviewing the model's own work in its own context.** A *separate, fresh-context* verifier is the exception, and officially outperforms self-critique — that is what the "second opinion" level above and the adversarial-review note at the end of this file both refer to.
+>
+> So: The first is their greatest value — keeping the cost of reading dozens of files out of the main context. The second is something Opus 5 already does, so delegating it merely doubles the cost. For everything in between, snippet 4.10 is the test: if you can finish it yourself in a handful of tool calls, do not delegate.
 
 - **Do not write open-ended investigations**: `investigate X` without a boundary reads hundreds of files and fills the context
 - Remind the user: `/clear` between unrelated tasks; after two failed corrections on the same issue, `/clear` and rewrite the prompt with what was learned
@@ -888,7 +941,7 @@ Worth passing on to the user alongside the prompt:
 | **The trust-then-verify gap** | Plausible-looking implementation that misses edge cases | Always provide verification. **If you cannot verify it, do not ship it** |
 | **The infinite exploration** | "Investigate this" without scope; hundreds of files read | Narrow the scope, or isolate it in a subagent |
 
-**One important caveat on adversarial review.** Having a subagent review the diff in a fresh context is effective, but the official guidance also warns: **a reviewer prompted to find gaps will usually report some, even when the work is sound, because that is what it was asked to do.** Chasing every finding leads to over-engineering. So the review prompt must say: **flag only gaps that affect correctness or the stated requirements, and treat the rest as optional.**
+**One important caveat on adversarial review.** Having a subagent review the diff in a fresh context is effective, but the official guidance also warns: **a reviewer prompted to find gaps will usually report some, even when the work is sound, because that is what it was asked to do.** Chasing every finding leads to over-engineering. So the review prompt must say: **flag only gaps that affect correctness or the stated requirements, and treat the rest as optional.** This is a filtering instruction, so it belongs only where **you** are the filter. If the findings feed a downstream ranking or triage step instead, use snippet 4.16 and let the reviewer report everything — Section 6 warns that Opus 5 applies a stated severity bar literally and silently drops whatever falls below it.
 
 ---
 
@@ -908,6 +961,7 @@ The user describes work in Claude desktop and the resulting prompt runs directly
 - What not to put in
 - A skeleton you can lift
 - Reusable and recurring prompts
+- Sourcing note for this file
 
 ---
 
@@ -989,11 +1043,13 @@ Conversely, when the task is open-ended creation or brainstorming, or you want t
 
 ### Research tasks
 
-For work that requires sourcing and synthesizing across many sources, there is a ready-made official block:
+For work that requires sourcing and synthesizing across many sources, there is a ready-made official block. **Copy it verbatim, including the self-critique sentence** — see the carve-out below it:
 
 ```
 Search for this information in a structured way. As you gather data, develop several competing hypotheses. Track your confidence levels in your progress notes to improve calibration. Regularly self-critique your approach and plan. Update a hypothesis tree or research notes file to persist information and provide transparency. Break down this complex research task systematically.
 ```
+
+> **Carve-out for 3.4.** That block contains `Regularly self-critique your approach and plan`, and 3.4 says to remove self-verification instructions on Opus 5. This is the same kind of exception as `you MUST read the file` inside snippet 4.7: it is **tuned official wording, so copy it as is**. The two are not the same instruction — 3.4 removes *end-of-answer self-review*, a last look at a finished deliverable; this sentence is *mid-run course correction*, re-aiming the search while evidence is still coming in. If the task is a single-pass write-up rather than a multi-step search, that sentence has nothing to correct, and you may drop that one line.
 
 Three more: **give clear success criteria** (what constitutes a successful answer to this question), **ask for source verification** across multiple sources, and **explicitly allow it to say it does not know**:
 
@@ -1048,6 +1104,11 @@ The three things most often over-written in Scenario B:
   </document>
 </documents>
 
+<variables_this_cycle>   (only for a recurring template — see the last section)
+Date range: …
+Material location: …
+</variables_this_cycle>
+
 <task>
 One sentence on what to do, who it is for, and what they will do with the output.
 </task>
@@ -1074,7 +1135,7 @@ Close with a **success criterion** — what counts as having done this correctly
 
 ### Reusable and recurring prompts
 
-When the user says "I want to fix this and use it every week," write a template rather than a one-off instruction. Add a variables block after `<task>` that collects everything that changes each cycle in one place, so the user edits only that block:
+When the user says "I want to fix this and use it every week," write a template rather than a one-off instruction. Add a variables block that collects everything that changes each cycle in one place, so the user edits only that block:
 
 ```
 <variables_this_cycle>
@@ -1084,7 +1145,7 @@ Previous output: (path to last cycle's file, for the delta comparison)
 </variables_this_cycle>
 ```
 
-Place it after `<task>` and before the material. That preserves the material-first placement rule (the block is short) while making it obvious which lines to edit each cycle.
+**Place it immediately before `<task>`** — that is, after the material, in the slot the skeleton above shows. This keeps the long-context rule intact (material first, instructions last) and still puts the lines the user edits each cycle right next to the instruction they parameterize.
 
 ---
 
@@ -1097,6 +1158,8 @@ The description in this section of chat and Cowork capability boundaries follows
 ## 9. Agents and long-running tasks: context engineering
 
 > Snippet numbers refer to `snippets.md`.
+>
+> The English blocks in this file are **verbatim official wording** from Anthropic's long-running-agent guidance (see `SOURCES.md`) — copy them as is rather than translating or tidying them.
 
 ### Context is the first constraint
 
@@ -1206,17 +1269,17 @@ Where tools exist, **changing the tool is more effective than changing the promp
 - [ ] If official English snippets are embedded: the delivery note tells the user not to translate or rewrite them
 - [ ] No prefill, no `budget_tokens`
 - [ ] No `CRITICAL: You MUST` / `If in doubt, use [tool]` stacked to prevent undertriggering (**wording inside official snippets does not count** — for example 4.7 contains `you MUST read the file`, which is tuned official text, copy it as is)
-- [ ] Targeting Opus 5: **no** self-verification or double-check instructions (external deterministic checks do not count)
+- [ ] Targeting Opus 5: **no** self-verification or double-check instructions (external deterministic checks do not count; nor does `Regularly self-critique your approach and plan` inside the official research block — see Section 8)
 - [ ] Targeting Fable 5: no "show your reasoning" instructions; long autonomous runs carry the progress-truthfulness constraint
-- [ ] Every constraint is stated positively and carries its reason
+- [ ] Every constraint **you wrote** is stated positively and carries its reason (**wording inside official snippets does not count** — 4.6, 4.13 and 4.25 are stacked negatives by design; 4.25 opens `NEVER use generic AI-generated aesthetics…`, which is tuned official text, copy it as is)
 - [ ] Every instruction has been read against: **how would a well-intentioned human misinterpret this?**
-- [ ] No instruction repeated across the system prompt and a tool description
+- [ ] No instruction repeated across the system prompt and a tool description (**a tool-invocation trigger the model needs does not count** — for example the system-prompt line shipped with snippet 4.23; see 3.7)
 - [ ] The examples decision follows the Section 5 table — not added or removed reflexively
 - [ ] Long-context case: material first, query last
 - [ ] Output length is explicitly specified (especially necessary for Opus 5)
 - [ ] There is a decidable success criterion; Scenario A has a check the model can run itself
 - [ ] Read it through and cut every sentence whose removal would change nothing
-- [ ] Golden test: **hand this prompt to a colleague with no context on the task — would they be confused?**
+- [ ] Golden test: **hand this prompt to a colleague with no context on the task — could they follow it?**
 
 ---
 
@@ -1241,7 +1304,7 @@ Snippet numbers refer to Section 4.
 | Too much thinking, high latency | Snippet 4.15; or lower effort |
 | Shallow reasoning on hard problems | **Raise effort** rather than prompting around it |
 | A rule keeps being ignored despite repeated reminders | The prompt is too long and the rule is buried → cut it down, or move to a deterministic mechanism (hook, tool design, schema) |
-| Code review under-reports | Snippet 4.16; move filtering downstream |
+| Code review under-reports | Snippet 4.16; move filtering downstream. The adversarial-review caveat in Section 7 is the opposite case — no downstream filter, so the reviewer must filter |
 | Long task fabricates progress or overstates completion | Snippet 4.17 |
 | Stops to ask questions during an unattended run | Snippet 4.18 |
 | Wraps up early as context fills | Snippet 4.19; better still, do not show the model a remaining-budget countdown |

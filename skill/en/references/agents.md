@@ -1,6 +1,8 @@
 # Agents and long-running tasks: context engineering
 
 > Snippet numbers refer to `snippets.md`.
+>
+> The English blocks in this file are **verbatim official wording** from Anthropic's long-running-agent guidance (see `SOURCES.md`) — copy them as is rather than translating or tidying them.
 
 ## Context is the first constraint
 
