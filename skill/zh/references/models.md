@@ -72,9 +72,14 @@ When you use a tool, you may say a brief sentence first. If no tool can express 
 - **Opus 5**：**足够重**的编码与 agent 工作上 `xhigh`；值得不设上限烧 token 的任务上 `max`。评测显示质量不掉的地方，放开用 `low`/`medium`，把它当成控制 token 成本和响应时间的主要手段
 - **Fable 5**：只有最吃能力的任务才上 `xhigh`，日常工作降到 `medium`/`low`。它的低 effort 常常还优于旧模型的 `xhigh`
 
-官方对 `xhigh` 的定位是"面向长周期工作的扩展能力"：**超过 30 分钟、token 预算以百万计**的长周期 agentic 与编码任务——这就是"足够重"的具体标准。`low` 的定位是"最省"，用于需要最快速度与最低成本的简单任务，官方点名的例子是子智能体。
+官方把 `xhigh` 定位为面向长周期工作的扩展能力，适用范围写的是**超过 30 分钟、token 预算以百万计**的长周期 agentic 与编码任务——这就是「足够重」的具体标准。`low` 被定位为最省的一档，用于需要最快速度与最低成本的简单任务，官方点名的例子是子智能体。
 
 **如果 effort 设置是从更早的模型沿用过来的，要在自己的评测上重新做一次 effort 扫描，而不是直接照搬。** 两个模型的页面都写了这一条。
+
+官方给出的两条先后顺序：
+
+- **调 effort 往往比换模型更有效**（官方原文 `Tuning effort is often a better lever than switching models`）：先在手上这个模型上把档位跑一遍，再考虑换模型
+- 如果模型思考的频率超出任务需要，**先降 effort 档位，再考虑用 prompt 去引导**。prompt 措辞是第二顺位的杠杆，不是第一顺位，而且效果对具体措辞很敏感
 
 要点：
 - `effort: "high"` 与完全不传该参数**行为完全相同**

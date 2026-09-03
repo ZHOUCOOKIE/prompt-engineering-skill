@@ -87,7 +87,9 @@ It is worth reading if you want to disagree with something here on an informed b
 
 Two snippets (4.16 and 4.25) are verbatim from the **Claude Sonnet 5** page. That is deliberate and flagged at the point of use — Sonnet 5 is a current model, not a superseded one. 4.16 is model-agnostic prompt text for a fix the Opus 5 page prescribes in prose without publishing wording for; 4.25 is the short `frontend_aesthetics` block, which the best practices page carries only in a different and much longer form. [SOURCES.md](SOURCES.md#a-note-on-scope) explains the call; drop those two entries if you would rather not mix pages.
 
-Snapshot date: **2026-07-26**. Anthropic's documentation moves — it moved twice during the making of this repo — so for specific API parameters, confirm against the live docs. See [SOURCES.md](SOURCES.md).
+Snapshot date: **2026-08-08**. Anthropic's documentation moves — during the life of this repo one page reversed its recommendation mid-verification and another was withdrawn outright — so for specific API parameters, confirm against the live docs. See [SOURCES.md](SOURCES.md).
+
+On 2026-08-08 every tracked page was re-fetched and diffed byte-for-byte against the 2026-07-26 copies. The five prompt-engineering pages came back identical; the effort and Claude Code pages changed only in formatting. The Console prompting-tools page was withdrawn, taking a rule of this repo's with it, and four previously untracked pages were added as sources. The write-up is [SOURCES.md](SOURCES.md#the-2026-08-08-re-check).
 
 ## How this was verified
 
@@ -98,16 +100,15 @@ Every factual claim traces to an official Anthropic source. The following pages 
 - The effort parameter reference
 - Skill authoring best practices
 - The prompt engineering overview
-- The Console prompting tools page
 
-Read in part, for specific strings only: the Sonnet 5 model page, the model migration guide, the models overview, and the Claude Cookbook.
+Read in part, for specific strings only: the Sonnet 5 model page, the model migration guide, the models overview, the model-selection guide, the thinking-steering page, the mid-conversation system messages page, the Opus 5 what's-new page, the Claude Code dynamic-workflows and changelog pages, and the Claude Cookbook.
 
 The English snippets were extracted programmatically from those sources and diffed character-for-character; they are byte-identical between the English and Chinese editions. In the final pass every snippet was re-checked by exact-string presence against the live pages, using deliberately fabricated control strings in the same queries to catch a checker that answers yes to everything. That pass found two snippets attributed to the wrong page and one instruction that was not official wording at all; all three are fixed and the provenance is now stated per entry.
 
 The skill then went through **four adversarial review rounds** with independent agents, using both a coding task and a non-coding task; twenty-eight defects were found and fixed. The English edition took a further round of its own, and each document in `docs/` took three more, run until a round stopped producing new findings. Three examples of what those rounds caught:
 
 - The headline rule "give it a check it can run" **presupposed the check exists** — which is exactly wrong for the most common request shape (legacy code, low coverage, nobody willing to touch it). The skill now has a full characterization-test path: pin current behavior *including suspected bugs*, freeze the net, then refactor.
-- The official Console prompt improver still advertises "Strategic prefills" in its output — a technique that now returns 400. The skill flags this.
+- A checklist item requiring every constraint to be phrased positively collided with three official snippets that are stacked negatives by design — 4.25 opens `NEVER use generic AI-generated aesthetics…`. Carved out: tuned official wording is copied as is, and the rule applies only to constraints you wrote yourself.
 - A checklist item banning `You MUST` collided with official snippet 4.7, which contains `you MUST read the file`. Carved out.
 
 One more round happened after that, and it is the round worth reading about. Two reviewers had reported that the Opus 5 effort recommendation was "start at `high`"; three direct fetches of the source page said `xhigh` instead, so the reports were filed as unreproducible. On re-verification a day later, **the reviewers were right and the page had changed** — it now reads "Start with the default (`high`) … and step up to `xhigh` for demanding coding and agentic work," and the effort reference has gained per-model sections that did not exist before. The guidance here was corrected to match, and the whole episode is written up in [SOURCES.md](SOURCES.md#4-the-opus-5-effort-starting-point--not-a-conflict-a-documentation-change).

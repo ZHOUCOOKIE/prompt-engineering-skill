@@ -9,7 +9,7 @@ description: Writes, rewrites, reviews, and audits prompts and system prompts us
 
 **这份 skill 存在的理由**：一批广为流传的 prompt 技法在这两个模型上已经失效、被 API 拒绝、或效果反了。你的训练直觉里很可能仍带着它们。**当直觉与第 3 节冲突时，以本文件为准。**
 
-**基准**：Anthropic 官方文档与官方/员工公开材料，快照日期 2026-07-26。涉及具体 API 参数时回原文档确认——那是唯一会随模型更新的地方。
+**基准**：Anthropic 官方文档与官方/员工公开材料，快照日期 2026-08-08。涉及具体 API 参数时回原文档确认——那是唯一会随模型更新的地方。
 
 ---
 
@@ -68,7 +68,7 @@ description: Writes, rewrites, reviews, and audits prompts and system prompts us
 | 企业知识工作、文档、表格、幻灯片、长上下文分析 | **Opus 5** | 1M token 上下文为默认且最大，全窗口内指令遵循稳定 |
 | 此前"太复杂、太长、太模糊"而做不了的问题；人要花**数小时到数周**的端到端工作；多日目标导向的自主长跑 | **Fable 5** | 官方定位就是接这类活；效果最好的团队把它用在自己最难的未解问题上 |
 | 需要长时间无人值守自主运行、大量并行子智能体协作 | **Fable 5** | 长周期自主性和子智能体调度显著更强 |
-| 攻击性网络安全、生物与生命科学 | **不要用 Fable 5** | 会触发安全分类器返回 `refusal`，需配置回落 |
+| 攻击性网络安全、生物与生命科学 | **不要用 Fable 5** | 会触发安全分类器返回 `stop_reason: "refusal"`，需配置回落 |
 
 默认选 **Opus 5**。只有当任务确实是"人要干几小时到几周"这个量级时才建议 Fable 5，并提醒用户：单次请求可能跑很多分钟，需要相应调整超时和使用方式。
 
@@ -181,13 +181,13 @@ Before building, propose 4 distinct visual directions tailored to this brief (ea
 "show your thinking"、"把思考过程写出来"这类指令在 **Fable 5** 上**可能触发** `reasoning_extraction` 拒绝类别，请求被拒、回落备用模型的比例上升。需要推理可见性改读结构化 `thinking` 块；需要在长时运行中把进度呈现给用户，用 send-to-user 工具（片段 4.23）。
 
 ### 3.10 不要写"不要思考 / 不要推理"
-**在关闭 thinking 的情况下**，Opus 5 可能把 `<thinking>` 等内部 XML 标签泄漏到可见输出，而 system prompt 里这类规则会**加剧**泄漏。（Opus 5 默认开启 thinking，`xhigh`/`max` 下还无法关闭，所以这条只对刻意关闭 thinking 的集成有效。）写通用形式，且不要点名 thinking 标签：
+**在关闭 thinking 的情况下**，Opus 5 可能把 `<thinking>` 等内部 XML 标签泄漏到可见输出，而 system prompt 里这类规则会**加剧**泄漏。（Opus 5 默认开启 thinking，`xhigh`/`max` 下还无法关闭，所以这条只对刻意关闭 thinking 的集成有效。）写通用形式，且不要点名 thinking 标签——点名的效果不如通用形式：
 ```
 Do not include internal or system XML tags in your response.
 ```
 
-### 3.11 Console prompt improver 的输出必须人工过一遍
-它的官方文档明写产出物包含 "Strategic prefills" —— 而 prefill 在这两个模型上返回 400。可以用它拿初稿，产出后必须按本节重新过一遍。
+### 3.11 继承来的 prompt 先查 prefill
+不是你自己写的 prompt——旧模板、4.6 之前的代码库、任何你控制不了的工具生成的东西——结尾仍可能带一个半截的 assistant turn，这在本文两个模型上返回 400。**继承来的东西一律按本节重新过一遍**，先看结尾那一轮。Claude Code 的 `claude-api` skill 带一个 `prompt-audit` 子命令，官方原文描述是 `for auditing prompts and tool descriptions for patterns written for older models`（changelog 2.1.221，2026-08-04）；它只是第一遍粗筛，不能替代本节。
 
 ---
 
@@ -248,7 +248,7 @@ Do not include internal or system XML tags in your response.
 
 - 英文**成段放置**，不要拆开插进中文句子里；放在它管辖的那一节内部，紧跟中文小标题之后
 - **必须在交付说明里告诉用户：这几段英文是官方原文，请不要翻译或"顺手改通顺"**。用户看到中英混杂会很自然地想统一语言，一改就失效
-- 只需要一两个片段、且属于 `snippets.md` 里标注的"通用策略型"时，可以直接用中文表达，避免为两句话让整份 prompt 变成混排
+- 只需要一两个片段、且属于 `references/snippets.md` 里标注的"通用策略型"时，可以直接用中文表达，避免为两句话让整份 prompt 变成混排
 
 哪些片段必须逐字、哪些可以改写，见 `references/snippets.md` 开头的分级表。
 

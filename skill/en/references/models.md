@@ -80,6 +80,11 @@ Officially, `xhigh` is described as extended capability for long-horizon work: l
 
 **If you carried effort settings over from an earlier model, run a fresh effort sweep on your own evals rather than reusing them.** This is stated for both models.
 
+Two ordering rules, both official:
+
+- **Tuning effort is often a better lever than switching models.** Run the ladder on the model you already have before reaching for a different one
+- If the model thinks more often than the workload needs, **lower the effort level before reaching for prompt-based steering**. Prompt wording is the second lever, not the first, and its effectiveness is sensitive to exact phrasing
+
 Points that matter:
 
 - `effort: "high"` produces exactly the same behavior as omitting the parameter

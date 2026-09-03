@@ -63,6 +63,8 @@ Search for this information in a structured way. As you gather data, develop sev
 
 > 直接后果：**中途修改 effort 会作废缓存**，同理（见 SKILL.md 第 2 节）。
 
+**第二条的机制。** prompt caching 按 `tools` → `system` → `messages` 的顺序对请求前缀做哈希，命中要求前缀逐字节一致。所以往 system prompt 末尾追加一句话，作废的不只是 system prompt，还包括它之后所有已缓存的消息。如果某条指令是跑到中途才变得相关，就在 `messages` 里那个位置追加一条 `{"role": "system"}` 消息，而不是去改顶层 `system` 字段：缓存前缀保持不变，指令仍然以系统指令的身份生效，并且对其后的轮次优先于顶层字段。Fable 5、Mythos 5、Opus 4.8、Opus 5 支持且不需要 beta header；**Sonnet 5 不支持**，那边只能用顶层 `system` 字段。
+
 ## 什么时候该把 bash 动作提升为专用工具
 
 bash 杠杆大但缺乏可观测性，harness 无法拦截、把关或审计。以下四种情况应当做成专用的声明式工具：

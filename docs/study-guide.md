@@ -2,7 +2,7 @@
 
 > Background reading for the `prompt-engineering` skill. The skill tells you **what to do**; this document explains **why** — the official basis for each rule, which older habit it displaces, and how to read the two places where Anthropic's own guidance appears to contradict itself.
 >
-> Snapshot **2026-07-26**. Two different kinds of correction went into it: a source page that changed under the snapshot (the effort guidance), and an exact-string verification pass that caught two snippet attributions this document had got wrong on its own. Everything here traces to Anthropic's official documentation and official or employee public material; guidance predating the Claude 5 generation has been removed rather than left in. Sources are itemized in [SOURCES.md](../SOURCES.md).
+> Snapshot **2026-08-08**. Three different kinds of correction went into it: a source page that changed under the snapshot (the effort guidance), an exact-string verification pass that caught two snippet attributions this document had got wrong on its own, and a page that was withdrawn entirely, taking one rule's only source with it. Everything here traces to Anthropic's official documentation and official or employee public material; guidance predating the Claude 5 generation has been removed rather than left in. Sources are itemized in [SOURCES.md](../SOURCES.md).
 >
 > **How to read it.** Sections 1–3 build the frame. Section 4 is the important one — if you learned prompt engineering before 2026, it will contradict part of what you know. Sections 5 and 5b are the two decisions people most often get wrong, both arising from official guidance that looks contradictory and is not. Section 6 onward is reference material.
 >
@@ -468,7 +468,7 @@ Points that matter:
 - **Do not change effort mid-session with prompt caching enabled.** Official wording: `Changing the effort value between requests invalidates prompt caching, so vary effort across workloads rather than within a conversation that relies on cache hits.`
 - At high effort, leave headroom in `max_tokens` — it is a hard limit on thinking plus response text combined, and without headroom you get a response truncated because thinking consumed the budget. On Opus 5 at `xhigh`/`max`, official guidance is to start at 64k and tune from there
 
-> Aside: `ultracode` in Claude Code is **not** an additional API effort tier. It is `xhigh` plus a standing authorization to launch multi-agent workflows.
+> Aside: `ultracode` in Claude Code is **not** an additional API effort tier. The [dynamic workflows page](https://code.claude.com/docs/en/workflows) defines it as "a Claude Code setting that combines `xhigh` reasoning effort with automatic workflow orchestration" — a session-scoped setting, not something the Messages API knows about.
 
 ---
 
@@ -806,11 +806,11 @@ After the first draft, an independent adversarial fact-check compared every Engl
 Later rounds asked whether each page had actually been read in full, and closed these gaps:
 
 - **The Fable 5 page had never been fetched**, despite being cited in the model comparison. Reading it in full produced the entire Fable 5 section, along with the `reasoning_extraction` refusal category, the finding that skills written for prior models are often too prescriptive and can degrade output quality, and progress-truthfulness auditing — none of which were present before
-- **The effort page had only been skimmed.** Reading it in full added that lower effort reduces tool-call count, that `high` equals omitting the parameter, the per-model differences, and the `ultracode` clarification
+- **The effort page had only been skimmed.** Reading it in full added that lower effort reduces tool-call count, that `high` equals omitting the parameter, and the per-model differences. (The `ultracode` aside in Section 6 does **not** come from this page — it was later traced to the Claude Code dynamic-workflows page, and is cited there now.)
 - **The overview page had not been read at all**, which is where Section 3.0's preconditions come from, along with "not every failing eval is best solved by prompt engineering"
 - **Section 5b is new.** The apparent contradiction between Opus 5's "remove verification" and Fable 5's "add verification" was not addressed in the original draft at all
 - **Four sources had only thin summaries**: the Agent Skills engineering post (never fetched), Agent Harness Design, verification loops, and loop engineering. Reading them produced the three-tier progressive disclosure model, the five cache-hit principles, the three orchestration figures, the four verification-loop deployment modes, and the loop commands
-- **The Console prompt improver link was dead** (it now 302-redirects), and the page it redirects to still advertises **prefill, which the API now rejects** — a trap someone would walk straight into
+- **The Console prompt improver link was dead** (it redirected), and the page it redirected to still advertised **prefill, which the API now rejects** — a trap someone would walk straight into. That replacement page has since been withdrawn as well: the redirect now lands on Prompting best practices, which tells you to migrate away from prefill. What this document originally took from the withdrawn page had to be re-founded on something that still exists; see [SOURCES.md, "The 2026-08-08 re-check"](../SOURCES.md#the-2026-08-08-re-check)
 - Scope was then trimmed: guidance specific to earlier models was removed rather than left in as "probably still fine"
 
 ### A real lesson: the documentation changed mid-verification

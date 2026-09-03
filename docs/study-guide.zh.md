@@ -2,7 +2,7 @@
 
 > 这是 `prompt-engineering` skill 的背景读物。skill 讲的是**怎么做**，这份文档讲的是**为什么是这样**——每条规则背后的官方依据、它推翻了什么旧习惯、以及两处看起来矛盾的官方指引该怎么解释。
 >
-> 快照日期 **2026-07-26**。其间有两类修正：官方页面本身改过（effort 建议），以及一轮逐字复核纠正了两条片段的出处标注（那是本文这边的错，不是官方改的）。全部内容来自 Anthropic 官方文档与官方 / 员工公开分享，Claude 5 世代之前的专属指引已剔除，而不是留着当"应该还能用"。信源逐条列在 [SOURCES.md](../SOURCES.md)。
+> 快照日期 **2026-08-08**。其间有三类修正：官方页面本身改过（effort 建议）；一轮逐字复核纠正了两条片段的出处标注（那是本文这边的错，不是官方改的）；以及一个页面被整个撤下，带走了某条规则唯一的依据。全部内容来自 Anthropic 官方文档与官方 / 员工公开分享，Claude 5 世代之前的专属指引已剔除，而不是留着当"应该还能用"。信源逐条列在 [SOURCES.md](../SOURCES.md)。
 >
 > **阅读方式**：第 1、2、3 章是理解框架；第 4 章是最重要的「排毒」章节（如果你以前学过 prompt 工程，那一章会推翻你的一部分认知）；第 5 和 5b 章是两个最容易搞错的单点，都源于两条官方指引看起来打架、实则场景不同；第 6 章往后按需查阅。
 >
@@ -472,7 +472,7 @@ When you use a tool, you may say a brief sentence first. If no tool can express 
 - **启用 prompt caching 时不要中途改 effort**——官方原文：`Changing the effort value between requests invalidates prompt caching, so vary effort across workloads rather than within a conversation that relies on cache hits.`
 - 高 effort 时要给 `max_tokens` 留余量（它是思考 + 正文的**总**上限），否则会出现「大部分预算被思考吃掉、正文被截断」。Opus 5 在 `xhigh`/`max` 下官方建议 64k 起
 
-> 顺带一提：Claude Code 里的 `ultracode` **不是**一个额外的 API effort 档位。它是 `xhigh` 加上「允许启动多智能体工作流」的常驻授权。
+> 顺带一提：Claude Code 里的 `ultracode` **不是**一个额外的 API effort 档位。[dynamic workflows 页面](https://code.claude.com/docs/en/workflows)的定义是 `a Claude Code setting that combines xhigh reasoning effort with automatic workflow orchestration`——它是会话级设置，Messages API 里并不存在这个档位。
 
 ---
 
@@ -828,11 +828,11 @@ Lance Martin 的表述是：随着 Claude 变强，harness 里的假设会过期
 后续几轮针对「是否真的全文读过每一页」，补上了这些缺口：
 
 - **Fable 5 专页此前从未抓取**，却在模型对照表里被引用——现已读全文并补齐 Fable 5 章节，同时带出 `reasoning_extraction` 拒绝、「为旧模型写的 skill 往往过度规定化、可能降低输出质量」、进度真实性审计等一批此前完全缺失的内容
-- **effort 页此前只看了摘要**——读全文后补上「低 effort 会减少工具调用次数」、「high 等于不传参数」、各模型起步值差异、ultracode 说明
+- **effort 页此前只看了摘要**——读全文后补上「低 effort 会减少工具调用次数」、「high 等于不传参数」、各模型起步值差异。（第 6 节里 `ultracode` 那一条**不出自这一页**，后来查明来自 Claude Code 的 dynamic workflows 页，现已改标到那里。）
 - **overview 页此前没读**——补上第 3.0 节的前置条件（成功标准 / 可测试 / 初稿），以及「不是所有问题都该用 prompt 解决」
 - **新增第 5b 节**——发现 Opus 5「删验证」与 Fable 5「加验证」看似矛盾，实为场景不同，这是原稿完全没处理的一处冲突
 - **四篇信源此前只有薄摘要**：Agent Skills 工程文（其实从未抓取）、Agent Harness Design、验证回路、Loop engineering。补读后带出 skill 的三层渐进披露架构、缓存命中五原则、「让 Claude 自己编排」的三组实测数字、验证回路的四种部署模式、四类循环的具体命令
-- **Console prompt improver 的链接已失效**（302 跳走），且该页仍在推荐**已被 API 禁用的 prefill**——这是个会让人直接踩坑的问题
+- **Console prompt improver 的链接已失效**（跳走），且当时跳到的那个页面仍在推荐**已被 API 禁用的 prefill**——这是个会让人直接踩坑的问题。那个替代页面后来也被撤掉了：现在跳转落在 Prompting best practices 上，而这一页明确要求迁移掉 prefill。本文原先从那个已撤页面取的内容，必须改挂在仍然存在的依据上，见 [SOURCES.md 的《The 2026-08-08 re-check》](../SOURCES.md#the-2026-08-08-re-check)
 - 按适用范围做了裁剪：移除 Opus 4.x 与已被取代的 Sonnet 旧版本的专属指引，只保留 Opus 5、Fable 5 和已验证的通用内容
 
 ### 一次真实的教训：文档在核查期间被改了
