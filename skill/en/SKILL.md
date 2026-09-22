@@ -5,11 +5,11 @@ description: Writes, rewrites, reviews, and audits prompts and system prompts us
 
 # Writing prompts
 
-**Models in scope:** Claude Opus 5 and Claude Fable 5 (including Mythos 5). Guidance specific to earlier models is out of scope for this file.
+**Models in scope:** Claude Opus 5 and Claude Fable 5.1 (including Mythos 5.1). Guidance specific to earlier models is out of scope for this file. Several Fable 5.1 prescriptions are still published only on the Fable 5 page; they are kept because the Fable 5.1 page says existing Fable 5 prompts should perform well on Fable 5.1 without changes, and each is marked as such at the point of use.
 
 **Why this skill exists:** several widely repeated prompt techniques are now obsolete on these models, rejected by the API, or actively reversed in effect. Your training instincts probably still carry some of them. **When instinct conflicts with Section 3, this file wins.**
 
-**Basis:** Anthropic's official documentation and official/employee public material, snapshot 2026-08-08. For specific API parameters, confirm against the live docs — those are the only surface that tracks model updates.
+**Basis:** Anthropic's official documentation and official/employee public material, snapshot 2026-09-03. For specific API parameters, confirm against the live docs — those are the only surface that tracks model updates.
 
 ---
 
@@ -64,11 +64,10 @@ This step is mandatory before drafting, and the conclusion belongs in the delive
 | Complex agentic coding, multi-file features, larger refactors, end-to-end feature work | **Opus 5** | Official positioning: strongest on difficult coding tasks; it completes full tasks rather than leaving stubs or placeholders |
 | Code review and bug-finding | **Opus 5** | High precision and recall; accuracy holds at lower effort settings |
 | Enterprise knowledge work, documents, spreadsheets, decks, long-context analysis | **Opus 5** | 1M token context window as both default and maximum, with instruction following consistent throughout the window |
-| Problems that were previously too complex, long-running, or ambiguous; end-to-end work that takes a person **hours, days, or weeks**; multiday goal-directed autonomous runs | **Fable 5** | This is its stated purpose. The teams seeing the best outcomes apply it to their hardest unsolved problems |
-| Long unattended autonomous operation, heavy parallel subagent coordination | **Fable 5** | Substantially stronger at long-horizon autonomy and subagent dispatch |
-| Offensive cybersecurity, biology and life sciences | **Not Fable 5** | Safety classifiers return `stop_reason: "refusal"`; configure a fallback |
+| **Demanding reasoning and long-horizon agentic work**: agent sessions that run for hours, multistep deep research, analysis carried through to a finished document, spreadsheet, or deck; or when the user's evals on Opus 5 at higher effort still fall short | **Fable 5.1** | The official selection advice (models overview, and the choosing-a-model matrix). Officially Anthropic's most capable widely released model; its gains over Fable 5 are largest at higher effort and concentrate in agentic coding over long sessions, document/spreadsheet/slide work, multistep research, vision, long context, and computer use |
+| Work that touches the safety-classifier categories — benign work in those areas can also trigger them | **Plan for refusals**: `cyber` on both models; `bio`, `frontier_llm`, `general_harms` (and `reasoning_extraction`) on Fable 5.1 only | Opus 5 runs cybersecurity classifiers only; Fable 5.1's cover the same five categories as Fable 5. A declined request returns `stop_reason: "refusal"`, so configure fallback (for Fable 5.1: Opus 4.8 or Opus 5). Finding vulnerabilities in source code is permitted |
 
-Default to **Opus 5**. Recommend Fable 5 only when the task genuinely sits at the hours-to-weeks scale, and warn the user that individual requests can run for many minutes, which changes how timeouts and interaction are handled.
+Default to **Opus 5** — officially, most workloads start there. Recommend Fable 5.1 for demanding reasoning and long-horizon agentic work, or when Opus 5 at higher effort still falls short on the user's own evals; and warn the user that it is the slowest model in the lineup and, during long tool-calling turns, can go quiet for minutes at a time, which changes how timeouts and interaction are handled.
 
 ### Choosing effort
 
@@ -77,9 +76,9 @@ Default to **Opus 5**. Recommend Fable 5 only when the task genuinely sits at th
 | Model | Start | Step up when | Step down when |
 |---|---|---|---|
 | **Opus 5** | **`high`** (the default) | The coding or agentic work is **demanding** → `xhigh`. A task that justifies unconstrained token spending → `max` | Cost or latency matters and your evals show quality holds → `medium`/`low`, used liberally as the primary control for token cost and response time. They produce strong quality at a fraction of the tokens and latency of higher settings |
-| **Fable 5** | **`high`** (the default) | The workload is among the most capability-sensitive you run → `xhigh` | Routine work → `medium`/`low`; its lower effort settings still perform well and often exceed `xhigh` performance on prior models. Also step down when a task completes but takes longer than necessary |
+| **Fable 5.1** | **`high`** (the default) | The most capability-sensitive agentic and coding work → `xhigh` or `max`. Its gains over Fable 5 are largest at the higher settings | Routine or latency-sensitive work once your evals show quality holds → `medium`/`low`. Officially, `medium` roughly matches Fable 5 at lower cost, and `low` is often competitive with Opus and Sonnet models on cost per task while scoring higher — include it wherever you would otherwise run a smaller model at a higher effort level |
 
-If you are carrying effort settings over from an earlier model, the official instruction is to **run a fresh effort sweep on your own evals** rather than reusing them.
+If you are carrying effort settings over from an earlier model, the official instruction is to **run a fresh effort sweep on your own evals** rather than reusing them — on Fable 5.1 even if you already ran one on Fable 5, because effort level names do not correspond to the same amount of thinking across models.
 
 **What "demanding agentic work" means** (this is the hinge of the step-up decision — settle it first). Two conditions, and you need both:
 
@@ -105,8 +104,8 @@ Things you need to know:
 - `effort: "high"` produces **exactly the same behavior as omitting the parameter entirely**
 - Effort is a **behavioral signal, not a strict token budget**; it affects all tokens in the response — text, tool calls, and thinking
 - **Lower effort directly reduces the number of tool calls**, combines operations, and skips preamble; higher effort means more tool calls, plans explained before acting, and detailed summaries
-- **Effort controls how much the model thinks, not how much it says.** To shorten responses, prompt for it (snippet 4.2); lowering effort does not reliably work
-- Do not change effort mid-session when prompt caching is enabled — it invalidates the cache
+- **On Opus 5, effort controls how much the model thinks, not how much it says.** To shorten responses, prompt for it (snippet 4.2); lowering effort does not reliably work. (The Fable 5.1 pages make no such statement; its documented text-shape problem is density, snippet 4.26)
+- Changing the **top-level** effort between requests invalidates the prompt cache. Fable 5.1 and Opus 5 support a per-message effort change (beta) that preserves it — API only, see `references/models.md`
 - At `xhigh`/`max`, leave headroom in `max_tokens` (it is a hard limit on thinking plus response text combined)
 
 Model-specific behaviors and their prescriptions are in `references/models.md`.
@@ -118,21 +117,21 @@ Model-specific behaviors and their prescriptions are in `references/models.md`.
 These are not style preferences. Each one either errors at the API layer or reverses the behavior you intended.
 
 ### 3.1 Do not use prefill (prefilled assistant responses)
-**Neither Opus 5 nor Fable 5 supports it.** Prefilling the last assistant turn returns a 400 error.
+**Neither Opus 5 nor Fable 5.1 supports it.** Prefilling the last assistant turn returns a 400 error on both (the Fable 5.1 what's-new page lists it under behaviors unchanged from Fable 5).
 
-The official replacements are **structured outputs, system prompt instructions, or `output_config.format`**. In practice: for structured output use Structured Outputs, `output_config.format`, or state the schema directly; to eliminate preamble write `Respond directly without preamble. Do not start with phrases like 'Here is...', 'Based on...', etc.` (verbatim from the migration guide); for classification use a tool with an enum field; for continuations move the prior text into the user message.
+The official replacements are **structured outputs, system prompt instructions, or `output_config.format`**. In practice: for structured output use Structured Outputs, `output_config.format`, or state the schema directly; to eliminate preamble write `Respond directly without preamble. Do not start with phrases like 'Here is...', 'Based on...', etc.` (verbatim from the prompting best practices page, "Migrating away from prefilled responses"); for classification use a tool with an enum field; for continuations move the prior text into the user message.
 
 ### 3.2 Do not use `budget_tokens`
-Neither model supports manual extended thinking; setting it returns 400. On Opus 5 use `thinking: {type: "adaptive"}` with `output_config: {effort: "..."}`. On Fable 5 thinking is always on and cannot be configured — control depth with `effort` alone. For a hard ceiling use `max_tokens`.
+Neither model supports manual extended thinking; setting it returns 400. On Opus 5 use `thinking: {type: "adaptive"}` with `output_config: {effort: "..."}`. On Fable 5.1 thinking is always on and cannot be configured — `{"type": "enabled"}` with `budget_tokens` and `{"type": "disabled"}` both return 400; omit `thinking` or send `{"type": "adaptive"}`, and control depth with `effort` alone. For a hard ceiling use `max_tokens`.
 
 ### 3.3 Do not stack instructions where context would do
 The core principle: **give context, not a long list of instructions.**
 
-Fable 5's documentation states it plainly — instruction following is improved enough that you can steer most behaviors with a brief instruction rather than enumerating each behavior by name. On that basis the Claude Code team cut their system prompt by more than 80% with no loss of performance.
+The Fable 5 page states it plainly — instruction following is improved enough that you can steer most behaviors with a brief instruction rather than enumerating each behavior by name — and the Fable 5.1 page, which says existing Fable 5 prompts should perform well on Fable 5.1 without changes, does not retract it. On that basis the Claude Code team cut their system prompt by more than 80% with no loss of performance.
 
 Rather than enumerating ten "do not X" clauses, write one positive description and state the intent. Change `Default to using [tool]` to `Use [tool] when it would enhance your understanding of the problem`. Express how a tool should be used through the tool description and its parameter design, not through repeated reminders in the system prompt.
 
-> One exception: Claude Code's best practices still say you can tune instructions by adding emphasis (`IMPORTANT`, `YOU MUST`) to improve adherence in **CLAUDE.md**. Keep it to a few lines — the same page warns that if CLAUDE.md is too long, Claude ignores half of it because important rules get lost in the noise.
+> One exception: Claude Code's best practices still say that if Claude keeps skipping one instruction in **CLAUDE.md**, you can add emphasis such as `IMPORTANT` to that line alone — and that if you emphasize many lines, none of them stands out. The same page warns that if CLAUDE.md is too long, Claude ignores half of it because important rules get lost in the noise.
 
 ### 3.4 Do not tell Opus 5 to "check its work again"
 Opus 5 verifies its own work without being told to. Keeping `double-check your answer` / `re-verify before responding` / `include a final verification step` causes **over-verification**: wasted tokens with no gain in quality.
@@ -149,7 +148,7 @@ The official wording is to **remove these instructions rather than rewriting the
 
 The test is simple: **if the basis for the check comes from the model itself, remove it; if it comes from something externally verifiable, keep it.** In Scenario B research and reporting tasks, cross-source reconciliation *is* the task, not self-verification — do not delete it by mistake.
 
-Fable 5's long autonomous runs go the other way and want explicit periodic verification — see `references/models.md`.
+Long autonomous runs on Fable 5.1 go the other way and want explicit periodic verification — see `references/models.md` (the instruction is published on the Fable 5 page and carries over).
 
 ### 3.5 Do not stack negative constraints
 `Never do X` lands with unusual force on Claude, and when it collides with a later user instruction the model gets badly confused. Give a positive description with a reason:
@@ -166,17 +165,17 @@ The second version still contains "never" — but it hangs on a **reason**. Once
 ### 3.7 Do not repeat an instruction across the system prompt and a tool description
 Guidance on how to use a tool belongs **in the tool description, once**.
 
-> **One exception: the invocation trigger.** Snippet 4.23 is the official case — Fable 5 rarely calls `send_to_user` from the tool description alone, so the official guidance pairs the tool with a short system-prompt line telling it *when* to reach for the tool. What this rule forbids is restating the same **usage guidance** in two places, not pairing a tool description with a trigger the model demonstrably needs.
+> **One exception: the invocation trigger.** Snippet 4.23 is the official case — the Fable 5 page notes that Fable 5 rarely calls `send_to_user` from the tool description alone, so the official guidance pairs the tool with a short system-prompt line telling it *when* to reach for the tool. What this rule forbids is restating the same **usage guidance** in two places, not pairing a tool description with a trigger the model demonstrably needs.
 
 ### 3.8 Do not rely on `temperature` for variety
-Support for sampling parameters is narrowing on newer models; some return 400 for non-default values. Get variety from the prompt instead — the most effective move is to have the model **propose options before committing**:
+On both models in scope, non-default `temperature`, `top_p`, or `top_k` values return 400 (stated in the Opus 5 migration guide and, for Fable 5.1, under behaviors unchanged from Fable 5). Get variety from the prompt instead — the most effective move is to have the model **propose options before committing**:
 ```
 Before building, propose 4 distinct visual directions tailored to this brief (each as: bg hex / accent hex / typeface, plus a one-line rationale). Ask the user to pick one, then implement only that direction.
 ```
 (Snippet 4.25 — verbatim from the Claude Sonnet 5 page. Copy it as is.)
 
 ### 3.9 Do not ask the model to reproduce or display its internal reasoning
-Instructions like "show your thinking" or "explain your reasoning process" **can trigger** the `reasoning_extraction` refusal category on **Fable 5**, raising the rate of refused requests and fallbacks. For reasoning visibility, read the structured `thinking` blocks from adaptive thinking instead; to surface progress during a long run, use a send-to-user tool (snippet 4.23).
+Instructions like "show your thinking" or "explain your reasoning process" **can trigger** the `reasoning_extraction` refusal category on **Fable 5.1** (stated for Fable 5.1 and Fable 5 alike on the thinking page), raising the rate of refused requests and fallbacks. For reasoning visibility, read the structured `thinking` blocks from adaptive thinking instead; to surface progress during a long run, use a send-to-user tool (snippet 4.23).
 
 ### 3.10 Do not write "do not think" or "do not reason"
 **With thinking disabled**, Opus 5 can emit `<thinking>` and other internal XML tags into its visible response, and a system-prompt rule telling it not to think **increases** that leakage. (Opus 5 runs thinking-on by default and cannot disable it at `xhigh`/`max`, so this only applies to integrations that deliberately turn thinking off.) Use the general form, and do not name the thinking tags specifically — naming them works less well:
@@ -186,6 +185,9 @@ Do not include internal or system XML tags in your response.
 
 ### 3.11 Audit inherited prompts for prefill
 A prompt you did not write yourself — an older template, a pre-4.6 codebase, anything generated by tooling you do not control — can still end with a partial assistant turn. That returns 400 on both models in scope. **Re-run this section over anything inherited**, and check the trailing turn first. Claude Code ships a `prompt-audit` subcommand in its `claude-api` skill "for auditing prompts and tool descriptions for patterns written for older models" (changelog 2.1.221, 2026-08-04); it is a first pass, not a substitute for this section.
+
+### 3.12 Do not force tool use on Fable 5.1
+`tool_choice` of type `any` or `tool` returns a 400 `invalid_request_error` on Fable 5.1 and Mythos 5.1 (thinking is always on, and a forced call would skip it); `auto` and `none` are unchanged, and Opus 5 is unaffected. For schema-valid JSON keep `tool_choice: {"type": "auto"}` and set `strict: true` with strict tool use, or move the schema to structured outputs. To make the model call a tool rather than reply in text, state in the prompt when the tool applies — the official example is `Use the get_weather tool to answer` — which Fable 5.1 follows reliably.
 
 ---
 
@@ -238,8 +240,8 @@ Read as needed; do not load everything. All are linked directly from this file.
 |---|---|
 | **`references/for-claude-code.md`** | Scenario A. How to write a Claude Code task prompt, the verification affordance you must supply, the explore-plan-implement flow, and what belongs in CLAUDE.md versus this one prompt |
 | **`references/for-chat-and-cowork.md`** | Scenario B. Writing for desktop chat and Cowork sessions, material placement, deliverable shapes, and the Cowork-specific file and skill capabilities |
-| **`references/models.md`** | After choosing the model. Known behaviors of Opus 5 and Fable 5 with their prescriptions, and the one place where their verification strategies invert |
-| **`references/snippets.md`** | When you need a ready-made block. 25 numbered entries, 24 of them **verbatim** English text from the official docs, with a note on which must be copied word for word and which may be adapted |
+| **`references/models.md`** | After choosing the model. Known behaviors of Opus 5 and Fable 5.1 with their prescriptions — split into what the Fable 5.1 pages state and what only the Fable 5 page states — and the one place where their verification strategies invert |
+| **`references/snippets.md`** | When you need a ready-made block. 30 numbered entries, 29 of them **verbatim** English text from the official docs, with a note on which must be copied word for word and which may be adapted |
 | **`references/agents.md`** | When the prompt will drive a long-running autonomous agent. Context engineering, multi-window workflows, cache hits, letting the model orchestrate itself |
 
 ### When you use an English snippet
@@ -258,7 +260,7 @@ Which snippets must be verbatim and which may be adapted is in the grading table
 
 **Writing or revising a prompt (Scenario A/B):** run the Section 0 workflow, and write the delivery note to the Section 0 step 6 spec. Do not add explanations, disclaimers, or alternative-approach lists the user did not ask for.
 
-**Auditing an existing prompt:** compare against Section 3 point by point and report **the specific problem and the specific fix**. Do not replace their prompt with a new one unless they asked for a rewrite. Order findings by severity: things that cause API errors (3.1, 3.2, 3.8) first, behavior-reversing issues (3.4, 3.9, 3.10) next, style last.
+**Auditing an existing prompt:** compare against Section 3 point by point and report **the specific problem and the specific fix**. Do not replace their prompt with a new one unless they asked for a rewrite. Order findings by severity: things that cause API errors (3.1, 3.2, 3.8, 3.12) first, behavior-reversing issues (3.4, 3.9, 3.10) next, style last.
 
 **Inline check mid-conversation (Scenario C):** go light. **Do not make a production of it** — do not run the full workflow, do not read the reference files. Scan the Section 3 hard rules; if something is wrong say "this line is a problem: X, change it to Y"; if nothing is wrong say so and return to what you were discussing. The user wants to get back to what they were doing, not to receive an audit report.
 
@@ -271,7 +273,7 @@ Which snippets must be verbatim and which may be adapted is in the grading table
 - [ ] No prefill, no `budget_tokens`
 - [ ] No `CRITICAL: You MUST` / `If in doubt, use [tool]` stacked to prevent undertriggering (**wording inside official snippets does not count** — for example 4.7 contains `you MUST read the file`, which is tuned official text, copy it as is)
 - [ ] Targeting Opus 5: **no** self-verification or double-check instructions (external deterministic checks do not count; nor does `Regularly self-critique your approach and plan` inside the official research block — see `references/for-chat-and-cowork.md`)
-- [ ] Targeting Fable 5: no "show your reasoning" instructions; long autonomous runs carry the progress-truthfulness constraint
+- [ ] Targeting Fable 5.1: no "show your reasoning" instructions; no forced `tool_choice`; long autonomous runs carry the 4.18 autonomous block (4.17's progress-audit rule stays available; it was measured on Fable 5)
 - [ ] Every constraint **you wrote** is stated positively and carries its reason (**wording inside official snippets does not count** — 4.6, 4.13 and 4.25 are stacked negatives by design; 4.25 opens `NEVER use generic AI-generated aesthetics…`, which is tuned official text, copy it as is)
 - [ ] Every instruction has been read against: **how would a well-intentioned human misinterpret this?**
 - [ ] No instruction repeated across the system prompt and a tool description (**a tool-invocation trigger the model needs does not count** — for example the system-prompt line shipped with snippet 4.23; see 3.7)
@@ -297,7 +299,7 @@ Snippet numbers refer to `references/snippets.md`.
 | Fabricates content (general) | Explicitly permit not knowing: `If the data is insufficient to draw conclusions, say so rather than speculating.` |
 | Makes claims about code or files it never opened | Snippet 4.7 (essential for any codebase task) |
 | Suggests instead of acting | Use a direct verb (`Change this function` beats `Can you suggest changes`); or add snippet 4.8 |
-| Response too long (prose) | See "Choosing a length control" below. **Note that lowering effort does not work** |
+| Response too long (prose) | See "Choosing a length control" below. **On Opus 5, lowering effort does not reliably work** |
 | Agent narration too chatty mid-run | Snippet 4.3. This is a separate problem from prose length; the length controls do not reach it |
 | Over-engineering | Snippet 4.6 |
 | Subagent overuse | Snippet 4.10 |
@@ -306,7 +308,17 @@ Snippet numbers refer to `references/snippets.md`.
 | A rule keeps being ignored despite repeated reminders | The prompt is too long and the rule is buried → cut it down, or move to a deterministic mechanism (hook, tool design, schema) |
 | Code review under-reports | Snippet 4.16; move filtering downstream. The adversarial-review caveat in `references/for-claude-code.md` is the opposite case — no downstream filter, so the reviewer must filter |
 | Long task fabricates progress or overstates completion | Snippet 4.17 |
-| Stops to ask questions during an unattended run | Snippet 4.18 |
+| Stops to ask questions during an unattended run, or ends the turn on "Next, I'll …" | Snippet 4.18 |
+| Agent goes quiet for minutes during long tool runs (Fable 5.1) | Check `thinking.display` first, remove narration-suppressing lines, then the 4.3 Fable 5.1 block |
+| One tool call per turn in an agent loop (Fable 5.1) | The 4.9 Fable 5.1 nudge, re-sent each turn |
+| Prose too dense — long sentences, few paragraph breaks (Fable 5.1) | Snippet 4.26; this is not a length problem |
+| Chat replies carry less structure than the content needs (Fable 5.1) | Remove anti-formatting rules; the 4.13 Fable 5.1 block |
+| Summaries reproduce source text without marking quotations (Fable 5.1) | Snippet 4.30 |
+| Answers from memory instead of searching at `low` effort (Fable 5.1) | Raise effort for those turns, or snippet 4.27 |
+| Rewrites whole files for small edits (Fable 5.1) | Snippet 4.28 |
+| Long deliverable at `xhigh`/`max` takes very long or hits `max_tokens` (Fable 5.1) | Run it at `high`; otherwise snippet 4.29 |
+| Fixes nearby bugs or commits extra test files nobody asked for (Fable 5.1) | The 4.6 Fable 5.1 block |
+| Benign coding request comes back `stop_reason: "refusal"` (Fable 5.1) | Ask "Are there any bugs in this program?" rather than "Does this program compile without errors?"; give context for lesser-known languages; keep base64 out of tool output |
 | Wraps up early as context fills | Snippet 4.19; better still, do not show the model a remaining-budget countdown |
 | Final summary of a long session is unreadable | Snippet 4.21 |
 | Did things nobody asked for | Snippet 4.24; scope creep specifically → snippet 4.5 |

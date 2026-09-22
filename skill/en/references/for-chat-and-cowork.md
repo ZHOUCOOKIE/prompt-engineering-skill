@@ -40,7 +40,7 @@ When the user does not say and the task clearly needs file output or bulk materi
 **Two Cowork capabilities worth using deliberately:**
 
 - **Scheduled recurring tasks.** When the underlying need is "give me an X every Monday," write the prompt as a reusable task description and tell the user to set it up as a scheduled task rather than running it by hand each time.
-  **A scheduled task means nobody is watching.** Any "shall I continue?" stalls the whole thing until next week. So a recurring prompt must say **how to keep going when something goes wrong** — missing material, an unopenable file, an unresolvable source conflict: record it and continue, then collect them under a "needs your decision" section in the output rather than stopping to ask. (Snippet 4.18 is the full treatment; for something light like a weekly report you do not need the whole block, just this rule.)
+  **A scheduled task means nobody is watching.** Any "shall I continue?" stalls the whole thing until next week. So a recurring prompt must say **how to keep going when something goes wrong** — missing material, an unopenable file, an unresolvable source conflict: record it and continue, then collect them under a "needs your decision" section in the output rather than stopping to ask. (Snippet 4.18 is the full treatment; for something light like a weekly report you do not need its two blocks, just this rule.)
   **One more rule that recurring deliverables need:** have it read the previous cycle's output first and **report only the delta** — what changed, whether last cycle's stated next steps happened, what is still open. Without this, every cycle becomes a flat restatement and the reader has to diff it themselves. This holds for weekly reports, standup notes, status updates, digests, and changelogs.
 - **Parallel subagents.** With a lot of material, the prompt can say explicitly: process each source in a parallel subagent and have each return only a structured summary. Faster, and it keeps the main context clean.
 
@@ -143,7 +143,7 @@ One ordering rule worth writing in: **gather the facts fully before touching the
 The three things most often over-written in Scenario B:
 
 1. **Self-verification instructions** ("check it once more," "double-check your answer") — Opus 5 does this on its own; adding them causes over-verification. See SKILL.md 3.4. Note the distinction that section draws: **reconciling sources against each other is the task, not self-verification** — do not delete that by mistake
-2. **Résumé personas** ("you are a senior analyst with twenty years of experience") — no benefit on current models, pure token cost. To shift the perspective, say what to focus on: `Analyze this portfolio, focusing on risk tolerance and long-term growth`
+2. **Résumé personas** ("you are a senior analyst with twenty years of experience") — no benefit on current models, pure token cost. To shift the perspective, say what to focus on — the official example is `Analyze this investment portfolio, focusing on risk tolerance and long-term growth potential` rather than assigning a role
 3. **A long list of "do not"s** — rewrite as positive statements with reasons. See SKILL.md 3.5
 
 ## A skeleton you can lift

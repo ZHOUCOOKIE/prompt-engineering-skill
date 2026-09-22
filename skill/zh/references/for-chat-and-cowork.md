@@ -157,7 +157,7 @@ Cowork 里装了一批输出格式 skill（docx、xlsx、pptx、pdf 等）。它
 场景 B 里最容易多写的三类：
 
 1. **自我验证指令**（"最后检查一遍"、"再核对一次"）——Opus 5 自己会做，写了造成过度验证。见 SKILL.md 3.4。注意 3.4 划的那条界线：**跨来源交叉核对是任务本身，不是自我验证**——研究类 prompt 里不要连它一起删掉
-2. **人设铺垫**（"你是一位有二十年经验的资深分析师"）——对现行模型没有增益，纯占 token。要影响视角就直接说关注什么：`Analyze this portfolio, focusing on risk tolerance and long-term growth`
+2. **人设铺垫**（"你是一位有二十年经验的资深分析师"）——对现行模型没有增益，纯占 token。要影响视角就直接说关注什么——官方例子是 `Analyze this investment portfolio, focusing on risk tolerance and long-term growth potential`，而不是给它安一个角色
 3. **一长串"不要"**——改成正面描述加原因。见 SKILL.md 3.5
 
 ---

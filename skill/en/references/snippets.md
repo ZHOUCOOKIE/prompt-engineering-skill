@@ -3,6 +3,14 @@
 > Every English snippet below **except 4.1** is **verbatim text from Anthropic's official documentation**, checked character by character; 4.1 is a decision table, not a quotation. Every quoted row links to the page it came from — the docs change, so treat the live page as authoritative.
 >
 > **Two entries come from a page outside this skill's stated scope.** 4.16 and 4.25 are verbatim from the **Claude Sonnet 5** page. Sonnet 5 is a current model, not a superseded one, and both blocks are model-agnostic prompt text — but the provenance is flagged at each entry so you can decide for yourself.
+>
+> **Seven entries and one variant are published only on the Fable 5 page.** 4.17, 4.19–4.24, and the Fable 5 variant in 4.6 are not republished on the Fable 5.1 page. They are kept because that page opens with `Your existing Claude Fable 5 prompts should perform well on Claude Fable 5.1 without changes`, and each of them says so at the point of use. 4.18 is the one entry the Fable 5.1 page rewrote; it carries the new wording. 4.26–4.30 are new with Fable 5.1.
+
+## Contents
+
+- How to use these
+- Snippet index — the table of contents for 4.1–4.30
+- The snippets, 4.1–4.30
 
 ## How to use these
 
@@ -10,8 +18,10 @@
 
 | Category | Which | How to use |
 |---|---|---|
-| **Behavior-tuned** — wording Anthropic tuned to correct a specific model behavior | 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.15, 4.16, 4.17, 4.18, 4.19, 4.21, 4.24, 4.25 | **Copy the English verbatim, do not change a word.** Changing it discards the tuning it was built for |
-| **General policy** — the content is the policy; the wording carries nothing special | 4.8, 4.9, 4.10, 4.11, 4.12, 4.13, 4.14, 4.20, 4.22, 4.23 | Prefer copying verbatim; but when the original context does not match your task (4.10 describes multi-file code investigation, say, and your task is reading source material for a report), **rewrite it to fit**, preserving the criterion |
+| **Behavior-tuned** — wording Anthropic tuned to correct a specific model behavior | 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.15, 4.16, 4.17, 4.18, 4.19, 4.21, 4.24, 4.25, 4.26, 4.27, 4.28, 4.29 | **Copy the English verbatim, do not change a word.** Changing it discards the tuning it was built for |
+| **General policy** — the content is the policy; the wording carries nothing special | 4.8, 4.9, 4.10, 4.11, 4.12, 4.13, 4.14, 4.20, 4.22, 4.23, 4.30 | Prefer copying verbatim; but when the original context does not match your task (4.10 describes multi-file code investigation, say, and your task is reading source material for a report), **rewrite it to fit**, preserving the criterion |
+
+**Entries with a block per model.** 4.3, 4.6, 4.9 and 4.13 carry an Opus 5 or general block and a separate Fable 5.1 block, each labeled with the model it was measured on. Pick the block for your target model; do not stack both. (4.18 is different: both of its blocks are Fable 5.1 wording, and the official instruction is to apply both.)
 
 **Working in a non-English prompt:**
 
@@ -25,29 +35,34 @@
 |---|---|---|
 | 4.1 | Whether to give few-shot examples | decision table, not a quotation |
 | 4.2 | Controlling verbosity (essential for Opus 5) | [Prompting Claude Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5) |
-| 4.3 | Controlling agent narration cadence (essential for Opus 5) | [Prompting Claude Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5) |
+| 4.3 | Controlling agent narration cadence (essential for Opus 5; Fable 5.1 block for the opposite problem) | [Prompting Claude Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5); Fable 5.1 block from [Prompting Claude Fable 5.1](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1) |
 | 4.4 | Controlling written deliverable length | [Prompting Claude Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5) |
 | 4.5 | Constraining task scope | [Prompting Claude Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5) |
-| 4.6 | Reducing over-engineering (with a Fable 5 variant) | [Prompting best practices (Fable 5 variant from Prompting Claude Fable 5)](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
+| 4.6 | Reducing over-engineering (with a Fable 5 variant and a Fable 5.1 block) | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices); Fable 5 variant from [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) (carries over, see entry); Fable 5.1 block from [Prompting Claude Fable 5.1](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1) |
 | 4.7 | Preventing hallucination about code | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
 | 4.8 | Act by default / suggest by default | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
-| 4.9 | Parallel tool calls | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
+| 4.9 | Parallel tool calls (with a Fable 5.1 nudge for agent loops) | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices); nudge from [Prompting Claude Fable 5.1](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1) |
 | 4.10 | Limiting subagent overuse | [Prompting Claude Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5) |
 | 4.11 | Safety guardrails for irreversible actions | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
 | 4.12 | Preventing solutions written only to pass tests | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
-| 4.13 | Suppressing markdown in favor of flowing prose | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
+| 4.13 | Suppressing markdown in favor of flowing prose (Fable 5.1 block for the opposite problem) | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices); Fable 5.1 block from [Prompting Claude Fable 5.1](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1) |
 | 4.14 | Disabling LaTeX | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
 | 4.15 | Curbing overthinking | [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) |
 | 4.16 | Code review: coverage over filtering | wording from [Prompting Claude Sonnet 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5); diagnosis from [Prompting Claude Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5) |
-| 4.17 | Progress truthfulness on long runs (strongly recommended for Fable 5) | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
-| 4.18 | Unattended autonomous operation | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
-| 4.19 | Reassurance about context budget | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
-| 4.20 | The "give the reason, not only the request" template | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
-| 4.21 | Readability of the final report | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
-| 4.22 | Memory-writing conventions | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
-| 4.23 | A send-to-user tool | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
-| 4.24 | Defining behavioral boundaries | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) |
+| 4.17 | Progress truthfulness on long runs (measured on Fable 5) | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) — not republished for Fable 5.1; carries over, see entry |
+| 4.18 | Unattended autonomous operation (Fable 5.1 wording) | [Prompting Claude Fable 5.1](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1) |
+| 4.19 | Reassurance about context budget | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) — not republished for Fable 5.1; carries over, see entry |
+| 4.20 | The "give the reason, not only the request" template | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) — not republished for Fable 5.1; carries over, see entry |
+| 4.21 | Readability of the final report | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) — not republished for Fable 5.1; carries over, see entry |
+| 4.22 | Memory-writing conventions | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) — not republished for Fable 5.1; carries over, see entry |
+| 4.23 | A send-to-user tool | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) — not republished for Fable 5.1; carries over, see entry |
+| 4.24 | Defining behavioral boundaries | [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) — on Fable 5.1 both halves of it ship inside 4.18, see entry |
 | 4.25 | Front-end design (avoiding the AI look) | [Prompting Claude Sonnet 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5) — **not** the longer `frontend_aesthetics` block on the best practices page |
+| 4.26 | Writing density: removing mannered prose (Fable 5.1) | [Prompting Claude Fable 5.1](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1) |
+| 4.27 | Search triggering at low effort (Fable 5.1) | [Prompting Claude Fable 5.1](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1) |
+| 4.28 | Targeted edits over whole-file rewrites (Fable 5.1) | [Prompting Claude Fable 5.1](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1) |
+| 4.29 | Leaving room for long outputs at `xhigh`/`max` (Fable 5.1, API only) | [Prompting Claude Fable 5.1](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1) |
+| 4.30 | Quoting retrieved sources when summarizing (Fable 5.1) | [Prompting Claude Fable 5.1](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1) |
 
 ---
 
@@ -85,6 +100,18 @@ Before your first tool call, say in one sentence what you're about to do. While 
 
 > The same lever applies in the other direction: **positive examples of the communication style you want** tend to be more effective than instructions about what not to do.
 
+**Fable 5.1 runs the opposite way.** Its default is *fewer* user-facing updates during long tool-calling turns than Fable 5, more so at higher effort and in longer tool chains: the agent goes quiet for minutes, or the final message covers only the last step. The official order of operations, before adding any prompt text: first check that updates reach your client at all — they arrive as progress-update `thinking` blocks, which are empty under the default `thinking.display` of `"omitted"`; set `display: "updates"` (beta, `thinking-display-updates-2026-08-18` header) or `"summarized"`. Second, remove prompt lines written for chattier models that suppress narration, such as "hold all findings for the final response." Only then, if you still want more — pair programming, other human-in-the-loop work — add a short system prompt line:
+
+```
+Before you start, say in a line what you're about to do; brief updates while you work help the user follow along. Close with a short recap that stands on its own — what you found, what you did, and what's next — so a reader who only sees the last message has the full picture.
+```
+
+If your product collapses or hides tool output, tell the model, or it may run commands to "show" the user output your UI never displays. Deliver the note as a turn-scoped system message (`clear_at: "next_user_message"`, beta):
+
+```
+Only you see that command's output — the user's terminal shows at most a few lines of it. If the user needs to read any of it, put it in your reply.
+```
+
 ### 4.4 Controlling written deliverable length
 
 ```
@@ -111,10 +138,16 @@ Avoid over-engineering. Only make changes that are directly requested or clearly
 - Abstractions: Don't create helpers, utilities, or abstractions for one-time operations. Don't design for hypothetical future requirements. The right amount of complexity is the minimum needed for the current task.
 ```
 
-**Fable 5 variant** (from its own page; adds the feature-flag clause and is aimed at unrequested tidying at higher effort):
+**Fable 5 variant** (Fable 5 page; adds the feature-flag clause and is aimed at unrequested tidying at higher effort. Not republished on the Fable 5.1 page, which says existing Fable 5 prompts should perform well on Fable 5.1 without changes):
 
 ```
 Don't add features, refactor, or introduce abstractions beyond what the task requires. A bug fix doesn't need surrounding cleanup and a one-shot operation usually doesn't need a helper. Don't design for hypothetical future requirements: do the simplest thing that works well. Avoid premature abstraction and half-finished implementations. Don't add error handling, fallbacks, or validation for scenarios that cannot happen. Trust internal code and framework guarantees. Only validate at system boundaries (user input, external APIs). Don't use feature flags or backwards-compatibility shims when you can just change the code.
+```
+
+**Fable 5.1 block** (Fable 5.1 page, "Keep changes and tests to what the task asks for"). The adjacent behavior on Fable 5.1 is delivering what was asked *and sometimes more*: fixing nearby code, extending behavior the task did not mention, committing more test files than the change warrants. Officially, with this instruction unrequested additions and committed test code drop substantially with no measurable change in task success:
+
+```
+If, while working or testing, you find a pre-existing bug, a performance concern, or behavior the task doesn't mention, don't fix, optimize or extend it in this change unless the requested behavior cannot work without it; report it as a follow-up in your summary. Where the task is ambiguous, implement the reading its wording and the surrounding code most directly support, state that assumption in your summary, and don't build for the other readings as well. Verify your work however you like; scratch scripts and quick checks need not be kept. Commit tests only where the task asks for them or this repository already keeps tests for this kind of change, sized like the neighboring test files — roughly one focused test per stated behavior — and don't turn scratch checks into additional permanent test files. This is about extras only: implement every behavior the task asks for, completely.
 ```
 
 ### 4.7 Preventing hallucination about code
@@ -152,6 +185,14 @@ Do not jump into implementation or change files unless clearly instructed to mak
 If you intend to call multiple tools and there are no dependencies between the tool calls, make all of the independent tool calls in parallel. Prioritize calling tools simultaneously whenever the actions can be done in parallel rather than sequentially. For example, when reading 3 files, run 3 tool calls in parallel to read all 3 files into context at the same time. Maximize use of parallel tool calls where possible to increase speed and efficiency. However, if some tool calls depend on previous calls to inform dependent values like the parameters, do NOT call these tools in parallel and instead call them sequentially. Never use placeholders or guess missing parameters in tool calls.
 </use_parallel_tool_calls>
 ```
+
+**Fable 5.1 nudge for agent loops.** Fable 5.1 issues parallel calls as expected when a request names several things to fetch. The exception is coding and computer-use loops where the next independent calls are implied by the task rather than requested: there it may issue one call per turn where Fable 5 batched several. This does not affect answer quality, but each extra turn costs tokens, a round trip, and wall-clock time. The official fix is one sentence at the end of the current request:
+
+```
+First privately list what you need next; then request every item that doesn't depend on another's result in this one response.
+```
+
+The best practices page says the same for long agent loops on Fable 5.1 (send the parallel-calls instruction as a turn-scoped system message after each round of tool results). Send a fresh copy each time you return tool results, as a turn-scoped system message after that user message (`role: "system"`, `clear_at: "next_user_message"`; beta header `mid-conversation-system-clear-at-2026-08-21`), and leave the earlier copies in place byte-for-byte — once a later user message exists the API clears them, and deleting them is an edit to earlier turns. Without the beta, put the sentence in a text block after the `tool_result` blocks in the same user message.
 
 ### 4.10 Limiting subagent overuse
 
@@ -206,6 +247,12 @@ rather than fragmenting information into isolated points.
 </avoid_excessive_markdown_and_bullet_points>
 ````
 
+**Fable 5.1 goes the other way.** Earlier models overused bullets and bold in chat; Fable 5.1 uses bold less and is less likely to reach for headers, lists, or quotation marks, so anti-formatting rules written for those models can suppress structure the content needs. The best practices page says so about the block above itself: on Fable 5.1 "a block like this can suppress structure the content needs. Remove it, or replace it with the shorter rule" — the rule being one that says when specific formatting is appropriate, such as:
+
+```
+Use lists and bullet points when asked to, or when the content is multifaceted enough that they help with clarity. If the person explicitly requests minimal formatting, always format your responses without bullet points, headers, lists, or bold emphasis, as requested. In conversational, personal, or emotional exchanges, keep to plain prose.
+```
+
 ### 4.14 Disabling LaTeX
 
 ```
@@ -234,29 +281,44 @@ Report every issue you find, including ones you are uncertain about or consider 
 >
 > Basis: Opus 5 follows "only report high-severity issues" or "be conservative" **literally** — it investigates the code just as thoroughly and finds the bugs, then does not report findings it judges below your stated bar. This shows up as precision rising while measured recall falls. Move the filtering to a separate downstream step.
 
-### 4.17 Progress truthfulness on long runs (strongly recommended for Fable 5)
+### 4.17 Progress truthfulness on long runs (measured on Fable 5)
 
-In Anthropic's testing this nearly eliminated fabricated status reports, even on tasks designed to elicit them:
+From the Fable 5 page ("Ground progress claims during long runs"): in Anthropic's testing on Fable 5 this nearly eliminated fabricated status reports, even on tasks designed to elicit them. The Fable 5.1 page does not republish it and does not restate the behavior; it says existing Fable 5 prompts should perform well on Fable 5.1 without changes, so the block is kept for Fable 5.1 on that basis:
 
 ```
 Before reporting progress, audit each claim against a tool result from this session. Only report work you can point to evidence for; if something is not yet verified, say so explicitly. Report outcomes faithfully: if tests fail, say so with the output; if a step was skipped, say that; when something is done and verified, state it plainly without hedging.
 ```
 
-### 4.18 Unattended autonomous operation
+### 4.18 Unattended autonomous operation (Fable 5.1 wording)
+
+The Fable 5.1 page rewrote this entry, so the Fable 5 wording is retired here. The behavior: on complex asynchronous workloads the model sometimes describes what it would do next instead of doing it ("Next, I'll …") or stops to ask permission for a step the original request already covered ("Shall I apply this?"). Officially, two system prompt additions together mitigate this — **apply both**; if you must limit prompt length, use only the first, which keeps most of the effect. The opening sentence, which tells the model the user is not watching, carries much of the effect: **keep it as written**. If your product needs the model to stop for specific confirmations, add a sentence after it listing them. The block can also make the model less likely to ask about ambiguous requests, so check that trade-off on your own tasks.
 
 ```
-You are operating autonomously. The user is not watching in real time and cannot answer questions mid-task, so asking "Want me to…?" or "Shall I…?" will block the work. For reversible actions that follow from the original request, proceed without asking. Offering follow-ups after the task is done is fine; asking permission after already discussing with the user before doing the work is not. Before ending your turn, check your last paragraph. If it is a plan, an analysis, a question, a list of next steps, or a promise about work you have not done ("I'll…", "let me know when…"), do that work now with tool calls. End your turn only when the task is complete or you are blocked on input only the user can provide.
+You are operating autonomously. The user is not watching in real time and cannot answer questions mid-task, so asking 'Want me to…?' or 'Shall I…?' will block the work. For reversible actions that follow from the original request, proceed without asking. Stop only for destructive actions or genuine scope changes the user must decide. Offering follow-ups after the task is done is fine; asking permission before doing the work is not.
+
+Exception: when the user is describing a problem, asking a question, or thinking out loud rather than requesting a change, the deliverable is your assessment. Report your findings and stop. Don't apply a fix until they ask for one.
+
+Before ending your turn, check your last paragraph. If it is a plan, an analysis, a question, a list of next steps, or a promise about work you have not done ('I'll…', 'let me know when…'), do that work now with tool calls. That includes retrying after errors and gathering missing information yourself. Do not stop because the context or session is long. End your turn only when the task is complete or you are blocked on input only the user can provide.
+
+Before running a command that changes system state (such as restarts, deletes, or config edits), check that the evidence actually supports that specific action. A signal that pattern-matches to a known failure may have a different cause.
 ```
 
-The paired rule for when it *should* stop:
+The second defines the user's request as the scope of the deliverable:
 
 ```
-Pause for the user only when the work genuinely requires them: a destructive or irreversible action, a real scope change, or input that only they can provide. If you hit one of these, ask and end the turn, rather than ending on a promise.
+# Delivering work
+The user's request — or the plan they approved — sets the scope, and the scope is the deliverable: don't quietly narrow, widen, or swap it. Read ambiguity the way a careful colleague would: make routine judgment calls yourself, and check in only when different readings would lead to materially different work. If you see a real problem with the task as specified, say so in a sentence or two and keep building under stated assumptions; if the user hears the concern and reaffirms, that is their decision, so deliver the full request.
+
+If a question comes up partway, first do everything that doesn't depend on the answer; then state the assumption you made, or — when going ahead on a wrong guess would be unsafe or would make the work useless — put the question at the end of a turn that also delivers that progress. If one part turns out to be blocked, complete every other part in full and say exactly what you left out and why — the whole task is the deliverable, and scaling it down is the user's call, not yours. A step you have decided on is something to run, not to announce: describing the next step and ending the turn leaves it undone until the user replies.
+
+Keep changes to what the request needs. Something else you notice worth doing — cleanup or documentation the task didn't call for, a change to a file the task didn't require — is a suggestion to make at the end, not a change to make; actions clearly beyond what the ask implies, and risky or destructive ones, still need the user's go-ahead.
 ```
+
+The "Exception:" paragraph and the last paragraph of the first block are the two halves of 4.24; do not add 4.24 on top of this block.
 
 ### 4.19 Reassurance about context budget
 
-When the harness shows the model a remaining-token countdown, it may propose a new session or trim its own work. **The first choice is not to expose the remaining budget at all**; when you must:
+From the Fable 5 page ("Rare cases of context-budget concern"): when the harness shows the model a remaining-token countdown, it may propose a new session or trim its own work. **The first choice is not to expose the remaining budget at all**; when you must, add the block below. Not republished on the Fable 5.1 page, which says existing Fable 5 prompts should perform well on Fable 5.1 without changes; the Fable 5.1 autonomous block in 4.18 carries its own sentence on this, `Do not stop because the context or session is long.`
 
 ```
 You have ample context remaining. Do not stop, summarize, or suggest a new session on account of context limits. Continue the work.
@@ -264,13 +326,15 @@ You have ample context remaining. Do not stop, summarize, or suggest a new sessi
 
 ### 4.20 The "give the reason, not only the request" template
 
-From the Fable 5 page; worth adopting as a default:
+From the Fable 5 page ("Give the reason, not only the request"); worth adopting as a default. Not republished on the Fable 5.1 page, which says existing Fable 5 prompts should perform well on Fable 5.1 without changes:
 
 ```
 I'm working on [the larger task] for [who it's for]. They need [what the output enables]. With that in mind: [request].
 ```
 
 ### 4.21 Readability of the final report (long agent sessions)
+
+From the Fable 5 page ("Readability when communicating with the user"). Not republished on the Fable 5.1 page, which says existing Fable 5 prompts should perform well on Fable 5.1 without changes; note that the Fable 5.1 page describes the model's *default* prose as denser rather than shorthand-heavy, which is 4.26's problem, not this one:
 
 ```
 Terse shorthand is fine between tool calls (that's you thinking out loud, and brevity there is good). Your final summary is different: it's for a reader who didn't see any of that.
@@ -281,6 +345,8 @@ When you write the summary at the end, drop the working shorthand. Write complet
 ```
 
 ### 4.22 Memory-writing conventions
+
+From the Fable 5 page ("Construct a memory system"). Not republished on the Fable 5.1 page, which says existing Fable 5 prompts should perform well on Fable 5.1 without changes:
 
 ```
 Store one lesson per file with a one-line summary at the top. Record corrections and confirmed approaches alike, including why they mattered. Don't save what the repo or chat history already records; update an existing note rather than creating a duplicate; delete notes that turn out to be wrong.
@@ -294,7 +360,7 @@ Reflect on the previous sessions we've had together. Use subagents to identify c
 
 ### 4.23 A send-to-user tool (long async agents)
 
-A long-running async agent needs a channel that puts content in front of the user verbatim **without ending the turn**. Tool inputs are never summarized, so the content arrives intact.
+A long-running async agent needs a channel that puts content in front of the user verbatim **without ending the turn**. Tool inputs are never summarized, so the content arrives intact. From the Fable 5 page ("Create a send-to-user tool"); not republished on the Fable 5.1 page, which says existing Fable 5 prompts should perform well on Fable 5.1 without changes. On Fable 5.1, check first that the model's own progress updates reach your client (see 4.3) — this tool is for content that must arrive verbatim, not for routine narration.
 
 ```json
 {
@@ -313,13 +379,15 @@ A long-running async agent needs a channel that puts content in front of the use
 }
 ```
 
-**Defining the tool is not enough** — without an instruction in the system prompt, Fable 5 rarely calls it:
+**Defining the tool is not enough** — officially, without an instruction in the system prompt, Fable 5 rarely calls it:
 
 ```
 Between tool calls, when you have content the user must read verbatim (a partial deliverable, a direct answer to their question), call the send_to_user tool with that content. Use send_to_user only for user-facing content, not for narration or reasoning.
 ```
 
 ### 4.24 Defining behavioral boundaries
+
+From the Fable 5 page ("State the boundaries"), where the behavior is described as occasionally taking unrequested actions — drafting an email when none was asked for, creating defensive git-branch backups. On Fable 5.1 both halves of this block ship inside the 4.18 autonomous block (its "Exception:" paragraph and its last paragraph, with `(such as restarts, deletes, or config edits)`); use this standalone form when you want the boundary without the autonomous framing, and do not stack the two:
 
 ```
 When the user is describing a problem, asking a question, or thinking out loud rather than requesting a change, the deliverable is your assessment. Report your findings and stop. Don't apply a fix until they ask for one. Before running a command that changes system state (restarts, deletes, config edits), check that the evidence actually supports that specific action. A signal that pattern-matches to a known failure may have a different cause.
@@ -342,3 +410,61 @@ For variety without `temperature`:
 ```
 Before building, propose 4 distinct visual directions tailored to this brief (each as: bg hex / accent hex / typeface, plus a one-line rationale). Ask the user to pick one, then implement only that direction.
 ```
+
+### 4.26 Writing density: removing mannered prose (Fable 5.1)
+
+Fable 5.1's writing is officially "a step up from earlier Claude models, with fewer stock phrases and less unexplained jargon," but in some cases its prose is denser than Fable 5's: sentences run longer and there are fewer paragraph breaks. This is a different problem from length (4.2–4.4 do not reach it). The official fix is an instruction that defines the anti-pattern, added to a user message (preferred) or the system prompt:
+
+```
+Mannered prose substitutes metaphor and flourish for direct statement. Instead of "a parameter worth varying," the mannered writer produces "a dial worth turning." Instead of "this point still matters," they write "this point earns its keep." The phrases exist to display the writer, not to convey the idea, and readers can tell. That is why mannered prose irritates: it makes the reader work harder so the writer can perform. It is also imprecise. Metaphors drag in connotations the writer did not choose and cannot control. The fix is to say what you mean. When a literal phrase is available, use it.
+```
+
+The short version also tends to work:
+
+```
+Please remove all mannered prose.
+```
+
+### 4.27 Search triggering at low effort (Fable 5.1)
+
+At `low` effort, Fable 5.1 is less likely than Fable 5 to call a search or retrieval tool, and more likely to answer from memory. In some cases the simplest fix is to raise effort for the affected turns rather than the whole conversation (per-message effort, beta — see `models.md`). Otherwise, in the system prompt, say that recognizing a name is not the same as knowing its current state, and that such names should be searched as the user wrote them:
+
+```
+When a query centers on a name you do not confidently recognize, or recognize from a fast-moving area like AI models and developer tools where the landscape shifts within months, the name itself is the thing to verify: search before answering, and include the name as the user wrote it in at least one query alongside any reformulations. This holds even when you have some background on it — partial background is exactly what makes an out-of-date answer sound authoritative, so familiarity is not a reason to skip the search.
+```
+
+### 4.28 Targeted edits over whole-file rewrites (Fable 5.1)
+
+Fable 5.1 is more likely than Fable 5 to rewrite an entire text file rather than make a targeted edit. The resulting file is usually the same, but unless the file is short or most of it is changing, a rewrite costs more output tokens and time. Append to the system prompt or the first user message; officially it brings Fable 5.1 back in line with Fable 5 for small and medium changes:
+
+```
+The number of tokens used to edit files is best minimized, all else being equal. Therefore, when it will not affect the end result, try to surgically edit a file rather than rewrite the entire thing.
+```
+
+### 4.29 Leaving room for long outputs at `xhigh`/`max` (Fable 5.1, API only)
+
+At `xhigh` and especially `max`, Fable 5.1 can think for longer before it starts writing. When a single request asks for a long deliverable — a full rewrite of a long document, say — it may draft much of it in its thinking and then write it out again as the reply: a longer wait and more output tokens. The official first choice is to run such requests at `high` and move up only where you have measured a quality gain. If you do run them at `xhigh` or `max`: set `max_tokens` to leave room for the thinking *and* the reply, and append the following to the end of the user message, replacing `[max_tokens]` with the request's actual value (for example 64,000). It makes the thinking much shorter on prose and code requests:
+
+```
+Everything produced in one reply, including any reasoning or drafting done before the reply, counts toward a single limit of about [max_tokens] tokens. If that limit is reached before the reply is finished, the person receives a cut-off response and has to start over. Composing an entire output or deliverable in full as reasoning and then again as a reply would double the length of the turn without improving the result, so don't do that.
+
+Instead, when the person has asked for a long or effort-intensive deliverable such as a multi-section document, a large table or dataset, or a complete code file, spend extra effort on understanding the request, checking the inputs the answer depends on, settling the structure and other difficult decisions, and otherwise using the reasoning space to reason and the output space to write an output. Usually it is not needed to draft an output multiple times.
+```
+
+### 4.30 Quoting retrieved sources when summarizing (Fable 5.1)
+
+When summarizing documents, Fable 5.1 is more likely than Fable 5 to reproduce passages of the source text without marking them as quotations. The official fix is one complete example of a correct response in the system prompt — the user's request, the response, and a sentence explaining why the response is correct:
+
+```
+<example>
+<user>look up how the Riverton Ledger and the Coast Dispatch each covered the Harbor Bridge closure and compare their reporting</user>
+<response>
+[web_search: Harbor Bridge closure Riverton Ledger]
+[web_search: Harbor Bridge closure Coast Dispatch]
+Both outlets agree on the basics: the bridge closed on March 3 after inspectors found cracked welds, and the state expects repairs to take about eight months. Where they differ is emphasis. The Ledger treats it as a local-economy story. The Dispatch frames it as a funding failure; its editorial calls the closure "entirely foreseeable." Read together, the Ledger explains who is affected now and the Dispatch explains how it came to this — neither account alone gives the whole picture.
+</response>
+<rationale>CORRECT: The response is organized around where the two outlets agree and differ, not as a walk through either article. Each outlet's reporting is conveyed in one or two sentences of the assistant's own indirect speech. One short marked phrase from one source; every other claim is reworded. The response is still specific and complete.</rationale>
+</example>
+```
+
+Replace the two `[web_search: ...]` lines with your own tool's name, so the model reads them as templated tool output rather than literal text to emit.

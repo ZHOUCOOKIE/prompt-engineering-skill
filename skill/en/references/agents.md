@@ -4,6 +4,18 @@
 >
 > The English blocks in this file are **verbatim official wording** from Anthropic's long-running-agent guidance (see `SOURCES.md`) — copy them as is rather than translating or tidying them.
 
+## Contents
+
+- Context is the first constraint
+- Multi-window workflows
+- State management
+- Compaction awareness
+- Complex research
+- Let the model orchestrate itself
+- Design context to maximize cache hits
+- When to promote a bash action to a dedicated tool
+- Tool design beats prompt text
+
 ## Context is the first constraint
 
 Performance degrades as the context fills — context rot. The target is not "tell it everything you know" but **the smallest set of high-signal tokens that maximize the likelihood of the desired outcome**.
@@ -38,6 +50,12 @@ This is a very long task, so it may be beneficial to plan out your work clearly.
 Your context window will be automatically compacted as it approaches its limit, allowing you to continue working indefinitely from where you left off. Therefore, do not stop tasks early due to token budget concerns. As you approach your token budget limit, save your current progress and state to memory before the context window refreshes. Always be as persistent and autonomous as possible and complete tasks fully, even if the end of your budget is approaching. Never artificially stop any task early regardless of the context remaining.
 ```
 
+**If you compact on the client side** (Fable 5.1 page): server-side compaction already tells the model what to keep; for your own summarization step, the official instruction is below. The simplest shape on Fable 5.1 is to replace the whole history with one summary message plus the new user turn and replay nothing else — no thinking blocks carry over, so nothing fails the append-only check. And because cache reads are cheaper on Fable 5.1, compacting early to save cost may no longer be the right trade-off; experiment with later compaction points.
+
+```
+Summarize the transcript inside <summary></summary> tags. Include relevant information in the summary such that this conversation will be continued by a new context window without needing to redo work or be reprovided with relevant constraints or context. Be sure to preserve: (1) any difficulties or problems that came up, and how they were handled or resolved; (2) any possibilities, options, or approaches that were raised, tried, or set aside, and why; (3) anything that was asked for, decided, agreed, ruled out, or established as a preference, constraint, or boundary — stated exactly; (4) exactly where things stand now — what has been covered, settled, or completed so far; (5) anything still open, unresolved, promised, or expected to happen next; (6) specific details that would be hard to reconstruct — names, numbers, dates, exact wording, links or references — kept exactly. Be complete on these even at the cost of length; keep everything else concise. Weight the two voices differently: keep what the user said, asked for, shared, or established carefully and close to their own words; your own explanations and reasoning can be condensed much further, to what they concluded or produced — as long as nothing in the six items above is dropped.
+```
+
 ## Complex research
 
 ```
@@ -59,7 +77,7 @@ Two more in the same direction:
 
 ## Design context to maximize cache hits
 
-**Cached tokens are 10% the cost of base input tokens**, which makes ordering a pure cost lever.
+**Cached tokens are 10% the cost of base input tokens** — 2.5% on Fable 5.1 and Mythos 5.1 — which makes ordering a pure cost lever.
 
 | Practice | Guidance |
 |---|---|
@@ -69,9 +87,11 @@ Two more in the same direction:
 | **Adding or removing tools invalidates the cache** | Use tool search for dynamic discovery instead of changing tool definitions |
 | **Move breakpoints** | In multi-turn applications, move the cache breakpoint to the latest messages |
 
-> Direct consequence: **changing effort mid-session invalidates the cache** for the same reason.
+> Direct consequence: **changing the top-level effort between requests invalidates the cache** for the same reason. Fable 5.1, Mythos 5.1 and Opus 5 support a per-message effort change (beta) that preserves it — see `models.md`.
 
-**The mechanism behind row two.** Prompt caching hashes the request prefix in order — `tools`, then `system`, then `messages` — and a hit requires a byte-exact prefix match. Appending one sentence to the system prompt therefore misses the cache for the system prompt *and every cached message after it*. When an instruction only becomes relevant partway through a run, append a `{"role": "system"}` message at that point in `messages` rather than editing the top-level `system` field: the cached prefix stays intact, and the instruction still applies as a system instruction, taking precedence over the top-level field for the turns that follow it. Available on Fable 5, Mythos 5, Opus 4.8 and Opus 5 with no beta header; **not available on Sonnet 5**, where the top-level `system` field is the only option.
+**The mechanism behind row two.** Prompt caching hashes the request prefix in order — `tools`, then `system`, then `messages` — and a hit requires a byte-exact prefix match. Appending one sentence to the system prompt therefore misses the cache for the system prompt *and every cached message after it*. When an instruction only becomes relevant partway through a run, append a `{"role": "system"}` message at that point in `messages` rather than editing the top-level `system` field: the cached prefix stays intact, and the instruction still applies as a system instruction, taking precedence over the top-level field for the turns that follow it. Available on Fable 5.1, Mythos 5.1, Fable 5, Mythos 5, Opus 4.8 and Opus 5 with no beta header; **not available on Sonnet 5**, where the top-level `system` field is the only option. A `role: "system"` message can also be scoped to one turn with `clear_at: "next_user_message"` (beta, `mid-conversation-system-clear-at-2026-08-21`): it carries system-prompt authority for the current turn, stops rendering once a later user message exists, stays in the array so nothing earlier changes, and costs no input tokens once cleared — the official home for per-turn reminders in a tool loop.
+
+**Keep the history append-only (Fable 5.1).** Append each assistant turn exactly as returned, thinking blocks included, and do not edit earlier turns between requests. On Fable 5.1, a thinking block is valid only in the exact conversation that produced it: for accounts created on or after August 31, 2026, replaying one after its prefix (system prompt, tool list, or any earlier message) has changed returns a 400, or drops the block if you set `thinking.block_binding.prefix_mismatch_behavior: "drop_block"` (beta, `thinking-binding-controls-2026-08-01`); future models are expected to enforce this for all accounts. The edits that trip it are the same ones that restart the cache — injecting and removing per-turn reminders, summarizing older turns in place, changing the system prompt mid-session — so the fixes are the same: turn-scoped system messages for reminders, mid-conversation system messages and tool changes instead of rewriting `system` or `tools`, and server-side compaction or context editing for trimming. Removing a leading run of thinking blocks (oldest first), moving `cache_control` markers, and changing `effort` between requests keep later blocks valid.
 
 ## When to promote a bash action to a dedicated tool
 

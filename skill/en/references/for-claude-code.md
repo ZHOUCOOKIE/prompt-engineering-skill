@@ -52,7 +52,7 @@ Once the check exists, there is a second decision the prompt alone cannot make. 
 | **In one prompt** | Ask it to run the check and iterate in the same message | Any task, today. This is what the prompt you are writing does |
 | **Across a session** | Set the check as a `/goal` condition — a separate evaluator re-checks after every turn | The user wants it to keep going until the criterion holds |
 | **A deterministic gate** | A `Stop` hook runs the check as a script and blocks the turn from ending until it passes (Claude Code overrides after 8 consecutive blocks) | The check must not be skippable |
-| **A second opinion** | A verification subagent, so the agent doing the work is not the one grading it | Correctness matters more than speed |
+| **A second opinion** | A verification subagent — or a dynamic workflow that checks its own findings — so the agent doing the work is not the one grading it. For a plain correctness check, Claude Code's bundled `/code-review` skill reviews the current diff in a fresh subagent | Correctness matters more than speed |
 
 **Mention the level in the delivery note when it matters.** A prompt is level one by definition; if the user described an unattended run, say that `/goal` or a `Stop` hook is what actually lets it finish correctly without them.
 
@@ -195,7 +195,7 @@ If you find yourself writing "we use pnpm, not npm" or "run lint before committi
 | Primary instructions | The `SKILL.md` body | When Claude judges the skill relevant |
 | Bundled files | Files referenced from SKILL.md | Only when that specific scenario arises |
 
-`name` and `description` are what drive activation — if it does not trigger, fix those two lines first. Split the body when it gets unwieldy. Bundle executable code where it helps: sorting a list via token generation is far more expensive than simply running a sorting algorithm. **On Fable 5, skills developed for prior models are often too prescriptive and can degrade output quality** — prune periodically when targeting it.
+`name` and `description` are what drive activation — if it does not trigger, fix those two lines first. Split the body when it gets unwieldy. Bundle executable code where it helps: sorting a list via token generation is far more expensive than simply running a sorting algorithm. **The Fable 5 page states that skills developed for prior models are often too prescriptive for it and can degrade output quality** — prune periodically when targeting the Fable line. (The Fable 5.1 page does not restate this; it says existing Fable 5 prompts should perform well on Fable 5.1 without changes, and the general prompting page says to treat a model-specific finding as measured on that model.)
 
 ## Turning manual checks into verification loops
 

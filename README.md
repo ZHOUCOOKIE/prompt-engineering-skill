@@ -10,14 +10,15 @@ Available in **English** and **中文**. Also shipped as a single self-contained
 
 A set of prompt techniques that are still widely repeated — and still sitting in most people's muscle memory — are now **obsolete, rejected by the API, or reversed in effect** on current Claude models:
 
-| Technique | Status on Claude Opus 5 / Fable 5 |
+| Technique | Status on Claude Opus 5 / Fable 5.1 |
 |---|---|
 | Prefilling the assistant turn | **Returns 400** |
 | `thinking: {type: "enabled", budget_tokens: N}` | **Returns 400** |
 | `CRITICAL: You MUST …` to prevent tool undertriggering | No longer needed; consumes attention budget |
 | "Double-check your answer before responding" | **Causes over-verification on Opus 5.** Official guidance is to *remove* these instructions, not soften them |
 | Dense few-shot examples in an agent system prompt | Often *reduces* quality — the Claude Code team found "removing examples was extremely helpful, because it was just more creative than the examples we gave it" |
-| `temperature` for stylistic variety | Support is narrowing; several current models reject non-default values |
+| `temperature` for stylistic variety | **Returns 400** on both models in scope |
+| Forced `tool_choice` (`any` / `tool`) on Fable 5.1 | **Returns 400** |
 
 The Claude Code team cut their own system prompt by **more than 80%** with no loss of performance. That is the direction this skill encodes: **more context, fewer instructions.**
 
@@ -25,7 +26,7 @@ The Claude Code team cut their own system prompt by **more than 80%** with no lo
 
 1. **Classifies the scenario.** A prompt destined for Claude Code is written very differently from one that runs in a desktop chat or Cowork session. The skill routes to the right playbook.
 2. **Picks the model and effort itself** — it does not hand that question back to you — and states the choice with its reasoning.
-3. **Drafts** against a checklist of obsolete techniques, using an indexed library of 24 verbatim official prompt snippets.
+3. **Drafts** against a checklist of obsolete techniques, using an indexed library of 29 verbatim official prompt snippets.
 4. **Self-checks** before delivering.
 
 It also handles two other request shapes: auditing a prompt you already have, and a lightweight inline "does this line look right?" check mid-conversation that deliberately does *not* turn into an audit report.
@@ -83,25 +84,28 @@ It is worth reading if you want to disagree with something here on an informed b
 
 ## Scope
 
-**Claude Opus 5 and Claude Fable 5** (including Mythos 5), plus techniques verified as current and non-conflicting. Guidance specific to earlier models has been deliberately removed rather than left in as "still probably fine."
+**Claude Opus 5 and Claude Fable 5.1** (including Mythos 5.1), plus techniques verified as current and non-conflicting. Guidance specific to earlier models has been deliberately removed rather than left in as "still probably fine."
+
+One documented exception: seven snippets and one variant (4.17, 4.19–4.24, and the Fable 5 variant in 4.6) are published only on the **Claude Fable 5** page, which the Fable 5.1 page does not republish. They are kept because the Fable 5.1 page opens by saying existing Fable 5 prompts should perform well on Fable 5.1 without changes, and each is labeled at the point of use. Behavioral claims about Fable 5 that the Fable 5.1 pages neither restate nor retract sit in their own table in `models.md`, marked as measured on Fable 5, rather than being carried forward silently.
 
 Two snippets (4.16 and 4.25) are verbatim from the **Claude Sonnet 5** page. That is deliberate and flagged at the point of use — Sonnet 5 is a current model, not a superseded one. 4.16 is model-agnostic prompt text for a fix the Opus 5 page prescribes in prose without publishing wording for; 4.25 is the short `frontend_aesthetics` block, which the best practices page carries only in a different and much longer form. [SOURCES.md](SOURCES.md#a-note-on-scope) explains the call; drop those two entries if you would rather not mix pages.
 
-Snapshot date: **2026-08-08**. Anthropic's documentation moves — during the life of this repo one page reversed its recommendation mid-verification and another was withdrawn outright — so for specific API parameters, confirm against the live docs. See [SOURCES.md](SOURCES.md).
+Snapshot date: **2026-09-03**. Anthropic's documentation moves — during the life of this repo one page reversed its recommendation mid-verification, another was withdrawn outright, and a model release moved the model pages to new paths — so for specific API parameters, confirm against the live docs. See [SOURCES.md](SOURCES.md).
 
-On 2026-08-08 every tracked page was re-fetched and diffed byte-for-byte against the 2026-07-26 copies. The five prompt-engineering pages came back identical; the effort and Claude Code pages changed only in formatting. The Console prompting-tools page was withdrawn, taking a rule of this repo's with it, and four previously untracked pages were added as sources. The write-up is [SOURCES.md](SOURCES.md#the-2026-08-08-re-check).
+On 2026-09-03, two days after Claude Fable 5.1 shipped, every Fable-specific claim was adjudicated against the Fable 5.1 pages instead of being renamed: kept where the Fable 5.1 page carries it over, rewritten where it says something different, retired where it supersedes the old wording (snippet 4.18), and labeled "measured on Fable 5" where the Fable 5.1 pages are silent. The round also found two pages moved behind redirects, one migration-guide URL turned into an index, and two attribution errors of this repo's own. The write-up is [SOURCES.md](SOURCES.md#the-2026-09-03-re-check); the 2026-08-08 round is [below it](SOURCES.md#the-2026-08-08-re-check).
 
 ## How this was verified
 
 Every factual claim traces to an official Anthropic source. The following pages were read **in full, verbatim** — not summarized:
 
-- Prompting best practices, and the Opus 5 and Fable 5 model pages
+- Prompting best practices, and the Opus 5, Fable 5.1 and Fable 5 model pages
+- What's new in Claude Fable 5.1
 - Claude Code best practices
 - The effort parameter reference
 - Skill authoring best practices
 - The prompt engineering overview
 
-Read in part, for specific strings only: the Sonnet 5 model page, the model migration guide, the models overview, the model-selection guide, the thinking-steering page, the mid-conversation system messages page, the Opus 5 what's-new page, the Claude Code dynamic-workflows and changelog pages, and the Claude Cookbook.
+Read in part, for specific strings only: the Sonnet 5 model page, the Opus 5 and Fable 5.1 migration guides, the models overview, the Fable 5.1 and Mythos 5.1 overview pages, the model-selection guide, the thinking page, the thinking-steering page, the refusals-and-fallback page, the mid-conversation system messages page, the Opus 5 what's-new page, the Claude Code dynamic-workflows and changelog pages, and the Claude Cookbook.
 
 The English snippets were extracted programmatically from those sources and diffed character-for-character; they are byte-identical between the English and Chinese editions. In the final pass every snippet was re-checked by exact-string presence against the live pages, using deliberately fabricated control strings in the same queries to catch a checker that answers yes to everything. That pass found two snippets attributed to the wrong page and one instruction that was not official wording at all; all three are fixed and the provenance is now stated per entry.
 
@@ -117,9 +121,9 @@ The moral is the operating assumption of this repo: **a snapshot of fast-moving 
 
 ## A note on the snippets
 
-`references/snippets.md` has 25 numbered entries, of which **24 are verbatim excerpts from Anthropic's public documentation** (4.1 is a decision table, not a quotation). Counted as text: 32 quoted blocks, roughly 2,100 words, drawn from four documentation pages — the prompting best practices page and the Opus 5, Fable 5 and Sonnet 5 model pages. They are included verbatim because paraphrasing them discards the behavior they were tuned to produce; Anthropic publishes them precisely so that developers paste them into prompts.
+`references/snippets.md` has 30 numbered entries, of which **29 are verbatim excerpts from Anthropic's public documentation** (4.1 is a decision table, not a quotation). Counted as text: 43 quoted blocks, roughly 3,300 words by a whitespace word count, drawn from five documentation pages — the prompting best practices page and the Opus 5, Fable 5.1, Fable 5 and Sonnet 5 model pages. They are included verbatim because paraphrasing them discards the behavior they were tuned to produce; Anthropic publishes them precisely so that developers paste them into prompts.
 
-Beyond the snippet library, the rest of the skill quotes roughly 530 further words of official wording — including a short string from the model migration guide — and each study guide in [`docs/`](docs/) quotes roughly 500 more inline — individual sentences, attributed where they appear.
+Beyond the snippet library, the rest of the skill quotes roughly 600 further words of official wording in fenced blocks, and each study guide in [`docs/`](docs/) carries 14 blockquoted official passages, roughly 460 words, plus shorter inline strings — attributed where they appear.
 
 Attribution is per snippet: the index table in `snippets.md` links every quoted entry to the page it came from, and [SOURCES.md](SOURCES.md) records what was taken from each source. All rights to that text remain with Anthropic.
 
