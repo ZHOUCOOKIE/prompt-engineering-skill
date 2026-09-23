@@ -6,3 +6,7 @@ Thumbs.db
 node_modules/
 __pycache__/
 *.pyc
+
+# Local scratch: adjudication tables and round notes, not part of the skill
+Claude outputs/
+_to_delete/

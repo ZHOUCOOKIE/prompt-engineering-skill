@@ -46,7 +46,7 @@ When the user does not say and the task clearly needs file output or bulk materi
 
 ## Output length must be pinned
 
-This is the most frequent problem in Scenario B. Opus 5's user-facing responses **run longer than prior models' by default**, and lowering effort does not reliably shorten them — effort governs how much it thinks, not how much it says.
+This is the most frequent problem in Scenario B. **Lowering effort does not reliably shorten a reply** — effort governs how much the model thinks, not how much it says — so length has to be prompted for on every model in scope. (The "runs longer by default" finding is published for Opus 5; Opus 5.5 officially `tends to finish the same task with fewer tokens`, so re-measure rather than assuming, but state the length either way.)
 
 So anything meant to be read needs an explicit length constraint. **How to choose and what stacks is in SKILL.md Section 8, "Choosing a length control"**; in short:
 
@@ -102,9 +102,9 @@ For work that requires sourcing and synthesizing across many sources, there is a
 Search for this information in a structured way. As you gather data, develop several competing hypotheses. Track your confidence levels in your progress notes to improve calibration. Regularly self-critique your approach and plan. Update a hypothesis tree or research notes file to persist information and provide transparency. Break down this complex research task systematically.
 ```
 
-> **Carve-out for SKILL.md 3.4.** That block contains `Regularly self-critique your approach and plan`, and 3.4 says to remove self-verification instructions on Opus 5. This is the same kind of exception as `you MUST read the file` inside snippet 4.7: it is **tuned official wording, so copy it as is**. The two are not the same instruction — 3.4 removes *end-of-answer self-review*, a last look at a finished deliverable; this sentence is *mid-run course correction*, re-aiming the search while evidence is still coming in. If the task is a single-pass write-up rather than a multi-step search, that sentence has nothing to correct, and you may drop that one line.
+> **Carve-out for SKILL.md 3.4.** That block contains `Regularly self-critique your approach and plan`, and 3.4 says to remove self-verification instructions on Opus 5 (and to measure before removing them on Opus 5.5). This is the same kind of exception as `you MUST read the file` inside snippet 4.7: it is **tuned official wording, so copy it as is**. The two are not the same instruction — 3.4 removes *end-of-answer self-review*, a last look at a finished deliverable; this sentence is *mid-run course correction*, re-aiming the search while evidence is still coming in. If the task is a single-pass write-up rather than a multi-step search, that sentence has nothing to correct, and you may drop that one line.
 
-Three more: **give clear success criteria** (what constitutes a successful answer to this question), **ask for source verification** across multiple sources, and **explicitly allow it to say it does not know**:
+Three more: **give clear success criteria** (what constitutes a successful answer to this question), **ask for source verification** across multiple sources, and **explicitly allow it to say it does not know**. The line below is this skill's own wording, not an official snippet — adapt it freely:
 
 ```
 If the data is insufficient to draw conclusions, say so rather than speculating.
@@ -142,7 +142,7 @@ One ordering rule worth writing in: **gather the facts fully before touching the
 
 The three things most often over-written in Scenario B:
 
-1. **Self-verification instructions** ("check it once more," "double-check your answer") — Opus 5 does this on its own; adding them causes over-verification. See SKILL.md 3.4. Note the distinction that section draws: **reconciling sources against each other is the task, not self-verification** — do not delete that by mistake
+1. **Self-verification instructions** ("check it once more," "double-check your answer") — on Opus 5 the model does this on its own and adding them causes over-verification; on Opus 5.5 that finding is not restated, so do not add them reflexively but do not assert the Opus 5 result either. See SKILL.md 3.4. Note the distinction that section draws: **reconciling sources against each other is the task, not self-verification** — do not delete that by mistake
 2. **Résumé personas** ("you are a senior analyst with twenty years of experience") — no benefit on current models, pure token cost. To shift the perspective, say what to focus on — the official example is `Analyze this investment portfolio, focusing on risk tolerance and long-term growth potential` rather than assigning a role
 3. **A long list of "do not"s** — rewrite as positive statements with reasons. See SKILL.md 3.5
 

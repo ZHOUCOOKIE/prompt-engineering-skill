@@ -6,7 +6,7 @@
 >
 > **How to read it.** Sections 1–3 build the frame. Section 4 is the important one — if you learned prompt engineering before 2026, it will contradict part of what you know. Sections 5 and 5b are the two decisions people most often get wrong, both arising from official guidance that looks contradictory and is not. Section 6 onward is reference material.
 >
-> **Scope: Claude Opus 5 and Claude Fable 5.1** (including Mythos 5.1), plus techniques verified as current and non-conflicting. Guidance specific to earlier models has been deliberately excluded — with one documented exception: several Fable 5.1 prescriptions are still published only on the Fable 5 page, and Section 6.2 explains why they are kept and how they are labeled. (Two entries in the skill's snippet library are verbatim from the current Sonnet 5 page — deliberate, and flagged at each entry.)
+> **Scope: Claude Opus 5.5 and Claude Fable 5.1** (including Mythos 5.1), plus techniques verified as current and non-conflicting. Claude Opus 5 and Claude Fable 5 are both on Anthropic's "Legacy models (still available)" list. Guidance specific to earlier models has been deliberately excluded — with one documented exception, applied to both legacy pages: several prescriptions are still published only on a predecessor's page, and Sections 6.1 and 6.2 explain why they are kept and how they are labeled. (Two entries in the skill's snippet library are verbatim from the current Sonnet 5 page — deliberate, and flagged at each entry.)
 >
 > **One disclaimer.** For specific API parameters, the live documentation is authoritative. The appendix records a real lesson on this point: a passage quoted in this document was rewritten by Anthropic *during* the verification process.
 
@@ -20,7 +20,7 @@
 4. **Obsolete: eight habits to unlearn**
 5. The most misapplied decision: whether to give examples
 5b. The second one: whether to remove verification instructions
-6. Model differences: Opus 5 and Fable 5.1
+6. Model differences: Opus 5.5 and Fable 5.1
 7. Agents and long tasks: context engineering
 8. Claude Code: where to put what
 9. How to practice
@@ -252,7 +252,7 @@ That is the basis on which the Claude Code team cut their system prompt by more 
 
 These do not conflict. The first concerns legacy anti-undertriggering scaffolding in an API system prompt; the second concerns marking a handful of critical conventions in a project configuration file. **The test is what problem you are solving, not whether the word is allowed.**
 
-### 4.4 ❌ Telling Opus 5 to check its work — actively harmful
+### 4.4 ❌ Telling Opus 5 to check its work — actively harmful (and what changed with Opus 5.5)
 
 **The old advice:** the general documentation still carries `Before you finish, verify your answer against [test criteria]`.
 
@@ -263,6 +263,8 @@ These do not conflict. The first concerns legacy anti-undertriggering scaffoldin
 Note the verb: **remove**, not rewrite. It is counterintuitive enough to be worth memorizing on its own.
 
 The same applies to `double-check your answer` and `re-verify before responding`.
+
+**This habit did not become universal, and Opus 5.5 is where that matters.** The sentence above names Claude Opus 5, and so does the best practices page, which lists this as the one exception to its own "ask Claude to self-check" advice and names no other model. The Opus 5.5 pages neither repeat the over-verification finding nor retract it; the migration guide says only `Instructions tuned for Claude Opus 5's behavior may no longer be needed`. So on Opus 5.5 the honest position is narrower: **do not add self-verification instructions reflexively, and treat deleting an inherited one as a measurement to run rather than a settled result.** Section 5b has the full three-way picture. This is the clearest case in the whole document of why a model rename is not a model update.
 
 ### 4.5 ❌ Stacking absolute prohibitions
 
@@ -359,7 +361,9 @@ You will read both of these:
 - **The Opus 5 page:** if your prompt contains explicit verification instructions, **remove them** — they cause over-verification, wasting tokens with no gain in quality.
 - **The Fable 5 page:** for long-running tasks, explicitly build in self-checking: `Establish a method for checking your own work at an interval of [X] as you build. Run this every [X interval], verifying your work with subagents against the specification.` (The Fable 5.1 page neither restates nor retracts this; it says existing Fable 5 prompts carry over unchanged, which is the basis on which the skill keeps it for Fable 5.1.)
 
-**The resolution is the clause about subagents, plus the sentence the Fable 5 page puts immediately before that instruction:** officially, **separate, fresh-context verifier subagents tend to outperform self-critique.**
+- **The Opus 5.5 pages:** silent. They neither restate the over-verification finding nor retract it, while the best practices page's general advice still favours a self-check and names Opus 5 as its only exception. So the skill does not assert the Opus 5 result about Opus 5.5 — it says do not add these instructions reflexively, and measure before deleting inherited ones.
+
+**The resolution is the clause about subagents, plus the sentence the Fable 5 page puts immediately before that instruction:** officially, **separate, fresh-context verifier subagents tend to outperform self-critique.** That is also where the Opus 5.5 page lands for unattended runs: its recommendation is a checklist the model updates, or `a separate, smaller model check the conversation against it at each end of turn` — external checking, not self-review.
 
 So the actual rule is:
 
@@ -378,15 +382,35 @@ There is a trap one level down: **the word "verification" slides between two mea
 
 ---
 
-## 6. Model differences: Opus 5 and Fable 5.1
+## 6. Model differences: Opus 5.5 and Fable 5.1
 
 Current models are not a linear "bigger is better" progression. They have **different dispositions**, and they want to be tuned in different directions.
 
-### 6.1 Claude Opus 5
+### 6.1 Claude Opus 5.5 (and what carries over from Opus 5)
 
-Positioned for complex agentic coding and enterprise work, with strength on long-horizon tasks. Default effort `high`; thinking on by default; a 1M token context window as both default and maximum.
+Released 2026-09-22 and built for long-running agentic coding and knowledge work. **Default effort `medium`** — the only model in the lineup whose default is not `high`; adaptive thinking always on and impossible to disable; 1M token context window; 128K max output; $4 / $20 per MTok, against Opus 5's $5 / $25. Officially it generates output tokens more than 30 percent faster than Opus 5 and tends to finish the same task with fewer tokens.
 
-| Behavior | What to do about it |
+**The one number to carry away:** officially, **Opus 5.5 at `medium` matches or exceeds Opus 5 at `high`** on coding and knowledge-work evaluations. So the equivalent of an old `high` setting is the new default — a carried-over `effort` value is usually a tier too high, which is why the page tells you to `test several levels against your own evals rather than carrying over the setting you used on Claude Opus 5`.
+
+| Behavior stated for Opus 5.5 | What to do about it |
+|---|---|
+| Thinks more per turn at a given level than Opus 5, most of all at `xhigh` and `max` | Re-run the sweep; reserve `xhigh` and `max` for work where you have **measured** a gain. To get less thinking, lower effort before reaching for prompt instructions |
+| Text between tool calls comes back in **progress-update `thinking` blocks**, not `text` blocks, and is empty at the default `display` | Set `display: "updates"`. A client that renders only `text` blocks goes silent through a long agentic turn, with no error — this is the change most likely to look like a bug |
+| Some progress reports **end the turn with text rather than a tool call** | An unattended loop must not read that as completion: keep a checklist, and send a short message naming what is still open |
+| Gets to work quickly; on loose multi-app tasks it misses context the request did not name | One sentence telling it to explore broadly before acting |
+| Pays close attention to elapsed-time information | In a multi-agent harness, give a time budget per message; it paces to finish inside it |
+| In chat, thinks at length before answering, and revisits earlier answers on follow-ups | Remove "think carefully first" lines; add two sentences telling it to treat answered questions as settled |
+| Robust against instructions inside pasted text — **once told which text was pasted** | Wrap pasted blocks in tags carrying a shared random id, and explain the convention in the system prompt |
+| Reads charts, diagrams and screenshots much more precisely than Opus 5 without tools | Re-test vision scaffolding built for earlier models; it may no longer be needed |
+| Runs biology, cybersecurity and reasoning-extraction classifiers — biology and `reasoning_extraction` are **new coming from Opus 5** | Handle `stop_reason: "refusal"`; note that server-side fallback does **not** retry a `reasoning_extraction` decline |
+
+**Four breaking changes** land on code that already ran on Opus 5: thinking cannot be disabled, forced `tool_choice` returns 400, thinking blocks are tied to the model *and* the conversation, and on the Claude API and Google Cloud the older `computer_20251124` tool is rejected in favour of the `computer_toolset_20260801` toolset.
+
+#### What Opus 5 says that Opus 5.5 does not restate
+
+The Opus 5.5 page opens with `Existing Claude Opus 5 prompts should perform well without changes, and the patterns in Prompting Claude Opus 5 remain a reasonable starting point.` That sentence is what keeps the table below in play — but the general prompting page adds `Where a technique names a specific model, treat it as measured on that model and re-check it against your own evals before applying it to another`. So these are **measured on Opus 5**, and two of them point the opposite way from something Opus 5.5 is documented to do.
+
+| Behavior (Opus 5) | What to do about it |
 |---|---|
 | User-facing responses run long by default | Ask for concision explicitly. **Note that lowering effort does not reliably shorten visible output** — effort governs how much it thinks, not how much it says |
 | Narrates readily during agentic work | Describe the cadence you want |
@@ -398,7 +422,7 @@ Positioned for complex agentic coding and enterprise work, with strength on long
 | Follows "only report high-severity issues" **literally** in code review | Change to "report everything; filter downstream" |
 | `low` and `medium` produce strong quality at a fraction of the tokens and latency of higher settings | **Start at the default `high`** and step up to `xhigh` only for demanding coding and agentic work. If you carried settings over from an earlier model, run a fresh effort sweep |
 
-**One trap.** With thinking disabled, Opus 5 occasionally writes a tool call into user-facing text instead of emitting a `tool_use` block — the call never runs, and in an agentic loop the leaked text stays in history and affects later turns. It can also leak `<thinking>` tags into visible output. The official advice is to **keep thinking enabled and control cost with lower effort** rather than turning it off; for most tasks, thinking enabled at `low` effort beats thinking disabled at similar cost. (At `xhigh` and `max` you cannot turn it off in any case; those requests return 400.)
+**One trap, now only reachable on Opus 5.** With thinking disabled, Opus 5 occasionally writes a tool call into user-facing text instead of emitting a `tool_use` block — the call never runs, and in an agentic loop the leaked text stays in history and affects later turns. It can also leak `<thinking>` tags into visible output. The official advice is to **keep thinking enabled and control cost with lower effort** rather than turning it off; for most tasks, thinking enabled at `low` effort beats thinking disabled at similar cost. (At `xhigh` and `max` you cannot turn it off in any case; those requests return 400. On Opus 5.5 you cannot turn it off at all, so neither artifact can occur — but the Opus 5.5 page still tells you to **delete any "do not think" rule** you inherit, either way.)
 
 If an integration must keep thinking disabled, the official mitigation is a single combined instruction covering both artifacts:
 
@@ -462,28 +486,29 @@ The official description of each level:
 |---|---|---|
 | `max` | Absolute maximum capability with no constraints on token spending | Tasks requiring the deepest possible reasoning and most thorough analysis |
 | `xhigh` | Extended capability for long-horizon work | Long-running agentic and coding tasks (**over 30 minutes**) with token budgets in the millions |
-| `high` | High capability. **Equivalent to not setting the parameter** | Complex reasoning, difficult coding problems, agentic tasks |
-| `medium` | Balanced approach with moderate token savings | Agentic tasks that require a balance of speed, cost, and performance |
+| `high` | Spends as many tokens as the task needs for excellent results. **The default on every model that supports effort except Claude Opus 5.5** | Complex reasoning, difficult coding problems, agentic tasks |
+| `medium` | Balanced approach with moderate token savings. **The default on Claude Opus 5.5** | Agentic tasks that require a balance of speed, cost, and performance |
 | `low` | Most efficient. Significant token savings with some capability reduction | Simpler tasks that need the best speed and lowest costs, such as subagents |
 
-**Both models start at the default `high`.** What differs is when to step up:
+**The default is model-specific: `medium` on Opus 5.5, `high` on every other model that supports effort.** That is new with Opus 5.5, and it means the same request that omits `effort` now runs one tier lower than it did on Opus 5. What differs beyond that is when to step up:
 
 | Model | Step up when |
 |---|---|
-| **Opus 5** | The coding or agentic work is **demanding** → `xhigh`; a task that justifies unconstrained token spending → `max`. Use `low`/`medium` liberally as the primary cost and latency control wherever your evals show quality holds |
+| **Opus 5.5** | Only where you have **measured** a quality gain → `xhigh` or `max`. The page's own wording is `Reserve xhigh and max for work where you've measured a quality gain`. Step down to `low` where evals hold; on several coding evaluations `low` comes close to `medium` at much lower cost |
+| **Opus 5** (legacy) | The coding or agentic work is **demanding** → `xhigh`; a task that justifies unconstrained token spending → `max`. Use `low`/`medium` liberally as the primary cost and latency control wherever your evals show quality holds |
 | **Fable 5.1** | The most capability-sensitive agentic and coding work → `xhigh` or `max`; routine or latency-sensitive work steps down to `medium`/`low` once your evals show quality holds. Officially its gains over Fable 5 "show up across effort levels and are largest at the higher settings"; at `medium` "results roughly match Claude Fable 5 at lower cost," and at `low` it "is often competitive with Claude Opus and Claude Sonnet models on cost per task while scoring higher." Re-run the sweep even if you ran one on Fable 5: "effort level names don't correspond to the same amount of thinking across models" |
 
 > **This entry was corrected.** An earlier version of this document said Opus 5 coding and agentic work should *start* at `xhigh`, on the basis of the official page's then-current wording, "for coding and agentic work, `xhigh` remains the recommended starting point." That page now reads "Start with the default (`high`) … step up to `xhigh` for demanding coding and agentic work." The practical difference is real: an ordinary coding task now starts at `high`. The full account is in the appendix.
 
 Points that matter:
 
-- `Setting effort to "high" produces exactly the same behavior as omitting the effort parameter entirely.`
+- `Setting effort to the model's default ("medium" on Claude Opus 5.5, "high" on other models) produces exactly the same behavior as omitting the effort parameter entirely.`
 - `Effort is a behavioral signal, not a strict token budget. At lower effort levels, Claude still thinks on sufficiently difficult problems, but thinks less than it would at higher effort levels for the same problem.`
 - It affects **all tokens** in the response: text, tool calls, and thinking
 - **Lower effort directly reduces the number of tool calls**, combines operations, skips preamble, and produces terse confirmations. Higher effort means more tool calls, plans explained before acting, and detailed summaries. This is the part people miss — **effort is not only how long it thinks; it is how much it does**
 - **Set effort deliberately per workload** rather than letting one setting ride across everything you run
-- **Hold the top-level effort constant within cached conversations.** Official wording: `Changing the top-level effort value between requests invalidates prompt caching, so vary it across workloads rather than within a conversation that relies on cache hits. On models that support it, use a per-message effort change instead, which preserves the cache.` Per-message effort is a beta on Fable 5.1, Mythos 5.1 and Opus 5: a `role: "system"` message with empty `content` and the new level in `output_config.effort`, taking effect from the next user turn
-- At high effort, leave headroom in `max_tokens` — it is a hard limit on thinking plus response text combined, and without headroom you get a response truncated because thinking consumed the budget. On Opus 5 at `xhigh`/`max`, official guidance is to start at 64k and tune from there; on Fable 5.1 the same warning applies from `high` up
+- **Hold the top-level effort constant within cached conversations.** Official wording: `Changing the top-level effort value between requests invalidates prompt caching, so vary it across workloads rather than within a conversation that relies on cache hits. On models that support it, use a per-message effort change instead, which preserves the cache.` Per-message effort is a beta on Opus 5.5, Fable 5.1, Mythos 5.1 and Opus 5: a `role: "system"` message with empty `content` and the new level in `output_config.effort`, taking effect from the next user turn
+- At high effort, leave headroom in `max_tokens` — it is a hard limit on thinking plus response text combined, and thinking counts toward it even when the thinking text is not returned to you. On Opus 5.5 the page's figure for the long turns agentic coding produces is `a max_tokens of 128,000, the model's maximum`; on Opus 5 at `xhigh`/`max` the older guidance is to start at 64k and tune from there; on Fable 5.1 the warning applies from `high` up
 
 > Aside: `ultracode` in Claude Code is **not** an additional API effort tier. The [dynamic workflows page](https://code.claude.com/docs/en/workflows) defines it as "a Claude Code setting that combines `xhigh` reasoning effort with automatic workflow orchestration" — a session-scoped setting, not something the Messages API knows about.
 
@@ -744,7 +769,7 @@ Then execute that spec in a **fresh session**, where the context is clean and en
 | **The trust-then-verify gap** | Plausible-looking implementation that misses edge cases | Always provide verification. **If you cannot verify it, do not ship it** |
 | **The infinite exploration** | "Investigate this" without scope; hundreds of files read | Narrow the scope, or isolate it in a subagent |
 
-**One important caveat on adversarial review.** Having a subagent review the diff in a fresh context is effective, but the official guidance also warns that **a reviewer prompted to find gaps will usually report some, even when the work is sound, because that is what it was asked to do.** Chasing every finding leads to over-engineering. The review prompt must therefore say: **flag only gaps that affect correctness or the stated requirements, and treat the rest as optional.** This is a filtering instruction, so it belongs only where **you** are the filter. If the findings feed a downstream ranking or triage step instead, invert it and have the reviewer report everything (the "report everything; filter downstream" row in Section 6) — Opus 5 applies a stated severity bar literally and silently drops whatever falls below it.
+**One important caveat on adversarial review.** Having a subagent review the diff in a fresh context is effective, but the official guidance also warns that **a reviewer prompted to find gaps will usually report some, even when the work is sound, because that is what it was asked to do.** Chasing every finding leads to over-engineering. The review prompt must therefore say: **flag only gaps that affect correctness or the stated requirements, and treat the rest as optional.** This is a filtering instruction, so it belongs only where **you** are the filter. If the findings feed a downstream ranking or triage step instead, invert it and have the reviewer report everything (the "report everything; filter downstream" row in Section 6) — Opus 5 applies a stated severity bar literally and silently drops whatever falls below it, a behavior the Opus 5.5 pages neither restate nor retract.
 
 ---
 
@@ -786,7 +811,7 @@ That is probably the only advice here that will not go out of date — because w
 
 The full source list, the read depth for each, and the adjudication of known conflicts are in [SOURCES.md](../SOURCES.md). What follows is only a suggested order.
 
-1. **Start here:** [The new rules of context engineering for Claude 5 generation models](https://claude.com/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models) (2026-07-24) — ten minutes, and it orients everything else
+1. **Start here:** [The new rules of context engineering for Claude 5 generation models](https://claude.dev/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models/) (2026-07-24) — ten minutes, and it orients everything else
 2. **Then:** [Best practices for Claude Code](https://code.claude.com/docs/en/best-practices) (living doc) — the densest practical material available; if you use Claude Code, this is the highest-return page
 3. **Consult as needed:** [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) plus the page for the model you use — reference material, not a read-through
 4. **For the underlying principles:** [Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) (2025-09)
@@ -829,6 +854,16 @@ Later rounds asked whether each page had actually been read in full, and closed 
 - **Four sources had only thin summaries**: the Agent Skills engineering post (never fetched), Agent Harness Design, verification loops, and loop engineering. Reading them produced the three-tier progressive disclosure model, the five cache-hit principles, the three orchestration figures, the four verification-loop deployment modes, and the loop commands
 - **The Console prompt improver link was dead** (it redirected), and the page it redirected to still advertised **prefill, which the API now rejects** — a trap someone would walk straight into. That replacement page has since been withdrawn as well: the redirect now lands on Prompting best practices, which tells you to migrate away from prefill. What this document originally took from the withdrawn page had to be re-founded on something that still exists; see [SOURCES.md, "The 2026-08-08 re-check"](../SOURCES.md#the-2026-08-08-re-check)
 - Scope was then trimmed: guidance specific to earlier models was removed rather than left in as "probably still fine"
+
+### The 2026-09-22 round: a second model release, and a rule that did not survive it
+
+Claude Opus 5.5 shipped on 2026-09-22 and Claude Opus 5 joined Fable 5 on the "Legacy models (still available)" list. The procedure from the Fable round was repeated: nothing renamed, every Opus-specific claim adjudicated against the Opus 5.5 pages, and anything without explicit Opus 5.5 backing either moved into a "measured on Opus 5" table or marked unconfirmed.
+
+**The finding worth reading is Section 4.4.** "Remove self-verification instructions" had been one of this document's headline rules, and it does not carry to Opus 5.5 as a rule. The Opus 5.5 prompting page and what's-new page say nothing about over-verification either way; the best practices page still names Claude Opus 5 as the single exception to its general "ask Claude to self-check" advice; and the Opus 5.5 migration guide offers only `Instructions tuned for Claude Opus 5's behavior may no longer be needed`. A global find-and-replace from "Opus 5" to "Opus 5.5" would have turned a documented, model-specific measurement into a confident claim about a model nobody had measured. That is the whole argument for adjudicating rather than renaming, in one rule.
+
+Three other things changed shape. The effort default became model-specific (`medium` on Opus 5.5), which invalidates the old "both models start at `high`" framing and the `effort: "high"` ≡ omitted shorthand. Three hard rules widened to cover Opus 5.5's breaking changes — thinking cannot be disabled, forced `tool_choice` returns 400, and the `reasoning_extraction` refusal category now names Opus 5.5 on the thinking page. And the progress-update mechanism changed: text between tool calls now arrives in `thinking` blocks that are empty by default, so a client written for Opus 5 goes quiet through a long agentic turn without any error to point at.
+
+The round also caught one thing that was this document's neighbour rather than its own: a fenced block in the skill's chat-and-Cowork reference — `If the data is insufficient to draw conclusions, say so rather than speculating.` — sat immediately below an official block introduced as wording to copy verbatim, and appears on no Anthropic page. It is the repo's own sentence, and is now labeled as one. The full record is in [SOURCES.md](../SOURCES.md#the-2026-09-22-re-check).
 
 ### The 2026-09-03 round: a model release re-opened every Fable claim
 

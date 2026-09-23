@@ -6,7 +6,7 @@
 >
 > **阅读方式**：第 1、2、3 章是理解框架；第 4 章是最重要的「排毒」章节（如果你以前学过 prompt 工程，那一章会推翻你的一部分认知）；第 5 和 5b 章是两个最容易搞错的单点，都源于两条官方指引看起来打架、实则场景不同；第 6 章往后按需查阅。
 >
-> **适用范围**：**Claude Opus 5 和 Claude Fable 5.1**（含 Mythos 5.1），以及已验证与现行标准无冲突的通用技法。Opus 4.x 与已被取代的 Sonnet 旧版本的专属指引已剔除——只有一个有记录的例外：几条 Fable 5.1 的处方目前仍只发布在 Fable 5 专页上，第 6.2 节解释了为什么保留、怎么标注。（skill 的片段库里有两条逐字取自现役的 Sonnet 5 页面，属于有意为之，已在对应条目上标注。）
+> **适用范围**：**Claude Opus 5.5 和 Claude Fable 5.1**（含 Mythos 5.1），以及已验证与现行标准无冲突的通用技法。Claude Opus 5 和 Claude Fable 5 现在都在官方的「Legacy models (still available)」列表里。更早模型的专属指引已剔除——只有一个有记录的例外，两个 legacy 页面适用同一处理：有几条处方目前仍只发布在前代模型的专页上，第 6.1、6.2 节解释了为什么保留、怎么标注。（skill 的片段库里有两条逐字取自现役的 Sonnet 5 页面，属于有意为之，已在对应条目上标注。）
 >
 > **一句免责**：涉及具体 API 参数时，以官方文档的实时版本为准。文末附录记录了一次真实的教训——本文引用的某段官方措辞，在核查期间就被官方改掉了。
 
@@ -20,7 +20,7 @@
 4. **排毒：八条已经作废的旧习惯**
 5. 最容易搞错的一点：示例到底还要不要给
 5b. 第二个容易搞错的点：验证指令到底删不删
-6. 模型差异：Opus 5 与 Fable 5.1 的性格
+6. 模型差异：Opus 5.5 与 Fable 5.1 的性格
 7. Agent 与长任务：上下文工程
 8. Claude Code 场景：该把话写在哪
 9. 怎么练
@@ -256,7 +256,7 @@ Claude Code 团队据此把系统提示词砍掉 80% 以上而性能不降。堆
 
 这两处不矛盾——前者说的是 API system prompt 里防工具欠触发的历史包袱，后者说的是项目配置文件里强调关键约定。**判断标准是「你在解决什么问题」，不是「这个词能不能用」。**
 
-### 4.4 ❌ 让 Opus 5「再检查一遍」——反而有害
+### 4.4 ❌ 让 Opus 5「再检查一遍」——反而有害（以及 Opus 5.5 上变了什么）
 
 **旧建议**：通用文档至今仍写着 `Before you finish, verify your answer against [test criteria]`。
 
@@ -267,6 +267,8 @@ Claude Code 团队据此把系统提示词砍掉 80% 以上而性能不降。堆
 注意官方用的词是「**remove**（删除）」，不是改写。这一点很反直觉，值得单独记住。
 
 同理，Opus 5 也不需要 `double-check your answer` / `re-verify before responding`。
+
+**但这条习惯并没有变成通用结论，而 Opus 5.5 恰恰是它要紧的地方。** 上面那句话点名的是 Claude Opus 5；prompting 最佳实践页也一样——它把这条写成自己「让 Claude 自检」这条通用建议的唯一例外，没有点名任何其他模型。Opus 5.5 的页面既没有重复过度验证这个结论，也没有撤回它；迁移指南给的只有一句 `Instructions tuned for Claude Opus 5's behavior may no longer be needed`。所以在 Opus 5.5 上，诚实的说法要窄得多：**不要条件反射式地加自我验证指令；把「删掉继承来的那条」当成一件需要实测的事，而不是已经有结论的事。** 完整的三方对照见第 5b 节。这是全文最清楚的一个例子，说明**改个模型名不等于完成了一次模型升级**。
 
 ### 4.5 ❌ 堆砌「绝不允许」式约束
 
@@ -363,7 +365,9 @@ Claude Code 团队之所以删示例，是因为他们写的是一个通用编�
 - **Opus 5 页**：如果你的 prompt 里有显式验证指令，**删掉它们**——这类指令会在 Opus 5 上造成过度验证、白白烧 token，而删掉它们不会损失质量。
 - **Fable 5 页**：在长运行任务的 prompt 里，**明确写入自我检查**：`Establish a method for checking your own work at an interval of [X] as you build. Run this every [X interval], verifying your work with subagents against the specification.`（Fable 5.1 页既没有重述也没有撤回这句；它写明现有 Fable 5 prompt 可以原样沿用，skill 据此把它保留给 Fable 5.1。）
 
-**怎么解释？** 关键在那句话里的「用子智能体」，以及 Fable 5 页紧挨着它的前一句：**独立的、干净上下文的 verifier 子智能体，效果优于模型自我批评。**
+- **Opus 5.5 的页面**：沉默。既没有重述过度验证这个结论，也没有撤回它；而最佳实践页的通用建议仍然偏向让模型自检，并且把 Opus 5 列为它唯一的例外。所以 skill 不把 Opus 5 的结论套到 Opus 5.5 上——它的说法是：不要条件反射式地加这类指令，删掉继承来的那条之前先实测。
+
+**怎么解释？** 关键在那句话里的「用子智能体」，以及 Fable 5 页紧挨着它的前一句：**独立的、干净上下文的 verifier 子智能体，效果优于模型自我批评。** Opus 5.5 页面在无人值守长跑这件事上落点也一样：它的建议是让模型维护一份清单，或者 `have a separate, smaller model check the conversation against it at each end of turn`——都是外部检查，不是自我复查。
 
 所以真正的规律是：
 
@@ -382,13 +386,33 @@ Claude Code 团队之所以删示例，是因为他们写的是一个通用编�
 
 ---
 
-## 6. 模型差异：Opus 5 与 Fable 5.1 的性格
+## 6. 模型差异：Opus 5.5 与 Fable 5.1 的性格
 
 现行模型不再是「越大越好」的线性关系，它们**性格不同**，需要不同的调校方向。
 
-### 6.1 Claude Opus 5
+### 6.1 Claude Opus 5.5（以及从 Opus 5 沿用下来的部分）
 
-定位：复杂 agentic 编码与企业任务，长周期任务见长。默认 effort `high`，thinking 默认开启，1M token 上下文（默认即最大）。
+2026-09-22 发布，定位是长时间运行的 agentic 编码与知识工作。**默认 effort `medium`**——这一代里唯一默认不是 `high` 的模型；adaptive thinking 始终开启且无法关闭；1M token 上下文；最大输出 128K；$4 / $20 每 MTok，对比 Opus 5 的 $5 / $25。官方说它生成输出 token 比 Opus 5 快 30% 以上，而且完成同一个任务倾向于用更少的 token。
+
+**要记住的那个数字**：官方明确写了 **Opus 5.5 在 `medium` 达到或超过 Opus 5 在 `high`** 的编码与知识工作评测成绩。所以旧的 `high` 设置对应的是新的默认档——照搬过来的 `effort` 值通常高了一档，这也是页面为什么要写 `test several levels against your own evals rather than carrying over the setting you used on Claude Opus 5`。
+
+| Opus 5.5 页面写明的倾向 | 怎么处理 |
+|---|---|
+| 同一档位下每回合思考得比 Opus 5 多，`xhigh` 和 `max` 尤其明显 | 重跑扫描；只把 `xhigh`、`max` 留给**实测**到收益的工作。想少思考，先降 effort，再考虑 prompt 指令 |
+| 工具调用之间的文字以 **progress-update `thinking` 块**返回，不是 `text` 块，默认 `display` 下内容为空 | 设 `display: "updates"`。只渲染 `text` 块的客户端会在整个长 agentic 回合里安静下来，而且不报任何错——这是最容易被当成 bug 的一处变化 |
+| 有些进度汇报是**以文字而不是工具调用结束回合**的 | 无人值守的循环不能把它当成任务完成：保持一份清单，并发一条消息点名还有哪些没做完 |
+| 上手很快；多应用任务描述松散时会漏掉请求没点名的上下文 | 一句话让它在动手前先广泛探索 |
+| 对「已过去多少时间」这类信息非常敏感 | 在多智能体 harness 里按消息给出时间预算，它会为了在预算内完成而调整节奏 |
+| 在 chat 里回答前会长时间思考，后续追问时还会回头重看早先的答案 | 删掉「先仔细思考」这类句子；加两句让它把已答过的当定论 |
+| 对粘贴内容里的指令很稳健——**前提是你告诉它哪段是粘贴来的** | 给粘贴块套上带同一个随机 id 的标签，并在 system prompt 里说明这个约定 |
+| 不借助工具读图表、流程图和截图就比 Opus 5 准得多 | 重新检验为更早模型搭的视觉脚手架，可能已经不需要了 |
+| 跑生物、网络安全、推理抽取三类分类器——生物和 `reasoning_extraction` 对**从 Opus 5 过来的人是新增的** | 处理 `stop_reason: "refusal"`；注意服务端 fallback **不会**重试 `reasoning_extraction` |
+
+**四项破坏性变更**会打到已经跑在 Opus 5 上的代码：thinking 无法关闭、强制 `tool_choice` 返回 400、thinking 块同时和模型与对话绑定、以及在 Claude API 和 Google Cloud 上旧的 `computer_20251124` 被拒，要改用 `computer_toolset_20260801` 工具集。
+
+#### Opus 5 写了、而 Opus 5.5 没有重述的部分
+
+Opus 5.5 页面开头写着 `Existing Claude Opus 5 prompts should perform well without changes, and the patterns in Prompting Claude Opus 5 remain a reasonable starting point.` 这句话是下面这张表还能用的依据——但通用 prompting 页另加了一条：`Where a technique names a specific model, treat it as measured on that model and re-check it against your own evals before applying it to another`。所以下面这些都是**在 Opus 5 上测得的**，其中两条还与 Opus 5.5 有明确记载的行为方向相反。
 
 | 倾向 | 你要做的 |
 |---|---|
@@ -442,11 +466,11 @@ When you use a tool, you may say a brief sentence first. If no tool can express 
 
 另外两条 Fable 5.1 的模式没有被框成「变化」，但属于新指引：**把整个任务做完**（一段自主运行块，取代了片段 4.18 的 Fable 5 措辞，外加一段把请求定义为范围的 "Delivering work" 块——官方要求两段一起用，开头那句 "carries much of the effect. Keep it as written"），以及**改动和测试只做任务要求的**（加上这段指令后，"unrequested additions and committed test code drop substantially with no measurable change in task success"）。
 
-**没变的。** `reasoning_extraction` 这个坑对两代都成立——thinking 页现在写的是：
+**没变的。** `reasoning_extraction` 这个坑对两代都成立——thinking 页现在把 Opus 5.5 也并列写了进去：
 
-> "On Claude Fable 5.1 and Claude Fable 5, a request that attempts to elicit the model's internal reasoning as part of the response text can be refused with `stop_details.category: "reasoning_extraction"`."
+> "On Claude Fable 5.1, Claude Opus 5.5, and Claude Fable 5, a request that attempts to elicit the model's internal reasoning as part of the response text can be refused with `stop_details.category: "reasoning_extraction"`."
 
-安全分类器覆盖的类别与 Fable 5 相同（`cyber`、`bio`、`frontier_llm`、`reasoning_extraction`、`general_harms`）——原文 "a broader set than Claude Opus 5's cybersecurity-only classifiers"——误报比 Fable 5 发布时少，并且明确写了在源码里找漏洞是允许的。prefill、`budget_tokens`、非默认采样参数仍然返回 400。
+安全分类器覆盖的类别与 Fable 5 相同（`cyber`、`bio`、`frontier_llm`、`reasoning_extraction`、`general_harms`）——原文 "a broader set than Claude Opus 5's cybersecurity-only classifiers"，不过注意 Opus 5.5 此后已经补上了 `bio` 和 `reasoning_extraction`，两者现在的差距是 `frontier_llm` 和 `general_harms` 这两类——误报比 Fable 5 发布时少，并且明确写了在源码里找漏洞是允许的。prefill、`budget_tokens`、非默认采样参数仍然返回 400。
 
 **只在 Fable 5 专页上有的。** 长回合（困难任务上单次请求在高 effort 下可能跑很多分钟，自主运行可达数小时）、任务模糊时的过度规划、长跑中编造进度以及「几乎消除」它的那段指令、未被要求的动作、更主动派子智能体、上下文预算安抚、「给理由」模板、最终汇报可读性块、记忆写入规范、send-to-user 工具、第 5b 节的周期性验证指令，以及脚手架建议。Fable 5.1 的页面从侧面印证了第一条的量级（"users see the agent go quiet for minutes at a time"；相对延迟 "Slower"），但没有重述那句话。其中最直白的仍是关于 skill 的那句：
 
@@ -466,28 +490,29 @@ When you use a tool, you may say a brief sentence first. If no tool can express 
 |---|---|---|
 | `max` | 绝对最大能力，不限制 token 花费 | 需要最深推理、最彻底分析的任务 |
 | `xhigh` | 面向长周期工作的扩展能力 | **超过 30 分钟**、token 预算以百万计的长周期 agentic 与编码任务 |
-| `high` | 高能力。**等同于不设这个参数** | 复杂推理、困难的编码问题、agentic 任务 |
-| `medium` | 平衡，适度省 token | 需要在速度、成本、性能之间平衡的 agentic 任务 |
+| `high` | 该花多少 token 就花多少以拿到优秀结果。**除 Claude Opus 5.5 外，所有支持 effort 的模型的默认档** | 复杂推理、困难的编码问题、agentic 任务 |
+| `medium` | 平衡，适度省 token。**Claude Opus 5.5 的默认档** | 需要在速度、成本、性能之间平衡的 agentic 任务 |
 | `low` | 最省。显著省 token，能力有一定下降 | 需要最快速度和最低成本的简单任务，比如子智能体 |
 
-**两个模型都从默认 `high` 起步**，区别在什么时候往上调：
+**默认值是按模型定的：Opus 5.5 是 `medium`，其他支持 effort 的模型都是 `high`。** 这是 Opus 5.5 带来的变化，意味着同一个不传 `effort` 的请求，现在比在 Opus 5 上低一档。除此之外，区别在什么时候往上调：
 
 | 模型 | 什么时候上调 |
 |---|---|
-| **Opus 5** | 编码或 agentic 工作**足够重**时上 `xhigh`；任务值得不设上限烧 token 时上 `max`。评测显示质量不掉的地方，放开用 `low`/`medium` 控成本 |
+| **Opus 5.5** | 只在自己的 evals 上**实测**到质量提升时才上 `xhigh` 或 `max`。页面原话是 `Reserve xhigh and max for work where you've measured a quality gain`。评测显示质量不掉就降到 `low`；若干编码评测上 `low` 已经接近 `medium`，成本低得多 |
+| **Opus 5**（legacy） | 编码或 agentic 工作**足够重**时上 `xhigh`；任务值得不设上限烧 token 时上 `max`。评测显示质量不掉的地方，放开用 `low`/`medium` 控成本 |
 | **Fable 5.1** | 最吃能力的 agentic 与编码工作上 `xhigh` 或 `max`；例行或延迟敏感的工作，评测显示质量不掉之后降到 `medium`/`low`。官方说它相对 Fable 5 的提升 "show up across effort levels and are largest at the higher settings"；`medium` 下 "results roughly match Claude Fable 5 at lower cost"，`low` 下 "is often competitive with Claude Opus and Claude Sonnet models on cost per task while scoring higher"。即使在 Fable 5 上做过扫描也要重做："effort level names don't correspond to the same amount of thinking across models" |
 
-> **这一条改过。** 本文早期版本写的是「Opus 5 编码 / agent 任务起步用 `xhigh`」，依据是官方页当时的措辞 `for coding and agentic work, xhigh remains the recommended starting point`。该页现在改成了 `Start with the default (high) ... step up to xhigh for demanding coding and agentic work`。实际差别是真的：一个普通的编码任务现在从 `high` 起步，不是 `xhigh`。经过见文末附录。
+> **这一条改过两次。** 本文早期版本写的是「Opus 5 编码 / agent 任务起步用 `xhigh`」，依据是官方页当时的措辞 `for coding and agentic work, xhigh remains the recommended starting point`。该页后来改成了 `Start with the default (high) ... step up to xhigh for demanding coding and agentic work`。而 Opus 5.5 又把默认档整体挪到了 `medium`。两次实际差别都是真的：一个普通的编码任务在 Opus 5 上从 `high` 起步，在 Opus 5.5 上从 `medium` 起步。经过见文末附录。
 
 几个要点：
 
-- `effort: "high"` 与**完全不传这个参数行为完全相同**（官方原文：`Setting effort to "high" produces exactly the same behavior as omitting the effort parameter entirely.`）
+- **把 `effort` 设成该模型的默认值，与完全不传这个参数行为完全相同**（官方原文：`Setting effort to the model's default ("medium" on Claude Opus 5.5, "high" on other models) produces exactly the same behavior as omitting the effort parameter entirely.`）
 - effort 是**行为信号，不是硬性 token 预算**——官方原文：`Effort is a behavioral signal, not a strict token budget. At lower effort levels, Claude still thinks on sufficiently difficult problems, but thinks less than it would at higher effort levels for the same problem.`
 - 它影响**全部输出** token：正文、工具调用、思考
 - **低 effort 会直接减少工具调用次数**、合并操作、跳过前言，完成后只给一句简短确认；高 effort 则更多工具调用、先讲计划、给详细总结。这一点常被忽略——**effort 不只是「想多久」，也是「做多少」**
 - **按工作负载显式设定 effort**，而不是拿一个档位跑遍所有场景
-- **依赖缓存的会话里，顶层 effort 保持不变**——官方原文：`Changing the top-level effort value between requests invalidates prompt caching, so vary it across workloads rather than within a conversation that relies on cache hits. On models that support it, use a per-message effort change instead, which preserves the cache.` 按消息改 effort 在 Fable 5.1、Mythos 5.1 和 Opus 5 上是 beta：一条 `content` 为空、`output_config.effort` 设为新档位的 `role: "system"` 消息，从下一条 user 消息起生效
-- 高 effort 时要给 `max_tokens` 留余量（它是思考 + 正文的**总**上限），否则会出现「大部分预算被思考吃掉、正文被截断」。Opus 5 在 `xhigh`/`max` 下官方建议 64k 起；Fable 5.1 从 `high` 起就有同样的提醒
+- **依赖缓存的会话里，顶层 effort 保持不变**——官方原文：`Changing the top-level effort value between requests invalidates prompt caching, so vary it across workloads rather than within a conversation that relies on cache hits. On models that support it, use a per-message effort change instead, which preserves the cache.` 按消息改 effort 在 Opus 5.5、Fable 5.1、Mythos 5.1 和 Opus 5 上是 beta：一条 `content` 为空、`output_config.effort` 设为新档位的 `role: "system"` 消息，从下一条 user 消息起生效
+- 高 effort 时要给 `max_tokens` 留余量（它是思考 + 正文的**总**上限），而且即使思考文本不返回给你，思考也计入这个上限。Opus 5.5 面向 agentic 编码的长回合，页面给的数字是 `a max_tokens of 128,000, the model's maximum`；Opus 5 在 `xhigh`/`max` 下的旧建议是 64k 起；Fable 5.1 从 `high` 起就有同样的提醒
 
 > 顺带一提：Claude Code 里的 `ultracode` **不是**一个额外的 API effort 档位。[dynamic workflows 页面](https://code.claude.com/docs/en/workflows)的定义是 `a Claude Code setting that combines xhigh reasoning effort with automatic workflow orchestration`——它是会话级设置，Messages API 里并不存在这个档位。
 
@@ -808,7 +833,7 @@ Lance Martin 的表述是：随着 Claude 变强，harness 里的假设会过期
 
 ### 建议的阅读顺序
 
-1. **先读**：[The new rules of context engineering for Claude 5 generation models](https://claude.com/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models)（2026-07-24）—— 建立方向感，10 分钟
+1. **先读**：[The new rules of context engineering for Claude 5 generation models](https://claude.dev/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models/)（2026-07-24）—— 建立方向感，10 分钟
 2. **再读**：[Best practices for Claude Code](https://code.claude.com/docs/en/best-practices)（官方文档，持续更新）—— 最大量的实操，如果你用 Claude Code，这是回报最高的一篇
 3. **查阅**：[Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) + 你在用的模型专页 —— 当工具书查，不必通读
 4. **理解原理**：[Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)（2025-09）
@@ -851,6 +876,16 @@ Lance Martin 的表述是：随着 Claude 变强，harness 里的假设会过期
 - **四篇信源此前只有薄摘要**：Agent Skills 工程文（其实从未抓取）、Agent Harness Design、验证回路、Loop engineering。补读后带出 skill 的三层渐进披露架构、缓存命中五原则、「让 Claude 自己编排」的三组实测数字、验证回路的四种部署模式、四类循环的具体命令
 - **Console prompt improver 的链接已失效**（跳走），且当时跳到的那个页面仍在推荐**已被 API 禁用的 prefill**——这是个会让人直接踩坑的问题。那个替代页面后来也被撤掉了：现在跳转落在 Prompting best practices 上，而这一页明确要求迁移掉 prefill。本文原先从那个已撤页面取的内容，必须改挂在仍然存在的依据上，见 [SOURCES.md 的《The 2026-08-08 re-check》](../SOURCES.md#the-2026-08-08-re-check)
 - 按适用范围做了裁剪：移除了更早模型的专属指引，而不是留着当「应该还能用」
+
+### 2026-09-22 这一轮：第二次模型发布，以及一条没能活下来的规则
+
+Claude Opus 5.5 于 2026-09-22 发布，Claude Opus 5 随之和 Fable 5 一起进入「Legacy models (still available)」列表。这一轮沿用了 Fable 那一轮的做法：不做改名，每一条 Opus 专属说法都拿 Opus 5.5 的页面重新裁定；凡是拿不到 Opus 5.5 明确依据的，要么进「在 Opus 5 上测得」的表，要么标成未确认。
+
+**值得一读的发现是第 4.4 节。**「删掉自我验证指令」本来是本文的招牌规则之一，而它在 Opus 5.5 上并不成立为规则。Opus 5.5 的 prompting 页和 what's-new 页对过度验证这件事两边都没说；最佳实践页仍然把 Claude Opus 5 列为它「让 Claude 自检」这条通用建议的唯一例外；Opus 5.5 的迁移指南只给了一句 `Instructions tuned for Claude Opus 5's behavior may no longer be needed`。如果这一轮做的是全局把「Opus 5」替换成「Opus 5.5」，就会把一条有记录的、模型专属的实测结论，变成对一个没有人测过的模型的确定断言。为什么要逐条裁定而不是改名——这一条规则就是全部理由。
+
+另有三处发生了形态变化。effort 的默认值变成按模型定（Opus 5.5 是 `medium`），这让旧的「两个模型都从 `high` 起步」这个框架和 `effort: "high"` ≡ 不传参数的简写都失效了。三条硬规则扩大到覆盖 Opus 5.5 的破坏性变更——thinking 无法关闭、强制 `tool_choice` 返回 400、以及 thinking 页把 `reasoning_extraction` 拒绝类别也点名到了 Opus 5.5。还有进度播报机制变了：工具调用之间的文字现在以默认为空的 `thinking` 块返回，所以一个为 Opus 5 写的客户端会在整个长 agentic 回合里安静下来，而且没有任何报错可以指认。
+
+这一轮还查出一件属于隔壁的事：skill 的 chat-and-Cowork 参考文件里有一个代码块——`If the data is insufficient to draw conclusions, say so rather than speculating.`——就放在一段被介绍为「照抄即可」的官方块下面，而它在任何 Anthropic 页面上都不存在。那是仓库自己写的句子，现在已经标注清楚。完整记录见 [SOURCES.md](../SOURCES.md#the-2026-09-22-re-check)。
 
 ### 2026-09-03 这一轮：一次模型发布让所有 Fable 的说法重新裁定
 

@@ -44,7 +44,7 @@ This is a very long task, so it may be beneficial to plan out your work clearly.
 Your context window will be automatically compacted as it approaches its limit, allowing you to continue working indefinitely from where you left off. Therefore, do not stop tasks early due to token budget concerns. As you approach your token budget limit, save your current progress and state to memory before the context window refreshes. Always be as persistent and autonomous as possible and complete tasks fully, even if the end of your budget is approaching. Never artificially stop any task early regardless of the context remaining.
 ```
 
-**如果压缩是在客户端做的**（Fable 5.1 专页）：服务端压缩已经会告诉模型该保留什么；自己做摘要那一步，官方给的指令在下面。在 Fable 5.1 上最简单的形式是：用一条摘要消息加新的 user 消息替换整个历史，其他什么都不回放——没有 thinking 块被带过去，就不会撞上「历史只追加不修改」的检查。另外 Fable 5.1 的缓存读取更便宜，为省钱而提早压缩可能已经不划算，试试更晚的压缩点。
+**如果压缩是在客户端做的**（Fable 5.1 专页）：服务端压缩已经会告诉模型该保留什么；自己做摘要那一步，官方给的指令在下面。两个适用模型上现在还多了第三种选择——**按需压缩**（compaction on demand，beta，`compact-2026-09-04`）：传顶层 `compaction` 参数，API 返回一个带签名的 `compaction` 块来概括整轮对话，之后把它放在最前面替换掉被概括的那些消息。压缩时机由你决定，而且被保留下来的那些轮次里的 thinking 块在替换之后仍可能有效——这一点在 Opus 5.5 上尤其要紧，正因为它的 thinking 块和对话绑定。在 Fable 5.1 上最简单的形式是：用一条摘要消息加新的 user 消息替换整个历史，其他什么都不回放——没有 thinking 块被带过去，就不会撞上「历史只追加不修改」的检查。另外 Fable 5.1 的缓存读取更便宜，为省钱而提早压缩可能已经不划算，试试更晚的压缩点。
 
 ```
 Summarize the transcript inside <summary></summary> tags. Include relevant information in the summary such that this conversation will be continued by a new context window without needing to redo work or be reprovided with relevant constraints or context. Be sure to preserve: (1) any difficulties or problems that came up, and how they were handled or resolved; (2) any possibilities, options, or approaches that were raised, tried, or set aside, and why; (3) anything that was asked for, decided, agreed, ruled out, or established as a preference, constraint, or boundary — stated exactly; (4) exactly where things stand now — what has been covered, settled, or completed so far; (5) anything still open, unresolved, promised, or expected to happen next; (6) specific details that would be hard to reconstruct — names, numbers, dates, exact wording, links or references — kept exactly. Be complete on these even at the cost of length; keep everything else concise. Weight the two voices differently: keep what the user said, asked for, shared, or established carefully and close to their own words; your own explanations and reasoning can be condensed much further, to what they concluded or produced — as long as nothing in the six items above is dropped.
@@ -69,7 +69,7 @@ Search for this information in a structured way. As you gather data, develop sev
 
 ## 设计上下文以最大化缓存命中
 
-**缓存 token 的成本只有基础输入 token 的 10%**（Fable 5.1 和 Mythos 5.1 上是 2.5%），所以这是纯粹的成本杠杆。五条原则：
+**缓存 token 的成本只有基础输入 token 的 10%**（Opus 5.5 上是 5%，Fable 5.1 和 Mythos 5.1 上是 2.5%），所以这是纯粹的成本杠杆。五条原则：
 
 | 做法 | 要点 |
 |---|---|
@@ -79,11 +79,13 @@ Search for this information in a structured way. As you gather data, develop sev
 | **工具增删会作废缓存** | 需要动态发现工具时用 tool search，而不是增删工具定义 |
 | **移动断点** | 多轮应用里把 cache breakpoint 移到最新消息 |
 
-> 直接后果：**在请求之间改顶层 effort 会作废缓存**，同理（见 SKILL.md 第 2 节）。Fable 5.1、Mythos 5.1 和 Opus 5 支持按消息改 effort（beta），缓存不失效——见 `models.md`。
+> 直接后果：**在请求之间改顶层 effort 会作废缓存**，同理（见 SKILL.md 第 2 节）。Opus 5.5、Fable 5.1、Mythos 5.1 和 Opus 5 支持按消息改 effort（beta），缓存不失效——见 `models.md`。
 
-**第二条的机制。** prompt caching 按 `tools` → `system` → `messages` 的顺序对请求前缀做哈希，命中要求前缀逐字节一致。所以往 system prompt 末尾追加一句话，作废的不只是 system prompt，还包括它之后所有已缓存的消息。如果某条指令是跑到中途才变得相关，就在 `messages` 里那个位置追加一条 `{"role": "system"}` 消息，而不是去改顶层 `system` 字段：缓存前缀保持不变，指令仍然以系统指令的身份生效，并且对其后的轮次优先于顶层字段。Fable 5.1、Mythos 5.1、Fable 5、Mythos 5、Opus 4.8、Opus 5 支持且不需要 beta header；**Sonnet 5 不支持**，那边只能用顶层 `system` 字段。`role: "system"` 消息还可以用 `clear_at: "next_user_message"` 限定只对本轮生效（beta，header `mid-conversation-system-clear-at-2026-08-21`）：当前轮里它有 system prompt 的权威，出现更新的 user 消息后就不再渲染，本身仍留在数组里所以前面什么都没变，清掉后也不计输入 token——这是官方给「工具循环里每轮一条提醒」安排的位置。
+**第二条的机制。** prompt caching 按 `tools` → `system` → `messages` 的顺序对请求前缀做哈希，命中要求前缀逐字节一致。所以往 system prompt 末尾追加一句话，作废的不只是 system prompt，还包括它之后所有已缓存的消息。如果某条指令是跑到中途才变得相关，就在 `messages` 里那个位置追加一条 `{"role": "system"}` 消息，而不是去改顶层 `system` 字段：缓存前缀保持不变，指令仍然以系统指令的身份生效，并且对其后的轮次优先于顶层字段。Fable 5.1、Mythos 5.1、Fable 5、Mythos 5、Opus 5.5、Opus 4.8、Opus 5 支持且不需要 beta header；**Sonnet 5 不支持**，那边只能用顶层 `system` 字段。`role: "system"` 消息还可以用 `clear_at: "next_user_message"` 限定只对本轮生效（beta，header `mid-conversation-system-clear-at-2026-08-21`）：当前轮里它有 system prompt 的权威，出现更新的 user 消息后就不再渲染，本身仍留在数组里所以前面什么都没变，清掉后也不计输入 token——这是官方给「工具循环里每轮一条提醒」安排的位置。
 
-**历史只追加不修改（Fable 5.1）。** 每个 assistant 回合原样追加（含 thinking 块），请求之间不要改动历史轮次。在 Fable 5.1 上，thinking 块只在产生它的那个对话里有效：2026 年 8 月 31 日及之后创建的账号，一旦它前面的内容（system prompt、工具列表或任何更早的消息）变了再回放它，就返回 400；设了 `thinking.block_binding.prefix_mismatch_behavior: "drop_block"`（beta，`thinking-binding-controls-2026-08-01`）则改为丢弃该块；官方预告后续模型会对所有账号执行这项检查。会踩到它的改动和会重置缓存的改动是同一批——注入又删除每轮提醒、就地摘要旧轮次、会话中途改 system prompt——修法也一样：提醒用 turn-scoped system message，改指令和工具用会话中 system 消息和工具变更而不是重写 `system` 或 `tools`，裁剪上下文交给服务端压缩或 context editing。从最老的一端连续移除若干 thinking 块、移动 `cache_control` 标记、在请求之间改 `effort`，都不会让后面的块失效。
+**历史只追加不修改（Fable 5.1 和 Opus 5.5）。** 每个 assistant 回合原样追加（含 thinking 块），请求之间不要改动历史轮次。在这两个模型上，thinking 块都只在产生它的那个对话里有效：2026 年 8 月 31 日及之后创建的账号，一旦它前面的内容（system prompt、工具列表或任何更早的消息）变了再回放它，就返回 400；设了 `thinking.block_binding.prefix_mismatch_behavior: "drop_block"`（beta，`thinking-binding-controls-2026-08-01`）则改为丢弃该块；更早创建的账号把这个字段设成任一个值都等于主动加入这项检查。最佳实践页对两者都写明了：`On Claude Fable 5.1 and Claude Opus 5.5, modifying the conversation before a thinking block results in an error, or in the block being dropped if you opt into that`。这是从 Opus 5 迁移过来的**四项破坏性变更**之一。
+
+**thinking 块还和产生它的模型绑定。** Opus 5.5 能读 Opus 5 以及更早的 Opus、Sonnet、Haiku 模型的 thinking 块，但读不了 Claude Fable 或 Claude Mythos 系列的；在 Claude API 上，能读 Opus 5.5 的块的只有 Fable 5.1 和 Mythos 5.1。所以从 Opus 5 换到 Opus 5.5、或从 Opus 5.5 换到 Claude API 上的 Fable 5.1 / Mythos 5.1，推理会保留；换成其他任何模型，切换之后的轮次就没有前一个模型的推理了。请求里带了目标模型读不了的块时，API 会在模型看到之前丢掉它——请求照常成功，被丢掉的块不计费。所以如果你的路由或 fallback 可能把一轮对话在不同模型族之间搬动，就要预期推理不会跟着过去。会踩到它的改动和会重置缓存的改动是同一批——注入又删除每轮提醒、就地摘要旧轮次、会话中途改 system prompt——修法也一样：提醒用 turn-scoped system message，改指令和工具用会话中 system 消息和工具变更而不是重写 `system` 或 `tools`，裁剪上下文交给服务端压缩或 context editing。从最老的一端连续移除若干 thinking 块、移动 `cache_control` 标记、在请求之间改 `effort`，都不会让后面的块失效。
 
 ## 什么时候该把 bash 动作提升为专用工具
 

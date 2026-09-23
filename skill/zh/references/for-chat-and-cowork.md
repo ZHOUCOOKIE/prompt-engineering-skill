@@ -48,7 +48,7 @@
 
 ## 输出长度必须写死
 
-这是场景 B 最高频的问题。Opus 5 的用户可见回复**默认就比前代长**，而且降 effort 不能可靠缩短（effort 控的是想多少，不是说多少）。
+这是场景 B 最高频的问题。**降 effort 不能可靠缩短回复**（effort 控的是想多少，不是说多少），所以在所有适用模型上长度都得靠 prompt 写明。（「默认就比前代长」这个结论是对 Opus 5 写明的；官方说 Opus 5.5 `tends to finish the same task with fewer tokens`，所以先实测再下结论——但长度无论如何都要写。）
 
 所以任何面向阅读的产出，prompt 里都要有明确的长度约束。**具体怎么选、哪些能叠加，按 SKILL.md 第 8 节「长度控制怎么选」的规则**，简言之：
 
@@ -110,9 +110,9 @@
 Search for this information in a structured way. As you gather data, develop several competing hypotheses. Track your confidence levels in your progress notes to improve calibration. Regularly self-critique your approach and plan. Update a hypothesis tree or research notes file to persist information and provide transparency. Break down this complex research task systematically.
 ```
 
-> **这是 SKILL.md 3.4 的一处例外。** 这段里有 `Regularly self-critique your approach and plan`，而 3.4 说 Opus 5 上要删掉自我验证类指令。这和片段 4.7 里那句 `you MUST read the file` 属于同一类例外：**它是调校过的官方原文，照抄即可**。两者说的不是一回事——3.4 删的是*答案写完后再自审一遍*；这句是*跑的过程中随时纠偏*，证据还在陆续进来的时候调整方向。如果任务是一次性写一篇东西、而不是多步检索，那这句没有可纠的对象，可以只删掉这一行。
+> **这是 SKILL.md 3.4 的一处例外。** 这段里有 `Regularly self-critique your approach and plan`，而 3.4 说 Opus 5 上要删掉自我验证类指令（Opus 5.5 上则要先实测再删）。这和片段 4.7 里那句 `you MUST read the file` 属于同一类例外：**它是调校过的官方原文，照抄即可**。两者说的不是一回事——3.4 删的是*答案写完后再自审一遍*；这句是*跑的过程中随时纠偏*，证据还在陆续进来的时候调整方向。如果任务是一次性写一篇东西、而不是多步检索，那这句没有可纠的对象，可以只删掉这一行。
 
-另外三条：**给清晰的成功标准**（什么样的答案算回答了这个问题）、**要求跨来源交叉验证**、**显式允许说不知道**：
+另外三条：**给清晰的成功标准**（什么样的答案算回答了这个问题）、**要求跨来源交叉验证**、**显式允许说不知道**。下面这句是本 skill 自己的措辞，不是官方片段，可以自由改写：
 
 ```
 If the data is insufficient to draw conclusions, say so rather than speculating.
@@ -156,7 +156,7 @@ Cowork 里装了一批输出格式 skill（docx、xlsx、pptx、pdf 等）。它
 
 场景 B 里最容易多写的三类：
 
-1. **自我验证指令**（"最后检查一遍"、"再核对一次"）——Opus 5 自己会做，写了造成过度验证。见 SKILL.md 3.4。注意 3.4 划的那条界线：**跨来源交叉核对是任务本身，不是自我验证**——研究类 prompt 里不要连它一起删掉
+1. **自我验证指令**（"最后检查一遍"、"再核对一次"）——在 Opus 5 上模型自己会做，写了造成过度验证；在 Opus 5.5 上这个结论没有被重述，所以不要条件反射式地加，也不要拿 Opus 5 的结论当 Opus 5.5 的结论。见 SKILL.md 3.4。注意 3.4 划的那条界线：**跨来源交叉核对是任务本身，不是自我验证**——研究类 prompt 里不要连它一起删掉
 2. **人设铺垫**（"你是一位有二十年经验的资深分析师"）——对现行模型没有增益，纯占 token。要影响视角就直接说关注什么——官方例子是 `Analyze this investment portfolio, focusing on risk tolerance and long-term growth potential`，而不是给它安一个角色
 3. **一长串"不要"**——改成正面描述加原因。见 SKILL.md 3.5
 

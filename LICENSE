@@ -26,13 +26,17 @@ NOTICE
 
 This repository quotes verbatim excerpts from Anthropic's public documentation
 and from public talks by Anthropic employees. The largest concentration is the
-prompt snippet library in skill/*/references/snippets.md: 24 verbatim snippets,
-32 quoted blocks, roughly 2,100 words, drawn from four documentation pages.
-The rest of the skill quotes roughly 530 further words, and the study guides
-quote roughly 500 more as individual attributed sentences -- the Chinese guide
-quotes the same English sentences rather than additional ones, as does the
-Chinese edition of the skill, whose English blocks are byte-identical to the
-English edition's. That puts the total on the order of 3,100 words.
+prompt snippet library in skill/*/references/snippets.md: 36 numbered entries,
+of which 35 are verbatim excerpts (4.1 is a decision table, not a quotation),
+carrying 51 quoted blocks of 40 characters or more, roughly 3,860 words, drawn
+from six documentation pages. The rest of the skill quotes roughly 610 further
+words of official wording -- 17 fenced blocks in all, roughly 870 words, the
+remainder being this repository's own skeletons -- and the study guides quote
+roughly 1,020 more as individual attributed sentences. The Chinese guide quotes
+the same English sentences as the English one, plus six of its own; the Chinese
+edition of the skill translates only this repository's own templates and leaves
+every quoted block byte-identical to the English edition's. That puts the total
+on the order of 5,500 words.
 
 Those excerpts are the property of Anthropic. Each is attributed at the point of
 use -- the snippet index links every quoted entry to its source page -- and in
