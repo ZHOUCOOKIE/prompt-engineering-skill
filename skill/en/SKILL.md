@@ -5,11 +5,11 @@ description: Writes, rewrites, reviews, and audits prompts and system prompts us
 
 # Writing prompts
 
-**Models in scope:** Claude Opus 5.5 and Claude Fable 5.1 (including Mythos 5.1). Claude Opus 5 and Claude Fable 5 are on the official legacy list — still available, no longer the default — and are out of scope except as the published source of wording that carries over. Several prescriptions here appear only on the Opus 5 or Fable 5 page; each successor page says existing prompts for the earlier model should perform well without changes, so they are kept and marked as such at the point of use. Where a page states a *behavior* for the earlier model and its successor neither restates nor retracts it, `references/models.md` keeps it in a separate table marked as measured on that model, rather than carrying it forward silently.
+**Models in scope:** Claude Opus 5.5 and Claude Fable 5.1 (including Mythos 5.1). Claude Opus 5 and Claude Fable 5 are on the official legacy list — still available, no longer the default — and are out of scope except as the published source of wording that carries over. Claude Sonnet 5.5 and Claude Haiku 5.5 are current but also out of scope: several Section 3 rules do not hold on them (see Section 2). Several prescriptions here appear only on the Opus 5 or Fable 5 page; each successor page says existing prompts for the earlier model should perform well without changes, so they are kept and marked as such at the point of use. Where a page states a *behavior* for the earlier model and its successor neither restates nor retracts it, `references/models.md` keeps it in a separate table marked as measured on that model, rather than carrying it forward silently.
 
 **Why this skill exists:** several widely repeated prompt techniques are now obsolete on these models, rejected by the API, or actively reversed in effect. Your training instincts probably still carry some of them. **When instinct conflicts with Section 3, this file wins.**
 
-**Basis:** Anthropic's official documentation and official/employee public material, snapshot 2026-09-22. For specific API parameters, confirm against the live docs — those are the only surface that tracks model updates.
+**Basis:** Anthropic's official documentation and official/employee public material, snapshot 2026-10-23. For specific API parameters, confirm against the live docs — those are the only surface that tracks model updates.
 
 ---
 
@@ -45,7 +45,7 @@ Ask only what you genuinely cannot proceed without. When something is missing bu
 | Variable | Requirement |
 |---|---|
 | **Success criteria** | **Must be settled.** Without a decidable success criterion you cannot write a good prompt and cannot check your own work |
-| **Output shape and length** | **Must be settled** when the deliverable is a document or report. Unstated, length is whatever the model picks — and effort does not reliably control it (Section 8, "Choosing a length control") |
+| **Output shape and length** | **Must be settled** when the deliverable is a document or report. Unstated, length is whatever the model picks; state it rather than leaning on effort, which on Opus 5 does not reliably change visible length (Section 8, "Choosing a length control") |
 | **Available tools or files** | Must be settled for Scenario A (which repo, which files); for Scenario B, depends on whether source material must be read |
 | Target model and effort | **Do not ask.** Decide it yourself per Section 2 and report the decision |
 
@@ -61,16 +61,18 @@ This step is mandatory before drafting, and the conclusion belongs in the delive
 
 | Task profile | Choose | Basis |
 |---|---|---|
-| Complex agentic coding: multistep work in a real repository, large-scale refactoring, multihour autonomous coding agents, complex systems engineering | **Opus 5.5** | Official positioning: strongest on multistep work in a real repository, such as carrying a change through a large code base until its tests pass. At its default `medium` effort it matched or beat Opus 5 at `high` on such tasks, in fewer steps and with fewer tokens, and it sustains long-running autonomous work better |
+| Complex agentic coding: multistep work in a real repository, large-scale refactoring, multihour autonomous coding agents, complex systems engineering | **Opus 5.5** | Official positioning: strongest on multistep work in a real repository, such as carrying a change through a large code base until its tests pass. In Anthropic's testing, at its default `medium` effort it matched or beat Opus 5 at `high` on such tasks, in fewer steps and with fewer tokens, and it sustains long-running autonomous work better |
 | Code review and bug-finding | **Opus 5.5** | Early testers reported stronger code review than Opus 5 — more bugs caught, fewer false alarms — and it explains its changes in plain language |
 | Enterprise knowledge work: documents, spreadsheets, decks, financial modeling, long-context analysis | **Opus 5.5** | Much less likely to state an incorrect figure or cite the wrong source; catches details that are easy to miss in large inputs; its spreadsheets, slides and documents need less editing before you share them. 1M token context window |
-| **Vision-heavy work and computer use**: dense charts, technical drawings, diagrams, screenshots, operating applications from screenshots | **Opus 5.5** | Reads visual material more accurately than Opus 5 without extra tooling — officially, even at its lowest effort it read values off dense charts more accurately than Opus 5 did at its highest, using a fraction of the output tokens — and at its default effort it matched the computer-use success rate Opus 5 reached only at a much higher setting |
-| **Demanding reasoning and long-horizon agentic work**: agent sessions that run for hours, multistep deep research, analysis carried through to a finished document, spreadsheet, or deck; or when the user's evals on Opus 5.5 at higher effort still fall short | **Fable 5.1** | The official selection advice (models overview, and the choosing-a-model matrix). Officially Anthropic's most capable widely released model |
-| Work that touches the safety-classifier categories — benign work in those areas can also trigger them | **Plan for refusals**: `cyber`, `bio` and `reasoning_extraction` on both models; `frontier_llm` and `general_harms` on Fable 5.1 only | Opus 5.5 runs biology, cybersecurity and reasoning-extraction classifiers; the biology and reasoning-extraction ones are **new if you are coming from Opus 5**. Fable 5.1 covers the same five categories as Fable 5. A declined request returns `stop_reason: "refusal"` with a `stop_details` category, so configure fallback — note that server-side fallback does **not** retry a `reasoning_extraction` decline, it returns it to you. Finding vulnerabilities in source code is permitted |
+| **Vision-heavy work and computer use**: dense charts, technical drawings, diagrams, screenshots, operating applications from screenshots | **Opus 5.5** | Reads visual material more accurately than Opus 5 without extra tooling — in Anthropic's testing, even at its lowest effort it read values off dense charts more accurately than Opus 5 did at its highest, using a small fraction of the output tokens — and at its default effort it matched the computer-use success rate Opus 5 reached only at a much higher setting |
+| **Demanding reasoning and long-horizon agentic work**: agent sessions that run for hours, multistep deep research, analysis carried through to a finished document, spreadsheet, or deck; or when the user's evals on Opus 5.5 at higher effort still fall short | **Fable 5.1** | The official selection advice (models overview, and the choosing-a-model matrix). Officially Anthropic's most capable model open to all customers |
+| Work that touches the safety-classifier categories — benign work in those areas can also trigger them | **Plan for refusals**: the Opus 5.5 pages name `cyber`, `bio` and `reasoning_extraction`; both models' classifiers are described as a broader set than Opus 5's, and the pages point to the refusal category table for the full set rather than listing it per model | The Opus 5.5 pages name biology, cybersecurity and reasoning-extraction classifiers; of these, only the biology one is **new if you are coming from Opus 5** — the what's-new page introduces the reasoning-extraction category with `As on Claude Opus 5`. Fable 5.1 covers the same `stop_details` categories as Fable 5. A declined request returns `stop_reason: "refusal"` with a `stop_details` category, so configure fallback — note that server-side fallback does **not** retry a `reasoning_extraction` decline, it returns it to you. Finding vulnerabilities in source code is permitted |
 
 Default to **Opus 5.5** — officially, most workloads start there, and it is the default Opus model in Claude Code since 2.1.280 (2026-09-22). Recommend Fable 5.1 for demanding reasoning and long-horizon agentic work, or when Opus 5.5 at higher effort still falls short on the user's own evals; and warn the user that it is the slowest model in the lineup and, during long tool-calling turns, can go quiet for minutes at a time, which changes how timeouts and interaction are handled.
 
 **Opus 5.5 is cheaper and faster than Opus 5** ($4/$20 per MTok against $5/$25; output tokens generated more than 30 percent faster), so there is no cost argument for staying on Opus 5.
+
+**When the task belongs on a model outside this skill's scope, say so instead of forcing it onto these two.** The official matrix sends the lowest latency and price — high-volume processing, real-time applications, subagent tasks — to Claude Haiku 5.5, and speed with capability on everyday coding, agent and enterprise work to Claude Sonnet 5.5. Both have their own prompting pages, and Section 3 does not transfer to them as written: Haiku 5.5 accepts forced `tool_choice`, and `thinking: {"type": "disabled"}` at `high` effort or below, and Sonnet 5.5 turns off up-front thinking with `thinking: {"type": "between_tools"}`, also at `high` effort or below. Name the model in the delivery note and point the user to its page.
 
 ### Choosing effort
 
@@ -78,12 +80,12 @@ Default to **Opus 5.5** — officially, most workloads start there, and it is th
 
 | Model | Start | Step up when | Step down when |
 |---|---|---|---|
-| **Opus 5.5** | **`medium`** (the default) | You have **measured** a quality gain on your own evals → `xhigh` or `max`. Officially: reserve them for work where you measured that gain | Cost or latency matters and your evals show quality holds → `low`. On several coding evaluations `low` comes close to `medium` at much lower cost |
-| **Fable 5.1** | **`high`** (the default) | The most capability-sensitive agentic and coding work → `xhigh` or `max`. Its gains over Fable 5 are largest at the higher settings | Routine or latency-sensitive work once your evals show quality holds → `medium`/`low`. Officially, `medium` roughly matches Fable 5 at lower cost, and `low` is often competitive with Opus and Sonnet models on cost per task while scoring higher — include it wherever you would otherwise run a smaller model at a higher effort level |
+| **Opus 5.5** | **`medium`** (the default) | You have **measured** a quality gain on your own evals → `xhigh` or `max`. Officially: reserve them for work where you measured that gain | Cost or latency matters and your evals show quality holds → `low`. In Anthropic's testing, on several coding evaluations `low` comes close to Opus 5 at `high` at much lower cost |
+| **Fable 5.1** | **`high`** (the default) | The most capability-sensitive agentic and coding work → `xhigh` or `max`. Its gains over Fable 5 are largest at the higher settings | Routine or latency-sensitive work once your evals show quality holds → `medium`/`low`. Officially, `medium` roughly matches Fable 5 at lower cost, and `low` is often competitive with Opus and Sonnet models on cost per task while scoring higher — include it in the comparison wherever you would otherwise run a smaller model at a higher effort level |
 
-**Do not carry an effort level over from another model.** The official instruction is to **run a fresh effort sweep on your own evals** — on Opus 5.5 explicitly "rather than carrying over the setting you used on Claude Opus 5," and on Fable 5.1 even if you already ran one on Fable 5, because effort level names do not correspond to the same amount of thinking across models. Officially, **Opus 5.5 at `medium` matches or exceeds Opus 5 at `high`** on coding and knowledge-work evaluations, so the equivalent setting is one tier *lower*, not the same tier.
+**Do not carry an effort level over from another model.** The official instruction is to **run a fresh effort sweep on your own evals** — on Opus 5.5 explicitly "rather than carrying over the setting you used on Claude Opus 5," and on Fable 5.1 even if you already ran one on Fable 5, because effort level names do not correspond to the same amount of thinking across models. In Anthropic's testing, **Opus 5.5 at `medium` matches or exceeds Opus 5 at `high`** on coding and knowledge-work evaluations, so the equivalent setting is one tier *lower*, not the same tier.
 
-**At a given level Opus 5.5 thinks more per turn than Opus 5**, most of all at `xhigh` and `max`. If you keep the Opus 5 value, expect longer turns and more output tokens — which is the second reason not to carry it over.
+**At a given level Opus 5.5 tends to think more per turn than Opus 5**, most of all at `xhigh` and `max`. If you keep the Opus 5 value, expect longer turns and more output tokens — which is the second reason not to carry it over.
 
 **What "demanding agentic work" means** (this is the hinge of the step-up decision — settle it first). Two conditions, and you need both:
 
@@ -92,7 +94,7 @@ Default to **Opus 5.5** — officially, most workloads start there, and it is th
 
 **When it is unclear whether a task is agentic, use this tiebreaker: who decides where to look?** If the user assembled the material and the model just reads through it, not agentic. If the model decides what to go find, and then decides what to look for next based on what it found, agentic.
 
-**When in doubt, stay at the default.** On Opus 5.5 that is `medium`, and the official framing is that you step up only once you have measured a gain — not that you step up whenever a task looks hard.
+**When in doubt, stay at the default.** On Opus 5.5 that is `medium`, and the official framing is to test levels on your own evals, step up for the most demanding work, and reserve `xhigh` and `max` for work where you have measured a quality gain — not to step up whenever a task looks hard.
 
 **Where these parameters live** (what you can actually set differs by surface):
 
@@ -100,18 +102,18 @@ Default to **Opus 5.5** — officially, most workloads start there, and it is th
 |---|---|---|---|
 | effort | Set in the UI or via a slash command. `/effort` is per-model, and a newly released model such as Opus 5.5 starts at its own default until the user picks a level | Set in the UI | `output_config: {effort}` |
 | thinking | Managed by the client | Managed by the client | `thinking: {type: "adaptive"}` — on Opus 5.5 that is the only accepted value |
-| `max_tokens` | **Not reachable** | **Not reachable** | You set it; on Opus 5.5, officially, a `max_tokens` of **128,000** — the model's maximum — has worked well for the long turns agentic coding can produce |
+| `max_tokens` | **Not set in the prompt** (only the `CLAUDE_CODE_MAX_OUTPUT_TOKENS` environment variable) | **Not reachable** | You set it; on Opus 5.5, a `max_tokens` of **128,000** — the model's maximum — has worked well in Anthropic's testing for the long turns agentic coding can produce |
 
-So for Scenario A and B delivery notes, **naming the model and the effort tier is enough** — do not write `max_tokens` or `thinking` into them, because the user has no such control on that surface and it only causes confusion. The API-field details below apply only when calling the API directly.
+So for Scenario A and B delivery notes, **naming the model and the effort tier is enough** — do not write `max_tokens` or `thinking` into them, because the user cannot set them from the prompt on those surfaces (Claude Code's only output cap is an environment variable) and it only causes confusion. The API-field details below apply only when calling the API directly.
 
 Things you need to know:
 
-- **Setting `effort` to the model's default produces exactly the same behavior as omitting the parameter** — but the default is model-specific: `medium` on Opus 5.5, `high` on every other model that supports effort
+- **Setting `effort` to the model's default produces exactly the same behavior as omitting the parameter** — but the default is model-specific: `medium` on Opus 5.5, `high` on Fable 5.1. Do not assume either value for another model (Haiku 5.5, for one, also defaults to `medium`)
 - Effort is a **behavioral signal, not a strict token budget**; it affects all tokens in the response — text, tool calls, and thinking
-- **Lower effort directly reduces the number of tool calls**, combines operations, and skips preamble; higher effort means more tool calls, plans explained before acting, and detailed summaries
-- **To get less thinking, lower the effort level first.** Officially, lowering effort reduces thinking — and with it cost and latency — more reliably than prompt instructions do
-- **Effort controls how much the model thinks, not how much it says.** To shorten responses, prompt for it (snippet 4.2). (Stated on the Opus 5 page; neither Opus 5.5 nor Fable 5.1 restates it, and Fable 5.1's documented text-shape problem is density, snippet 4.26)
-- Changing the **top-level** effort between requests invalidates the prompt cache. Opus 5.5, Fable 5.1 and Opus 5 support a per-message effort change (beta) that preserves it — API only, see `references/models.md`
+- **Lower effort means fewer and terser tool calls**; lower levels tend to combine operations and skip preamble, and higher levels might make more tool calls, explain the plan before acting, and give detailed summaries
+- **To get less thinking, lower the effort level first** — the steering page puts it before prompt-based steering, and the Opus 5.5 page says lowering effort reduces thinking, and with it cost and latency, more reliably than prompt instructions do
+- **On Opus 5, effort controls how much the model thinks, not how much it says** — to shorten its responses, prompt for it (snippet 4.2). This is an Opus 5 exception, not a general rule: the best practices page calls it one, the effort page states it in its Opus 5 section, and in general effort `affects all tokens in the response`, text included. Neither Opus 5.5 nor Fable 5.1 restates the exception (Fable 5.1's documented text-shape problem is density, snippet 4.26)
+- Changing the **top-level** effort between requests invalidates the prompt cache. Opus 5.5, Fable 5.1 and Opus 5 (and Sonnet 5.5 and Haiku 5.5) support a per-message effort change (beta) that preserves it — API only, see `references/models.md`
 - Leave headroom in `max_tokens` — it is a hard limit on thinking plus response text combined, and thinking counts toward it even when the thinking text is not returned to you
 
 Model-specific behaviors and their prescriptions are in `references/models.md`.
@@ -125,10 +127,10 @@ These are not style preferences. Each one either errors at the API layer or reve
 ### 3.1 Do not use prefill (prefilled assistant responses)
 **Neither Opus 5.5 nor Fable 5.1 supports it.** Prefilling the last assistant turn returns a 400 error on both: officially, `Starting with Claude 4.6 models and Claude Mythos Preview, prefilled responses (providing a partial assistant message for Claude to continue from) on the last assistant turn are no longer supported`, which covers every model in scope.
 
-The official replacements are **structured outputs, system prompt instructions, or `output_config.format`**. In practice: for structured output use Structured Outputs, `output_config.format`, or state the schema directly; to eliminate preamble write `Respond directly without preamble. Do not start with phrases like 'Here is...', 'Based on...', etc.` (verbatim from the prompting best practices page, "Migrating away from prefilled responses"); for classification use a tool with an enum field; for continuations move the prior text into the user message.
+The official replacements are **structured outputs or system prompt instructions** (Opus 5.5 migration guide). In practice: for structured output use Structured Outputs, `output_config.format`, or state the schema directly; to eliminate preamble write `Respond directly without preamble. Do not start with phrases like 'Here is...', 'Based on...', etc.` (verbatim from the prompting best practices page, "Migrating away from prefilled responses"); for classification use a tool with an enum field; for continuations move the prior text into the user message.
 
 ### 3.2 Do not use `budget_tokens` — and on Opus 5.5, do not try to disable thinking either
-Neither model supports manual extended thinking; setting it returns 400. **On both Opus 5.5 and Fable 5.1 thinking is always on and cannot be configured** — `{"type": "enabled"}` with `budget_tokens` and `{"type": "disabled"}` both return 400. Omit `thinking` or send `{"type": "adaptive"}` (the two are equivalent), and control depth with `effort` alone. For a hard ceiling use `max_tokens`.
+Neither model supports manual extended thinking; setting it returns 400. **On both Opus 5.5 and Fable 5.1 thinking is always on and cannot be turned off** — `{"type": "enabled"}` with `budget_tokens` and `{"type": "disabled"}` both return 400, and so does `{"type": "between_tools"}`, the setting that turns off up-front thinking on Sonnet 5.5 only. Omit `thinking` or send `{"type": "adaptive"}` (the two are equivalent), and control depth with `effort` alone. For a hard ceiling use `max_tokens`.
 
 This is a **breaking change from Opus 5**, which accepted `thinking: {"type": "disabled"}` at `high` effort or below. The official error text names the fix:
 
@@ -141,18 +143,18 @@ Because every Opus 5.5 response can begin with a `thinking` block (empty at the 
 ### 3.3 Do not stack instructions where context would do
 The core principle: **give context, not a long list of instructions.**
 
-The Fable 5 page states it plainly — instruction following is improved enough that you can steer most behaviors with a brief instruction rather than enumerating each behavior by name — and the Fable 5.1 page, which says existing Fable 5 prompts should perform well on Fable 5.1 without changes, does not retract it. On that basis the Claude Code team cut their system prompt by more than 80% with no loss of performance.
+The Fable 5 page states it plainly — instruction following is improved enough that you can steer most behaviors with a brief instruction rather than enumerating each behavior by name — and the Fable 5.1 page, which says existing Fable 5 prompts should perform well on Fable 5.1 without changes, does not retract it. The Claude Code team, for its part, removed over 80% of its system prompt for models like Opus 5 and Fable 5 with no measurable loss on its coding evaluations.
 
-Rather than enumerating ten "do not X" clauses, write one positive description and state the intent. Change `Default to using [tool]` to `Use [tool] when it would enhance your understanding of the problem`. Express how a tool should be used through the tool description and its parameter design, not through repeated reminders in the system prompt.
+Rather than enumerating ten "do not X" clauses, write one positive description and state the intent. The best practices page gives an example, written for Opus 4.6: change `Default to using [tool]` to `Use [tool] when it would enhance your understanding of the problem`. Express how a tool should be used through the tool description and its parameter design, not through repeated reminders in the system prompt.
 
 > One exception: Claude Code's best practices still say that if Claude keeps skipping one instruction in **CLAUDE.md**, you can add emphasis such as `IMPORTANT` to that line alone — and that if you emphasize many lines, none of them stands out. The same page warns that if CLAUDE.md is too long, Claude ignores half of it because important rules get lost in the noise.
 
 ### 3.4 Self-verification instructions: remove on Opus 5, re-measure on Opus 5.5
 **This rule changed scope with Opus 5.5. Read the qualifier before applying it.**
 
-On **Opus 5** the rule is unconditional: it verifies its own work without being told to, so keeping `double-check your answer` / `re-verify before responding` / `include a final verification step` causes **over-verification** — wasted tokens with no gain in quality — and the official wording is to **remove these instructions rather than rewriting them**. The best practices page states the same exception, naming Opus 5 and no other model.
+On **Opus 5** the rule is unconditional: it verifies its own work without being told to, so keeping `double-check your answer` / `re-verify before responding` / `include a final verification step for any non-trivial task` causes **over-verification** — wasted tokens with no gain in quality — so remove them; `The same applies to legacy harness scaffolding that adds separate verification steps.` The best practices page states the same exception to its general "Ask Claude to self-check" advice, in the words **remove these instructions rather than rewriting them**, naming Opus 5 and no other model.
 
-**On Opus 5.5 this is not restated.** Neither the Opus 5.5 prompting page nor its what's-new page repeats the over-verification finding or retracts it, and the best practices page's general advice still says a self-check instruction "catches errors reliably, especially for coding and math." The official migration instruction is the weaker one: `Instructions tuned for Claude Opus 5's behavior may no longer be needed`. **So on Opus 5.5: do not add self-verification instructions reflexively, and if a prompt inherited from Opus 5 already has them removed, leave them removed — but treat "remove them" as a measurement to run on your own evals, not a hard rule.** Say so in the delivery note rather than asserting the Opus 5 finding about Opus 5.5.
+**On Opus 5.5 this is not restated.** Neither the Opus 5.5 prompting page nor its what's-new page repeats the over-verification finding or retracts it, and the best practices page's general advice still says a self-check instruction "catches errors reliably, especially for coding and math." The official migration instruction is the weaker one: `Instructions tuned for Claude Opus 5's behavior might no longer be needed`. **So on Opus 5.5: do not add self-verification instructions reflexively, and if a prompt inherited from Opus 5 already has them removed, leave them removed — but treat "remove them" as a measurement to run on your own evals, not a hard rule.** Say so in the delivery note rather than asserting the Opus 5 finding about Opus 5.5.
 
 What follows applies to both models, because it is about *which* instructions the rule ever covered.
 
@@ -169,7 +171,7 @@ The test is simple: **if the basis for the check comes from the model itself, re
 Long autonomous runs on Fable 5.1 go the other way and want explicit periodic verification — see `references/models.md` (the instruction is published on the Fable 5 page and carries over).
 
 ### 3.5 Do not stack negative constraints
-`Never do X` lands with unusual force on Claude, and when it collides with a later user instruction the model gets badly confused. Give a positive description with a reason:
+`Never do X` is a very strong impulse for Claude, and when it conflicts with a later user instruction it can be extremely confusing to the model. Give a positive description with a reason:
 
 - ✗ `NEVER use ellipses`
 - ✓ `Your response will be read aloud by a text-to-speech engine, so never use ellipses since the text-to-speech engine will not know how to pronounce them.`
@@ -186,14 +188,16 @@ Guidance on how to use a tool belongs **in the tool description, once**.
 > **One exception: the invocation trigger.** Snippet 4.23 is the official case — the Fable 5 page notes that Fable 5 rarely calls `send_to_user` from the tool description alone, so the official guidance pairs the tool with a short system-prompt line telling it *when* to reach for the tool. What this rule forbids is restating the same **usage guidance** in two places, not pairing a tool description with a trigger the model demonstrably needs.
 
 ### 3.8 Do not rely on `temperature` for variety
-On both models in scope, non-default `temperature`, `top_p`, or `top_k` values return 400. Officially, `Starting with Claude Opus 4.7, setting temperature, top_p, or top_k to any non-default value returns a 400 error` — which covers every model in scope; Fable 5.1 lists it under behaviors unchanged from Fable 5. The Python SDK (v1.0 and later) does not define these fields at all, so passing them raises a `TypeError` rather than reaching the API. Get variety from the prompt instead — the most effective move is to have the model **propose options before committing**:
+On both models in scope, non-default `temperature`, `top_p`, or `top_k` values return 400. The thinking page lists both among the models where `non-default temperature, top_p, or top_k values return a 400 error on every request, regardless of whether thinking is used`; the Fable 5.1 what's-new page lists it under behaviors unchanged from Fable 5. Two traps sit beside it: `top_p` defaults to `0.99`, so `top_p: 1` returns 400, and so does sending `temperature` and `top_p` together even at their defaults; and from API version `2026-10-21`, sending any of the three at any value returns 400 on every model. The current major versions of the SDKs and the CLI no longer have these parameters at all (the Python SDK dropped them at v1.0). Get variety from the prompt instead — for design work, the legacy Sonnet 5 page's recommended way is to have the model **propose options before committing**:
 ```
 Before building, propose 4 distinct visual directions tailored to this brief (each as: bg hex / accent hex / typeface, plus a one-line rationale). Ask the user to pick one, then implement only that direction.
 ```
 (Snippet 4.25 — verbatim from the Claude Sonnet 5 page. Copy it as is.)
 
 ### 3.9 Do not ask the model to reproduce or display its internal reasoning
-Instructions like "show your thinking" or "explain your reasoning process" **can trigger** the `reasoning_extraction` refusal category on **both models in scope**. The thinking page now names them together: `On Claude Fable 5.1, Claude Opus 5.5, and Claude Fable 5, a request that attempts to elicit the model's internal reasoning as part of the response text can be refused with stop_details.category: "reasoning_extraction"`. On Opus 5.5 this category is **new if you are coming from Opus 5**, and it is the one refusal category server-side fallback will *not* retry for you — it is returned to you instead. For reasoning visibility, read the structured `thinking` blocks from adaptive thinking instead; to surface progress during a long run, use a send-to-user tool (snippet 4.23).
+Instructions like "show your thinking" or "explain your reasoning process" **can trigger** the `reasoning_extraction` refusal category on **both models in scope**. The thinking page: `On Claude Fable 5.1, Claude Opus 5.5, Claude Opus 5, Claude Sonnet 5.5, and Claude Fable 5, a request that attempts to elicit the model's internal reasoning as part of the response text may be refused with stop_details.category: "reasoning_extraction"`. The refusals page names the usual sources: a `<thinking>`, `<reasoning>` or scratchpad section the model fills in before it answers; a `reasoning`, `thinking` or `trace` field in JSON output or a tool input; the model's private notes or a running log of its reasoning; reasoning asked for verbatim or in full. The wording can sit in a system prompt, a skill or a tool description, so audit all three.
+
+**What stays allowed:** a short explanation of the answer or a summary of the actions taken (both prompting pages say so), and the evidence behind a result (the refusals page). Server-side fallback does *not* retry this category on either model in scope — it has no recommended fallback model and the decline is returned to you, so change the prompt rather than resend it. For reasoning visibility, set `display: "summarized"` and read the `thinking` blocks; to surface progress during a long run, set `display: "updates"`; for content the user must see verbatim partway through a turn, use a send-to-user tool (snippet 4.23).
 
 ### 3.10 Do not write "do not think" or "do not reason"
 **Remove this rule wherever you find it, on either model in scope.** On Opus 5.5 the official instruction is explicit: when migrating a prompt that ran with thinking disabled, `check whether you still need the instruction, and remove the no-thinking rule either way`.
@@ -206,10 +210,10 @@ Do not include internal or system XML tags in your response.
 ```
 
 ### 3.11 Audit inherited prompts for prefill
-A prompt you did not write yourself — an older template, a pre-4.6 codebase, anything generated by tooling you do not control — can still end with a partial assistant turn. That returns 400 on both models in scope. **Re-run this section over anything inherited**, and check the trailing turn first. Claude Code ships a `prompt-audit` subcommand in its `claude-api` skill "for auditing prompts and tool descriptions for patterns written for older models" (changelog 2.1.221, 2026-08-04); it is a first pass, not a substitute for this section.
+A prompt you did not write yourself — an older template, a pre-4.6 codebase, anything generated by tooling you do not control — can still end with a partial assistant turn. That returns 400 on both models in scope. **Re-run this section over anything inherited**, and check the trailing turn first. Claude Code ships a `prompt-audit` subcommand in its `claude-api` skill "for auditing prompts and tool descriptions for patterns written for older models" (changelog 2.1.221, 2026-08-04), and `/doctor prompt-audit` (also `/checkup prompt-audit`), which audits CLAUDE.md files, skills, agents and commands "for prompting patterns written for older models" (changelog 2.1.283). Both are first passes, not a substitute for this section.
 
 ### 3.12 Do not force tool use — on either model in scope
-`tool_choice` of type `any` or `tool` returns a 400 `invalid_request_error` on **Opus 5.5, Fable 5.1 and Mythos 5.1** (thinking is always on, and a forced call would skip it); `auto` and `none` are unchanged. On Opus 5.5 this is a **breaking change from Opus 5**, which accepted forced tool use. The official error text:
+`tool_choice` of type `any` or `tool` returns a 400 `invalid_request_error` on **Opus 5.5, Fable 5.1 and Mythos 5.1** (the Fable 5.1 what's-new page gives the reason for its two models — thinking is always on, and a forced call would skip it; the Opus 5.5 what's-new page and migration guide give none); `auto` and `none` are unchanged. On Opus 5.5 this is a **breaking change from Opus 5**, which accepted forced tool use. The official error text:
 
 ```
 tool_choice: type "tool" and "any" are not supported for this model.
@@ -242,7 +246,7 @@ Positive descriptions, each with its reason.
 Shape, length, format. Stated as what to do, not what to avoid.
 ```
 
-**Structuring:** XML tags or Markdown headers. Use consistent, descriptive tag names, and nest them when the content has a natural hierarchy. The pattern in the official library runs one way only: **every tagged block is a standing policy**, but plenty of standing policies are left plain. Length is not the criterion — the shortest tagged block is one sentence. A tag earns its place when the block needs to be **addressed as one named unit**, set apart from what surrounds it or referred to from elsewhere.
+**Structuring:** XML tags or Markdown headers. Use consistent, descriptive tag names, and nest them when the content has a natural hierarchy. Among the official system-prompt snippets the pattern runs one way only: **every tagged block is a standing policy**, but plenty of standing policies are left plain (input data such as documents and pasted text, and worked examples, are tagged too, for a different reason). Length is not the criterion — the shortest tagged block is one sentence. A tag earns its place when the block needs to be **addressed as one named unit**, set apart from what surrounds it or referred to from elsewhere.
 
 **Long-context placement (20k+ tokens):** put long material **at the top** and the query and instructions **at the end**. Queries at the end can improve response quality by up to 30 percent in tests, especially with complex, multidocument inputs. Wrap multiple documents in `<document>` tags with `<source>` and `<document_content>` subtags.
 
@@ -254,7 +258,7 @@ The single most misapplied decision. The official documentation and the Claude C
 |---|---|---|
 | Lock output **format, tone, or structure** | **Yes** — 3–5, diverse, wrapped in `<example>` tags | Official docs: "Examples are one of the most reliable ways to steer Claude's output format, tone, and structure" |
 | An agent system prompt where the model should **exercise judgment and creativity** | **No** — improve the tool interface design instead | Claude Code team: "removing examples was extremely helpful, because it was just more creative than the examples we gave it" |
-| Demonstrate a **reasoning pattern** | Use `<thinking>` tags inside the few-shot examples | Official docs |
+| Demonstrate a **reasoning pattern** | Worked examples — each one the problem, the method to apply, and the expected answer; the model carries the approach into its own thinking blocks. Do not build in a `<thinking>` section for it to fill in (3.9) | Official docs |
 
 **One line to remember: examples constrain. Use them when you want constraint; drop them when you want creativity.**
 
@@ -290,7 +294,7 @@ Which snippets must be verbatim and which may be adapted is in the grading table
 
 **Auditing an existing prompt:** compare against Section 3 point by point and report **the specific problem and the specific fix**. Do not replace their prompt with a new one unless they asked for a rewrite. Order findings by severity: things that cause API errors (3.1, 3.2, 3.8, 3.12) first, behavior-reversing issues (3.9, 3.10) next, then 3.4 — which is a hard rule only when the target is Opus 5 — and style last.
 
-**A prompt written for Opus 5 is the common case right now.** Opus 5.5 shipped on 2026-09-22, so most prompts you are handed were tuned for Opus 5. Four things to check first: an `effort` value carried over (the default dropped from `high` to `medium`, and Opus 5.5 at `medium` officially matches or exceeds Opus 5 at `high`, so the carried value is usually a tier too high); `thinking: {"type": "disabled"}` or a `budget_tokens` value (both now 400); a forced `tool_choice` (now 400); and a client that renders only `text` blocks, which will look silent between tool calls.
+**A prompt written for Opus 5 is the common case right now.** Opus 5.5 shipped on 2026-09-22, so most prompts you are handed were tuned for Opus 5. Four things to check first: an `effort` value carried over (the default dropped from `high` to `medium`, and in Anthropic's testing Opus 5.5 at `medium` matches or exceeds Opus 5 at `high` on coding and knowledge-work evaluations, so by that measure a carried value is one tier higher than it needs to be); `thinking: {"type": "disabled"}` or a `budget_tokens` value (both now 400); a forced `tool_choice` (now 400); and a client that renders only `text` blocks, which will look silent between tool calls.
 
 **Inline check mid-conversation (Scenario C):** go light. **Do not make a production of it** — do not run the full workflow, do not read the reference files. Scan the Section 3 hard rules; if something is wrong say "this line is a problem: X, change it to Y"; if nothing is wrong say so and return to what you were discussing. The user wants to get back to what they were doing, not to receive an audit report.
 
@@ -304,13 +308,14 @@ Which snippets must be verbatim and which may be adapted is in the grading table
 - [ ] No `CRITICAL: You MUST` / `If in doubt, use [tool]` stacked to prevent undertriggering (**wording inside official snippets does not count** — for example 4.7 contains `you MUST read the file`, which is tuned official text, copy it as is)
 - [ ] Targeting Opus 5.5: no self-verification instruction was **added** reflexively, and if the delivery note claims removing one is beneficial, it is stated as a measurement to run rather than as established for Opus 5.5 (see 3.4; external deterministic checks never counted, nor does `Regularly self-critique your approach and plan` inside the official research block — see `references/for-chat-and-cowork.md`)
 - [ ] Targeting Opus 5.5: no `thinking: {"type": "disabled"}`, no forced `tool_choice`, no "do not think" rule; effort named as a tier, starting from `medium`
-- [ ] Targeting Fable 5.1: no "show your reasoning" instructions; no forced `tool_choice`; long autonomous runs carry the 4.18 autonomous block (4.17's progress-audit rule stays available; it was measured on Fable 5). On Opus 5.5 the "show your reasoning" rule applies equally (3.9)
+- [ ] Targeting Fable 5.1: no forced `tool_choice`; long autonomous runs carry the 4.18 autonomous block (4.17's progress-audit rule stays available; it was measured on Fable 5)
+- [ ] Either model: nothing asks it to write out its reasoning — no "show your reasoning", no `<thinking>` or scratchpad section, no `reasoning` field to fill (3.9). A short explanation or a summary of the actions taken is fine
 - [ ] Every constraint **you wrote** is stated positively and carries its reason (**wording inside official snippets does not count** — 4.6, 4.13 and 4.25 are stacked negatives by design; 4.25 opens `NEVER use generic AI-generated aesthetics…`, which is tuned official text, copy it as is)
-- [ ] Every instruction has been read against: **how would a well-intentioned human misinterpret this?**
+- [ ] Every instruction has been read against: **how would a well-intentioned human misinterpret this?** (Cat Wu's self-check, from the Claude Code team)
 - [ ] No instruction repeated across the system prompt and a tool description (**a tool-invocation trigger the model needs does not count** — for example the system-prompt line shipped with snippet 4.23; see 3.7)
 - [ ] The examples decision follows the Section 4 table — not added or removed reflexively
 - [ ] Long-context case: material first, query last
-- [ ] Output length is explicitly specified — effort does not control it on any model in scope
+- [ ] Output length is explicitly specified in the prompt rather than left to effort (see "Choosing a length control")
 - [ ] There is a decidable success criterion; Scenario A has a check the model can run itself
 - [ ] Read it through and cut every sentence whose removal would change nothing
 - [ ] Golden test: **hand this prompt to a colleague with no context on the task — could they follow it?**
@@ -329,16 +334,16 @@ Snippet numbers refer to `references/snippets.md`.
 | Preamble | `Respond directly without preamble.` |
 | Fabricates content (general) | Explicitly permit not knowing: `If the data is insufficient to draw conclusions, say so rather than speculating.` |
 | Makes claims about code or files it never opened | Snippet 4.7 (essential for any codebase task) |
-| Suggests instead of acting | Use a direct verb (`Change this function` beats `Can you suggest changes`); or add snippet 4.8 |
-| Response too long (prose) | See "Choosing a length control" below. **Lowering effort does not reliably work** — effort governs thinking, not visible length |
+| Suggests instead of acting | Use a direct verb (`Change this function` beats `Can you suggest some changes`); or add snippet 4.8 |
+| Response too long (prose) | See "Choosing a length control" below and state the length in the prompt. **On Opus 5, lowering effort does not reliably work** — there effort governs thinking, not visible length |
 | Agent narration too chatty mid-run | Snippet 4.3. This is a separate problem from prose length; the length controls do not reach it |
 | Over-engineering | Snippet 4.6 |
 | Subagent overuse | Snippet 4.10 |
-| Too much thinking, high latency | **Lower the effort level first** — officially more reliable than prompt instructions; then snippet 4.15 |
-| Chat replies start slowly because it thinks first (Opus 5.5) | Remove "think carefully before answering" lines from the system prompt; snippet 4.34 for follow-up turns |
+| Too much thinking, high latency | **Lower the effort level first** (the steering page's order; on Opus 5.5 officially more reliable than prompt instructions); then snippet 4.15 |
+| Chat replies start slowly because it thinks at length first (Opus 5.5) | Consider removing "think carefully before answering" lines from the system prompt; snippet 4.34 for follow-up turns |
 | Unattended agent stops partway after reporting progress (Opus 5.5) | Snippet 4.31, plus a checklist the model updates; do not treat a text-only end of turn as proof the task is done |
 | Agent misses information the task did not point to, across several connected apps (Opus 5.5) | Snippet 4.32 |
-| A team of agents takes longer than it should (Opus 5.5) | Snippet 4.33 — a time budget signal in each message |
+| A team of agents takes longer than it should (Opus 5.5) | Snippet 4.33 — a time budget, with elapsed time reported at the end of each message |
 | Follows instructions that arrived inside text the user pasted (Opus 5.5) | Snippet 4.35 |
 | Long agentic turn looks silent in your client (Opus 5.5) | Check `thinking.display` first — the notes come back as progress-update `thinking` blocks, empty by default; then the 4.3 Opus 5.5 block |
 | Shallow reasoning on hard problems | **Raise effort** rather than prompting around it |
@@ -378,7 +383,7 @@ Snippet numbers refer to `references/snippets.md`.
 
 **Two supplements that may be added on top** — they govern different problems and do not conflict with the primary mechanism:
 
-- When the deliverable is **written to a file**, add snippet 4.4. Files run longer than conversational replies, and a word count usually only constrains the body, not the padding sections the model adds on its own. **When you gave a number and it writes a file, use both**
+- When the deliverable is **written to a file**, add snippet 4.4. The Opus 5 page found that files the model writes to disk are often longer than on prior models (not restated for the models in scope). In practice a word count usually constrains only the body, not the padding sections the model adds on its own. **When you gave a number and it writes a file, use both**
 - When the system prompt is long and you are worried the length requirement gets buried, append a short `<tone_preference>` reminder **at the end**
 
 In one line: **a number or 4.2, pick one; 4.4 and the trailing reminder stack as needed.**

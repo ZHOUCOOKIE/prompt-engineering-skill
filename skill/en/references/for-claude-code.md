@@ -14,7 +14,7 @@ The user describes work in Claude desktop; you produce a prompt they paste into 
 - Larger features: have it interview the user into a SPEC
 - Context is the binding constraint
 - This prompt versus project configuration
-- Where project configuration goes: seven mechanisms
+- Where project configuration goes: the seven methods
 - Turning manual checks into verification loops
 - Four kinds of loops
 - Five common failure patterns
@@ -51,7 +51,7 @@ Once the check exists, there is a second decision the prompt alone cannot make. 
 |---|---|---|
 | **In one prompt** | Ask it to run the check and iterate in the same message | Any task, today. This is what the prompt you are writing does |
 | **Across a session** | Set the check as a `/goal` condition — a separate evaluator re-checks after every turn | The user wants it to keep going until the criterion holds |
-| **A deterministic gate** | A `Stop` hook runs the check as a script and blocks the turn from ending until it passes (Claude Code overrides after 8 consecutive blocks) | The check must not be skippable |
+| **A deterministic gate** | A `Stop` hook runs the check as a script and blocks the turn from ending until it passes (by default Claude Code overrides the next block after eight consecutive continuations — hooks reference) | The check must not be skippable |
 | **A second opinion** | A verification subagent — or a dynamic workflow that checks its own findings — so the agent doing the work is not the one grading it. For a plain correctness check, Claude Code's bundled `/code-review` skill reviews the current diff in a fresh subagent | Correctness matters more than speed |
 
 **Mention the level in the delivery note when it matters.** A prompt is level one by definition; if the user described an unattended run, say that `/goal` or a `Stop` hook is what actually lets it finish correctly without them.
@@ -69,7 +69,7 @@ The corresponding prompt structure is phased with checkpoints between phases, no
 
 ## Say it all at once
 
-Official guidance is explicit: **specifying the task, intent, and relevant constraints upfront in the first turn maximizes autonomy and intelligence while minimizing extra token usage after user turns.** Ambiguous or underspecified prompts delivered progressively over multiple turns tend to reduce token efficiency and sometimes performance.
+The Opus 5 page says the model `performs best when given the complete task specification up front and left to run`, and the Opus 5.5 page keeps Opus 5's patterns as a reasonable starting point. The Sonnet 5 page — now a legacy model's page — spells out why: `Providing well-specified, clear, and accurate task descriptions upfront can help maximize autonomy and intelligence while minimizing extra token usage after user turns`, whereas `ambiguous or underspecified prompts conveyed progressively over multiple user turns tend to relatively reduce token efficiency and sometimes performance`.
 
 This matters more here than anywhere else, because the user pastes once and walks away.
 
@@ -82,9 +82,9 @@ This matters more here than anywhere else, because the user pastes once and walk
 | **Reference existing patterns**: point at a model in the codebase | `add a calendar widget` | `look at how existing widgets are implemented on the home page to understand the patterns. HotDogWidget.php is a good example. follow the pattern to implement a new calendar widget...` |
 | **Describe the symptom**: symptom, likely location, and what "fixed" looks like | `fix the login bug` | `users report that login fails after session timeout. check the auth flow in src/auth/, especially token refresh. write a failing test that reproduces the issue, then fix it` |
 
-Vague prompts have their place — exploration, when you can afford to course-correct. `what would you improve in this file?` surfaces things you would not have thought to ask. That is exploration, not execution.
+Vague prompts have their place — exploration, when you can afford to course-correct. `what would you improve in this file?` can surface things you would not have thought to ask about. That is exploration, not execution.
 
-**Ways to supply rich input** (mention these to the user): `@` to reference files, paste images directly, give documentation URLs, pipe data in with `cat error.log | claude`, or let Claude fetch what it needs through bash, MCP tools, and file reads.
+**Ways to supply rich input** (mention these to the user): `@` to reference files, paste images directly, give documentation URLs, pipe data in with `cat error.log | claude -p "explain this error"`, or let Claude fetch what it needs through bash, MCP tools, and file reads.
 
 ## Values only the user can supply
 
@@ -146,9 +146,9 @@ What the prompt can do about it:
 
 - **Push exploration outside the main context**: `Use subagents to investigate how our authentication system handles token refresh, and whether we have any existing OAuth utilities I should reuse.` The subagent reads many files in its own context and reports back a summary
 
-> **The unified subagent criterion** (this is scattered across sources; stated fully here): **encourage them for wide read-only exploration, forbid them for re-reviewing the model's own work in its own context.** A *separate, fresh-context* verifier is the exception, and officially outperforms self-critique — that is what the "second opinion" level above and the adversarial-review note at the end of this file both refer to.
+> **The unified subagent criterion** (this is scattered across sources; stated fully here): **encourage them for wide read-only exploration, forbid them for re-reviewing the model's own work in its own context.** A *separate, fresh-context* verifier is the exception: the Fable 5 page says such verifiers `tend to outperform self-critique` — that is what the "second opinion" level above and the adversarial-review note at the end of this file both refer to.
 >
-> So: The first is their greatest value — keeping the cost of reading dozens of files out of the main context. The second is something the model largely does already, so delegating it merely doubles the cost (stated for Opus 5; on Opus 5.5 treat it as something to measure — see SKILL.md 3.4). For everything in between, snippet 4.10 is the test: if you can finish it yourself in a handful of tool calls, do not delegate.
+> So: The first is their greatest value — keeping the cost of reading dozens of files out of the main context. The second is something the model largely does already, so delegating it adds cost without improving results (stated for Opus 5; on Opus 5.5 treat it as something to measure — see SKILL.md 3.4). For everything in between, snippet 4.10 is the test: if you can finish it yourself in a handful of tool calls, do not delegate.
 
 - **Do not write open-ended investigations**: `investigate X` without a boundary reads hundreds of files and fills the context
 - Remind the user: `/clear` between unrelated tasks; after two failed corrections on the same issue, `/clear` and rewrite the prompt with what was learned
@@ -159,7 +159,9 @@ The test is simple: **information specific to this task goes in the prompt; conv
 
 If you find yourself writing "we use pnpm, not npm" or "run lint before committing" — things that have to be said **every single time** — recommend the user move them into CLAUDE.md or a hook rather than pasting them again.
 
-## Where project configuration goes: seven mechanisms
+## Where project configuration goes: the seven methods
+
+The Claude Code team's article lists seven methods; CLAUDE.md takes two rows here (root and subdirectory).
 
 | Mechanism | Loaded | Context cost | Best for |
 |---|---|---|---|
@@ -170,6 +172,7 @@ If you find yourself writing "we use pnpm, not npm" or "run lint before committi
 | **Subagents** | Name and description at start, body when called; only the final message returns | Low (isolated context) | Side tasks where you only want the conclusion: log analysis, dependency audits, deep search |
 | **Hooks** | Fire on lifecycle events, bypass compaction | Low (outside main context) | **Deterministic** automation: linters, notifications, blocking specific commands |
 | **Output styles** | Session start, never compacted | **High** | Only when Claude's role needs to change substantially |
+| **Appending the system prompt** | Session start, passed as a CLI flag; never compacted, applies only to that invocation | Moderate (cached after the first request in a session) | Tone, response length, formatting preferences |
 
 **Anti-patterns:**
 
@@ -184,7 +187,7 @@ If you find yourself writing "we use pnpm, not npm" or "run lint before committi
 **What does not:** anything readable from the code, standard language conventions, detailed API documentation (link it), frequently changing information, file-by-file descriptions, platitudes like "write clean code."
 
 **Self-test:** for each line ask, *would removing this cause Claude to make mistakes?* If not, cut it.
-**Diagnostic signal:** when a rule keeps being ignored despite repetition, the file is usually **too long and the rule is buried**, not insufficiently emphatic.
+**Diagnostic signal:** if Claude keeps doing something you don't want despite having a rule against it, the file is probably **too long and the rule is getting lost**. If it keeps skipping one instruction, the page suggests emphasis such as "IMPORTANT" on that line alone — emphasize many lines and none stands out.
 **Tool:** `/doctor` helps rightsize skills and CLAUDE.md.
 
 **How to write a skill** (three-tier progressive disclosure):
@@ -195,7 +198,7 @@ If you find yourself writing "we use pnpm, not npm" or "run lint before committi
 | Primary instructions | The `SKILL.md` body | When Claude judges the skill relevant |
 | Bundled files | Files referenced from SKILL.md | Only when that specific scenario arises |
 
-`name` and `description` are what drive activation — if it does not trigger, fix those two lines first. Split the body when it gets unwieldy. Bundle executable code where it helps: sorting a list via token generation is far more expensive than simply running a sorting algorithm. **The Fable 5 page states that skills developed for prior models are often too prescriptive for it and can degrade output quality** — prune periodically when targeting the Fable line. (The Fable 5.1 page does not restate this; it says existing Fable 5 prompts should perform well on Fable 5.1 without changes, and the general prompting page says to treat a model-specific finding as measured on that model. The Opus 5.5 migration guide points the same way for the Opus line: `Instructions tuned for Claude Opus 5's behavior may no longer be needed`.)
+`name` and `description` are what drive activation — if it does not trigger, fix those two lines first. Split the body when it gets unwieldy. Bundle executable code where it helps: sorting a list via token generation is far more expensive than simply running a sorting algorithm. **The Fable 5 page states that skills developed for prior models are often too prescriptive for it and can degrade output quality** — prune periodically when targeting the Fable line. (The Fable 5.1 page does not restate this; it says existing Fable 5 prompts should perform well on Fable 5.1 without changes, and the general prompting page says to treat a model-specific finding as measured on that model. The Opus 5.5 migration guide points the same way for the Opus line: `Instructions tuned for Claude Opus 5's behavior might no longer be needed`.)
 
 ## Turning manual checks into verification loops
 
@@ -205,7 +208,7 @@ The test: **anything the user keeps having to enforce by hand is a candidate for
 |---|---|---|
 | **Standalone** | Invoked deliberately | Cross-cutting checks that do not apply universally: security scans, accessibility audits, license verification |
 | **Embedded** | Fires automatically inside the producing skill | Checks that belong to one specific task |
-| **Chained** | One skill calls another on completion | End-to-end handoff; also the only way to add verification to a **skill you cannot modify** |
+| **Chained** | One skill calls another on completion | End-to-end handoff; also how you add verification to a **skill you cannot modify** |
 | **On every PR** | CI | Turns a personal habit into team infrastructure, removing dependence on author diligence |
 
 **Trap:** embedding only works on editable skills. Built-in or plugin-managed skills update automatically and would overwrite your change — those must use chaining.
@@ -233,4 +236,4 @@ Worth passing on to the user alongside the prompt:
 | **The trust-then-verify gap** | Plausible-looking implementation that misses edge cases | Always provide verification. **If you cannot verify it, do not ship it** |
 | **The infinite exploration** | "Investigate this" without scope; hundreds of files read | Narrow the scope, or isolate it in a subagent |
 
-**One important caveat on adversarial review.** Having a subagent review the diff in a fresh context is effective, but the official guidance also warns: **a reviewer prompted to find gaps will usually report some, even when the work is sound, because that is what it was asked to do.** Chasing every finding leads to over-engineering. So the review prompt must say: **flag only gaps that affect correctness or the stated requirements, and treat the rest as optional.** This is a filtering instruction, so it belongs only where **you** are the filter. If the findings feed a downstream ranking or triage step instead, use snippet 4.16 and let the reviewer report everything — `references/models.md` warns that Opus 5 applies a stated severity bar literally and silently drops whatever falls below it, a behavior the Opus 5.5 pages neither restate nor retract. (Officially Opus 5.5 reviews code better than Opus 5 — more bugs caught, fewer false alarms — which is a reason to trust its findings, not a reason to let a severity bar filter them upstream.)
+**One important caveat on adversarial review.** Having a subagent review the diff in a fresh context is effective, but the official guidance also warns: **a reviewer prompted to find gaps will usually report some, even when the work is sound, because that is what it was asked to do.** Chasing every finding leads to over-engineering. So the review prompt must say: **flag only gaps that affect correctness or the stated requirements, and treat the rest as optional.** This is a filtering instruction, so it belongs only where **you** are the filter. If the findings feed a downstream ranking or triage step instead, use snippet 4.16 and let the reviewer report everything — the Opus 5 page warns that, given a severity bar, the model `might follow that instruction literally and report less` (see `references/models.md`), a behavior the Opus 5.5 pages neither restate nor retract. (Early testers reported stronger code review on Opus 5.5 than on Opus 5 — more bugs caught, fewer false alarms — which is a reason to trust its findings, not a reason to let a severity bar filter them upstream.)
