@@ -327,7 +327,7 @@ Format your response in plain text only. Do not use LaTeX, MathJax, or any marku
 When you're deciding how to approach a problem, choose an approach and commit to it. Avoid revisiting decisions unless you encounter new information that directly contradicts your reasoning. If you're weighing two approaches, pick one and see it through. You can always course-correct later if the chosen approach fails.
 ```
 
-抑制 adaptive thinking 触发频率。最佳实践页紧跟着写明这段**不适用于 Fable 5.2**：`On Claude Fable 5.2, lower the effort level instead.`——官方测试中，叫它直接回答的指令在 `medium` 及以上没有让它停止思考。Opus 5.5 的专页说要少思考就先降 effort，这比 prompt 指令更可靠；Sonnet 5.5 的专页说用 prompt 叫它少思考不能可靠地减少思考，Haiku 5.5 的专页说官方测试里叫它直接回答没有让它停止思考，两页都说要降 effort：
+抑制 adaptive thinking 触发频率。最佳实践页紧跟着写明这段**不适用于 Fable 5.2**：`On Claude Fable 5.2, lower the effort level instead.`——官方测试中，叫它直接回答的指令在 `medium` 及以上没有让它停止思考。Opus 5.5 的专页说要少思考就先降 effort，这比 prompt 指令更可靠；Sonnet 5.5 的专页说在 system prompt 里叫它少思考不能可靠地减少思考，Haiku 5.5 的专页说官方测试里叫它直接回答没有让它停止思考，两页都说要降 effort：
 ```
 Thinking adds latency and should only be used when it will meaningfully improve answer quality - typically for problems that require multistep reasoning. When in doubt, respond directly.
 ```
@@ -379,7 +379,7 @@ Keep changes to what the request needs. Something else you notice worth doing �
 
 ### 4.19 上下文预算安抚（防止提前收工）
 
-出自 Fable 5 专页（"Rare cases of context-budget concern"）：当 harness 会向模型显示剩余 token 倒计时，模型可能提议开新会话或自行缩减工作。**首选是尽量不要向模型显示明确的上下文预算数字**；harness 必须显示时加下面这段。在 Fable 5 上测得；Fable 5.1 和 Fable 5.2 的专页都没有重刊。Fable 5.2 页面相关的话：harness 写进 prompt 的 token 预算会改变它花多少，官方建议拿自己的任务去掉预算试一下。
+出自 Fable 5 专页（"Rare cases of context-budget concern"）：很长的会话里，模型偶尔会提议开新会话、提出做个摘要交接、或自行缩减工作，最常见的触发是 harness 向模型显示剩余 token 倒计时。**首选是尽量不要向模型显示明确的上下文预算数字**；harness 必须显示时加下面这段。在 Fable 5 上测得；Fable 5.1 和 Fable 5.2 的专页都没有重刊。Fable 5.2 页面相关的话：harness 写进 prompt 的 token 预算会改变它花多少，官方建议拿自己的任务去掉预算试一下。
 
 ```
 You have ample context remaining. Do not stop, summarize, or suggest a new session on account of context limits. Continue the work.

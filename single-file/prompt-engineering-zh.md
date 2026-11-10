@@ -58,7 +58,7 @@
 | 研究、分析、写作、整理资料、做文档表格幻灯片、日程、信息汇总；在 Claude 应用里直接跑 | **B：给 chat 或 Cowork 的任务 prompt** | 第 8 节 |
 | 用户在聊天途中丢来一段 prompt 问"这样写行不行" | **C：临时检查** | 见第 10 节，走轻量流程 |
 
-判断不了时按用户描述里的**动词**判断：动代码用 A，其余用 B。两边都沾（例如"分析这个仓库的技术债并写成报告"）时按**最终交付物**判断——交付物是代码改动走 A，是文档走 B。
+用户说了在哪里跑，就按他说的：在 Claude Code 里跑的非代码任务（批量读文件、提取、汇总）也走 A。没说、又判断不了时按用户描述里的**动词**判断：动代码用 A，其余用 B。两边都沾（例如"分析这个仓库的技术债并写成报告"）时按**最终交付物**判断——交付物是代码改动走 A，是文档走 B。
 
 ### 补齐变量
 
@@ -85,7 +85,7 @@
 
 1. **模型和 effort 默认由你自己定。** 只有取舍确实存在、从上下文又推断不出来时，才在输出 prompt 之前问用户一次，并带上选项和推荐项。
 2. **不刻意省用量，也不无依据地往上加。** 用户是 Ultra 订阅：不要仅仅为了省用量，把模型或档位选得比任务对应的那一档低；也不要在没有本节所列依据的情况下，把模型或档位往上提。
-3. **大批量任务里，主会话和批量子智能体分开选模型**，见本节「大批量处理」。
+3. **大批量任务里，主会话和批量子智能体分开选模型**，见本节「大批量处理」。那里给批量子智能体定的模型和档位是用户对这类任务的明确选择，不受规则 2 约束。
 
 官方的起点（Anthropic 2026-11-09 的选型文章「Which Claude model should you build with?」）：`you should start most work on Opus 5.5 at its default effort level`，也就是 `medium`。四个现行模型按价格和能力从低到高是 Haiku 5.5、Sonnet 5.5、Opus 5.5、Fable 5.2。
 
@@ -110,6 +110,8 @@
 同一篇文章对往下、往上走的补充：范围清楚的日常工作往下到 Sonnet 5.5，但 `Just because you have a clear spec doesn't mean you should use Sonnet`——迁移或性能优化可以 spec 很清楚，难度仍然够得上 Opus 5.5，大的够得上 Fable 5.2。往上到 Fable 5.2 的三种情况：编码、金融和科学里最难的技术项目；Opus 5.5 在 `high` 下仍然不够；长时间无人值守的运行。Claude Code 的 model-config 页：Fable 模型在任何计划上都不是默认，要用 `/model fable` 显式选。
 
 ### 每个模型怎么调档
+
+任务表给的是起步档；任务一开始就符合下表某一格的上调或下调条件时，直接用那一格的档位。
 
 | 模型 | 默认档 | 什么时候上调 | 什么时候下调 |
 |---|---|---|---|
@@ -167,14 +169,14 @@ Claude Code 里没指定模型的子智能体跟主会话用同一个模型，�
 
 **什么时候用**（用户规则 3 的适用范围，是用户定的，不是官方给的触发条件）：场景 A，主会话选的是 Fable 5.2，而起草前就能预判任务要并行派很多子智能体、按同一份口径做批量工作——读几十个文件或阅读包、给成百上千条内容提取 / 标注 / 核对。遇到这种任务直接写进 prompt，并在交付说明里点一句。
 
-**官方对这类工作怎么说**（成本页 "Orchestrator strategy"）：适合编排的是 `Work that fans out across genuinely independent files, documents, or cases, especially more than one context window of it`；做法是拆开、把各部分交给更便宜的模型，编排的那个模型负责 `Plans, dispatches, and synthesizes`。选型文章的说法是把代码编辑和判断留在主模型。官方同时测得两点，写交付说明时要告诉用户：一个上下文装得下、又没有长成本尾巴的工作，编排者模型自己用更低的 effort 做更划算（在更早的模型上测得）；Fable 5.2 自己单独做的分数比带 Sonnet 5.5 子智能体的配置高（见上一小节的数字），拆出去换来的是成本。
+**官方对这类工作怎么说**（成本页 "Orchestrator strategy"）：适合编排的是 `Work that fans out across genuinely independent files, documents, or cases, especially more than one context window of it`；做法是拆开、把各部分交给更便宜的模型，编排的那个模型负责 `Plans, dispatches, and synthesizes`。选型文章的说法是把代码编辑和判断留在主模型。官方同时测得两点，和用户的任务对得上时在交付说明里提：一个上下文装得下、又没有长成本尾巴的工作，编排者模型自己用更低的 effort 做更划算（在更早的模型上测得）；Fable 5.2 自己单独做的分数比带 Sonnet 5.5 子智能体的配置高（见上一小节的数字），拆出去换来的是成本。
 
 **用哪个模型和档位**（用户规则，非官方；2026-11-09 确认）：
 
 - 批量子智能体：派发时 Agent 工具传 `model: "opus"`。官方没有测过「Fable 5.2 主会话配 Opus 5.5 子智能体」这个组合；官方写明并测过的更便宜的选项是 `sonnet`（缺陷搜索基准上配 Opus 5.5 编排者分数相当），以及读文件做摘要、产出能校验的高吞吐工作用 `haiku`
 - effort：提炼、标注、抽样核对、找证据传 `effort: "high"`，最后的独立复核传 `"xhigh"`。这比官方给的起点高：最接近的官方说法是选型文章给搜索、读日志、做摘要这类子智能体的起步档，即模型的默认档（Opus 5.5 是 `medium`），`xhigh` 留给实测到质量提升的工作
 
-`model` 和 `effort` 这两个参数只对非 fork 的子智能体起作用：fork 跑在主会话的模型上，而 fork 模式默认开着，所以 prompt 里要写明这批工作派给非 fork 的子智能体（见第 7 节里 fork 那一条）。每次调用传 `effort` 需要 Claude Code 2.1.292 及以上；并发上限、子智能体出错或撞到用量上限时结果怎么回来，见第 7 节「子智能体」一节。
+`model` 和 `effort` 这两个参数只对非 fork 的子智能体起作用：fork 跑在主会话的模型上，而 fork 模式默认开着，所以 prompt 里要写明这批工作派给非 fork 的子智能体（见第 7 节里 fork 那一条）。这批工作改用 dynamic workflow 跑时，让脚本给批量阶段写 `opus`：workflows 页说，脚本给某个阶段写的模型算作每次调用传的那一项；workflow agent 的 effort 官方没有写。每次调用传 `effort` 需要 Claude Code 2.1.292 及以上；并发上限、子智能体出错或撞到用量上限时结果怎么回来，见第 7 节「子智能体」一节。
 
 ### 用量与成本
 
@@ -190,7 +192,7 @@ Claude Code 里没指定模型的子智能体跟主会话用同一个模型，�
 | | 场景 A：Claude Code | 场景 B：Claude 应用 | 裸 API |
 |---|---|---|---|
 | 模型 | `/model`、`--model`；子智能体见上 | 发送按钮旁的模型菜单 | `model` |
-| effort | `/effort` 或 `/model` 里调，按模型分别保存；`ultrathink` 只管一轮 | 模型菜单里的 "Effort"，推荐档标着 "Default" | `output_config: {effort}` |
+| effort | `/effort` 或 `/model` 里调，按模型分别保存（`max` 只对当前会话有效）；`ultrathink` 只管一轮 | 模型菜单里的 "Effort"，推荐档标着 "Default" | `output_config: {effort}` |
 | thinking | 由客户端管理 | 现行四个模型上关不掉 | 见 3.2 |
 | `max_tokens` | prompt 里设不了（只有 `CLAUDE_CODE_MAX_OUTPUT_TOKENS` 环境变量） | 没有这个设置 | 你自己设，见第 6 节 |
 
@@ -275,7 +277,7 @@ Before building, propose 4 distinct visual directions tailored to this brief (ea
 （片段 4.25，逐字取自 Claude Sonnet 5 页面。）
 
 ### 3.9 不要要求模型复述或展示内部推理
-"show your thinking"、"把思考过程写出来"这类指令在 **Fable 5.2、Opus 5.5、Sonnet 5.5** 上可能触发 `reasoning_extraction` 拒绝（Haiku 5.5 没有这个类别）。thinking 页原文：`On Claude Fable 5.2, Claude Fable 5.1, Claude Opus 5.5, Claude Opus 5, Claude Sonnet 5.5, and Claude Fable 5, a request that attempts to elicit the model's internal reasoning as part of the response text might be refused with stop_details.category: "reasoning_extraction"`。refusals 页列出了常见来源：让模型在回答前填写的 `<thinking>`、`<reasoning>` 或草稿区段；JSON 输出或工具入参里的 `reasoning`、`thinking`、`trace` 字段；模型的私人笔记或推理流水账；要求逐字或完整给出推理。这类措辞可能藏在 system prompt、skill 或 tool description 里，三处都要查。
+"show your thinking"、"把思考过程写出来"这类指令在 **Fable 5.2、Opus 5.5、Sonnet 5.5** 上可能触发 `reasoning_extraction` 拒绝（Haiku 5.5 没有这个类别）。thinking 页原文：`On Claude Fable 5.2, Claude Fable 5.1, Claude Opus 5.5, Claude Opus 5, Claude Sonnet 5.5, and Claude Fable 5, a request that attempts to elicit the model's internal reasoning as part of the response text might be refused with stop_details.category: "reasoning_extraction"`。refusals 页列出了常见来源：让模型在回答前填写的 `<thinking>`、`<reasoning>` 或草稿区段；JSON 输出或工具入参里的 `reasoning`、`thinking`、`trace` 字段；模型的私人笔记或推理流水账；要求逐字或完整给出推理。这类措辞可能藏在 system prompt、skill 或 tool description 里；Claude Code 的错误参考页还列了 CLAUDE.md、子智能体 prompt、output style 和 MCP 工具描述，并给了排查办法：用 `claude --safe-mode` 开一个不加载这些定制的会话，发同一条 prompt。
 
 **仍然允许的：** 简短解释答案、或概括做了哪些操作，以及给出结论背后的依据（refusals 页）。这个类别没有推荐的 fallback 模型，服务端 fallback 不会重试，拒绝会直接返回给你，所以要改 prompt，而不是重发。需要推理可见性就设 `display: "summarized"` 去读 `thinking` 块；需要在长时运行中把进度呈现给用户，设 `display: "updates"`；回合中途有必须原样交给用户的内容，用 send-to-user 工具（片段 4.23）。
 
@@ -645,7 +647,7 @@ Format your response in plain text only. Do not use LaTeX, MathJax, or any marku
 When you're deciding how to approach a problem, choose an approach and commit to it. Avoid revisiting decisions unless you encounter new information that directly contradicts your reasoning. If you're weighing two approaches, pick one and see it through. You can always course-correct later if the chosen approach fails.
 ```
 
-抑制 adaptive thinking 触发频率。最佳实践页紧跟着写明这段**不适用于 Fable 5.2**：`On Claude Fable 5.2, lower the effort level instead.`——官方测试中，叫它直接回答的指令在 `medium` 及以上没有让它停止思考。Opus 5.5 的专页说要少思考就先降 effort，这比 prompt 指令更可靠；Sonnet 5.5 的专页说用 prompt 叫它少思考不能可靠地减少思考，Haiku 5.5 的专页说官方测试里叫它直接回答没有让它停止思考，两页都说要降 effort：
+抑制 adaptive thinking 触发频率。最佳实践页紧跟着写明这段**不适用于 Fable 5.2**：`On Claude Fable 5.2, lower the effort level instead.`——官方测试中，叫它直接回答的指令在 `medium` 及以上没有让它停止思考。Opus 5.5 的专页说要少思考就先降 effort，这比 prompt 指令更可靠；Sonnet 5.5 的专页说在 system prompt 里叫它少思考不能可靠地减少思考，Haiku 5.5 的专页说官方测试里叫它直接回答没有让它停止思考，两页都说要降 effort：
 ```
 Thinking adds latency and should only be used when it will meaningfully improve answer quality - typically for problems that require multistep reasoning. When in doubt, respond directly.
 ```
@@ -697,7 +699,7 @@ Keep changes to what the request needs. Something else you notice worth doing �
 
 ### 4.19 上下文预算安抚（防止提前收工）
 
-出自 Fable 5 专页（"Rare cases of context-budget concern"）：当 harness 会向模型显示剩余 token 倒计时，模型可能提议开新会话或自行缩减工作。**首选是尽量不要向模型显示明确的上下文预算数字**；harness 必须显示时加下面这段。在 Fable 5 上测得；Fable 5.1 和 Fable 5.2 的专页都没有重刊。Fable 5.2 页面相关的话：harness 写进 prompt 的 token 预算会改变它花多少，官方建议拿自己的任务去掉预算试一下。
+出自 Fable 5 专页（"Rare cases of context-budget concern"）：很长的会话里，模型偶尔会提议开新会话、提出做个摘要交接、或自行缩减工作，最常见的触发是 harness 向模型显示剩余 token 倒计时。**首选是尽量不要向模型显示明确的上下文预算数字**；harness 必须显示时加下面这段。在 Fable 5 上测得；Fable 5.1 和 Fable 5.2 的专页都没有重刊。Fable 5.2 页面相关的话：harness 写进 prompt 的 token 预算会改变它花多少，官方建议拿自己的任务去掉预算试一下。
 
 ```
 You have ample context remaining. Do not stop, summarize, or suggest a new session on account of context limits. Continue the work.
@@ -1203,7 +1205,7 @@ If you create any temporary new files, scripts, or helper files for iteration, c
 
 ### 用到英文片段时
 
-- 逐字片段（4.1 之外的全部）是官方页面上的英文原文；放在哪里按片段所在页面说的来——多数是 system prompt，个别写明放在末尾或紧跟某一段
+- 逐字片段（4.1 之外的全部）是官方页面上的英文原文；放在哪里按片段所在页面说的来——多数是 system prompt，个别写明放在末尾或紧跟某一段。产出是一段要粘贴进 Claude Code 或 Claude 应用的 prompt、没有 system prompt 可改时，放进 prompt 正文；每次都要的放 CLAUDE.md 或项目指令
 - 官方写明可以调整的条目（例如 4.31、4.37、4.40、4.46）和要求逐字使用的条目（4.51），第 4 节里逐条标了出来
 
 ---
@@ -1441,7 +1443,7 @@ Fable 5 页面曾建议长自主运行时按间隔自查、并说独立的干净
 | Claude API | `high` | `medium` | `high` | `medium` |
 | Claude Code | `medium` | `medium` | `medium` | `medium` |
 
-Claude 应用里每个模型的推荐档在菜单里标着 "Default"；发布公告说 Fable 5.2 在 Claude 应用和 Claude Code 里默认 `medium`。支持站那篇讲应用设置的文章另有一句：Opus 4.7 及更新模型上的复杂编码和 agentic 任务，`try Extra high (xhigh) first`。这和 Opus 5.5、Fable 5.2 各自页面的说法（`xhigh` 留给实测到提升的工作）不一致，Sonnet 5.5 和 Haiku 5.5 的页面同样只在评测显示质量提升时才用 `xhigh`；本文件按各模型自己的页面，场景 B 的交付说明里把两种说法都告诉用户。
+Claude 应用里每个模型的推荐档在菜单里标着 "Default"；发布公告说 Fable 5.2 在 Claude 应用和 Claude Code 里默认 `medium`。支持站那篇讲应用设置的文章另有一句：Opus 4.7 及更新模型上的复杂编码和 agentic 任务，`try Extra high (xhigh) first`。这和 Opus 5.5、Fable 5.2 各自页面的说法（`xhigh` 留给实测到提升的工作）不一致，Sonnet 5.5 和 Haiku 5.5 的页面同样只在评测显示质量提升时才用 `xhigh`；本文件按各模型自己的页面；场景 B 的任务是复杂编码或 agentic 工作时，交付说明里把两种说法都告诉用户。
 
 **effort 页对各档的通用定义**（各模型自己的建议与它不同时，以各模型的为准）：
 
@@ -1518,7 +1520,7 @@ Claude 应用里每个模型的推荐档在菜单里标着 "Default"；发布公
 
 - SWE-bench Pro 子集（463 题）：Fable 5.2 在 `high` 解出 96.3%，每个解出的任务 $1.39；在 `low` 解出 94.6%、$0.39。Opus 5.5 默认档 93.1%、$0.22；`high` 95.5%、$0.30；`xhigh` 96.5%、$0.75。官方的话：`At a similar pass rate, Claude Opus 5.5 still costs less per solved task on these problems`
 - Opus 5.5 在 `low` 与 Sonnet 5.5 在默认档解出的比例大致相同，每个解出的任务贵约 7%
-- DeepResearch Bench II（研究类；对每个模型都评了分的 44 个任务，Messages API 上的默认 effort）：Opus 5.5 比 Sonnet 5.5 高 2.4 分，每任务成本是 1.5 倍（在全部 50 个任务上，Opus 5.5 没有可测地领先 Sonnet 5.5）；Fable 5.2 的成本是 Sonnet 5.5 的 4.3 倍，分数没有可测的提升；是 Opus 5.5 的 2.9 倍，分数低 1.9 分（同一页的参考注：11 月 6–7 日重跑，43 个任务上 Fable 5.2 在 `high` 比 Opus 5.5 低 0.9 分，95% 区间从高 1.0 分到低 2.7 分）。对比 Fable 5.1，它在各档位成本低 20% 到 61%，分数低 4.7 到 7.0 分。成本页紧挨着这组数字的建议：`Measure what a more expensive model buys on your own workload`，以及 `Price the tail of your workload, not the median`（拿最难的那十分之一任务来比，而不是典型任务）
+- DeepResearch Bench II（研究类；对每个模型都评了分的 44 个任务，Messages API 上的默认 effort）：Opus 5.5 比 Sonnet 5.5 高 2.4 分，每任务成本是 1.5 倍（在全部 50 个任务上，Opus 5.5 没有可测地领先 Sonnet 5.5）；Fable 5.2 的成本是 Sonnet 5.5 的 4.3 倍，分数没有可测的提升；是 Opus 5.5 的 2.9 倍，分数低 1.9 分。对比 Fable 5.1，它在各档位成本低 20% 到 61%，分数低 4.7 到 7.0 分。成本页紧挨着这组数字的建议：`Measure what a more expensive model buys on your own workload`，以及 `Price the tail of your workload, not the median`（拿最难的那十分之一任务来比，而不是典型任务）
 - 对比 Fable 5.1 的另外两组数字（成本页）：SWE-bench Pro 子集上，Fable 5.1 默认档解出 92.4%、每个解出的任务 $1.17，Fable 5.2 在 `high` 解出 96.3%、$1.39——解得更多，每个解出的任务更贵；缺陷搜索基准上，Fable 5.2 在每一档都比 Fable 5.1 分数高、成本低（`low` 高 3.6 分、便宜 32%；`medium` 高 3.8 分、便宜 37%；`high` 高 6.1 分、便宜 21%）
 - 缺陷搜索基准（工作量超出一个上下文窗口）：Fable 5.2 单独做，`low` 到 `high` 比 Opus 5.5 单独在 `high` 高 1.6 到 5.9 分，成本是 1.5 到 2.4 倍
 - 内部 agentic 编码基准：Opus 5.5 在 `medium` 86.6%、每次尝试 $0.84；Fable 5.2 在 `medium` 88.9%（单次运行）、$1.34
@@ -1540,16 +1542,17 @@ Claude 应用里每个模型的推荐档在菜单里标着 "Default"；发布公
 - Pro 和 Max：一个五小时会话上限加一个每周上限。Ultra：每周上限；**通过验证的 Ultra 账号没有五小时上限**，没通过验证前有一个临时上限。Max 和 Ultra 另有一个单独的 Fable 每周上限（支持站「Use Claude Code with your Pro, Max, or Ultra plan」「What is the Ultra plan?」）
 - Ultra 每周用量是 Pro 的 10 倍。各计划只用 Pro 的倍数描述，官方没有给出绝对的 token 或消息数（支持站「What is the Ultra plan?」）
 - 上限在 Claude 和 Claude Code 之间共用，IDE 里的用量也算在同一个上限里（支持站「Use Claude Code with your Pro, Max, or Ultra plan」）
-- Max 和 Ultra 上，Fable 模型最多可以用掉每周上限的 50%，而且 `use them faster than other Claude models`。到了 Fable 上限后，可以用 usage credits 继续用 Fable，或者换到别的模型在计划内继续。Pro 和 Team 的标准席位上，除限时的发布优惠外，Fable 模型不含在计划额度里，从一开始就走按量付费的 usage credits（支持站「Claude Fable models on your plan」）；发布优惠是 2026-11-09 到 2026-11-16 这一周，这些席位也可以把每周上限的最多 50% 用在 Fable 上（「Claude Fable 5.2 launch offers」）
+- Max 和 Ultra 上，Fable 模型最多可以用掉每周上限的 50%，而且 `use them faster than other Claude models`。到了 Fable 上限后，可以用 usage credits 继续用 Fable，或者换到别的模型在计划内继续。Pro 和 Team 的标准席位上，除限时的发布优惠外，Fable 模型不含在计划额度里，从一开始就走按量付费的 usage credits（支持站「Claude Fable models on your plan」）
 - 用量同时计入会话上限和每周上限；Claude Code 错误参考页的原话：`A single burst of heavy activity, such as a large workflow fanout, can exhaust the weekly allowance before the session window resets.` 开着 ultracode 的会话每个请求用的 token 更多，会更早到会话或每周上限（workflows 页）
 - Ultra 的支持页另写明：为管理容量，可能适用额外的用量限制
 - effort 越高，`you'll reach your usage limits faster`（支持站「Change the model, effort, and thinking settings」）
 
 #### 到了上限会怎样
 
-- 请求会被挡住，直到上限重置。会话上限和每周上限对所有模型共用，`so switching models doesn't restore access`；Opus 或 Sonnet 系列各自的上限只管对那个系列的请求，换到系列外的模型可以继续（错误参考页）；到了单独的 Fable 每周上限，同样可以换到别的模型继续用计划内的额度（见上）。可选的做法：等重置；开 usage credits（按 API 价格计）；`/rate-limit-options` 里选等待并在重置后自动继续（Claude Code 命令页）
-- 无人值守的会话可以设 `CLAUDE_CODE_RETRY_WATCHDOG=1`：它会一直重试容量错误，响应带了重置时间时就等到上限重置，`so a session that hits a usage limit waits out the remaining window`（环境变量页）
-- 在五小时上限处，如果 Claude Code 正在回复中途，可能短暂继续把手上这一步做完，界面显示 `Usage limit reached · wrapping up`；这只对已经在进行的回复有效，而且这项功能在逐步推出，账号上可能还没有。通过验证的 Ultra 账号没有五小时上限，所以不涉及（同一篇支持站文章）
+- 请求会被挡住，直到上限重置。会话上限和每周上限对所有模型共用，`so switching models doesn't restore access`；Opus 或 Sonnet 系列各自的上限只管对那个系列的请求，换到系列外的模型可以继续（错误参考页）；到了单独的 Fable 每周上限，同样可以换到别的模型继续用计划内的额度（见上）。开着的交互式会话默认会等到重置后自动接着做（`autoContinueAtUsageLimit` 默认 `true`；settings 页）。其他做法：开 usage credits（按 API 价格计）；关掉了自动继续的，可以在 `/rate-limit-options` 里手动选等待（Claude Code 命令页）
+- 无人值守的会话可以设 `CLAUDE_CODE_RETRY_WATCHDOG=1`：它会一直重试容量错误，响应带了重置时间时就等到上限重置，`so a session that hits a usage limit waits out the remaining window`；例外是报告 spend limit 或 usage credits 用尽的 429，遇到它会立刻失败（环境变量页）
+- **没人守着的会话里用 Fable**（错误参考页）：后台会话、Remote Control 会话、agent team 队友会话和 Agent SDK 托管的会话里，Fable 走 usage credits 的确认提示没人回答就会关掉，这一轮以 `the prompt to confirm went unanswered — nothing was sent` 结束；到了 Fable 上限、或 Fable 请求开始走 usage credits 时都会这样。处理办法：到会话运行的地方回答提示，`/model` 换到不走 usage credits 的模型，或把 `dialogExpiry` 设长
+- 在五小时上限处，如果 Claude Code 正在回复中途，可能短暂继续把手上这一步做完，界面显示 `Usage limit reached · wrapping up`；这只对已经在进行的回复有效，而且这项功能在逐步推出，账号上可能还没有。通过验证的 Ultra 账号没有五小时上限，所以不涉及（支持站「Use Claude Code with your Pro, Max, or Ultra plan」）
 - **子智能体**因 API 错误（官方举的例子包括 usage limit）结束时：前台子智能体如果已经产出了文字，Agent 工具返回这段部分输出，并注明它被打断、没做完；什么都没产出、或只产出了工具调用的，以 `Agent terminated early due to an API error` 失败。后台子智能体标记为失败，回报里带它最后的输出，`so partial work isn't lost`。错误消除后可以让 Claude 重试，或用 SendMessage 续跑那个子智能体（Explore 和 Plan 不能续跑）（子智能体页 "API errors in subagents"）
 - **dynamic workflow** 里的 agent 撞到 claude.ai 用量上限时，这次运行会暂停而不是失败：撞到上限的 agent 等重置，不再启动新的 agent，重置后自动继续。条件：交互式会话、用 claude.ai 订阅登录、`autoContinueAtUsageLimit` 开着、上限在 24 小时内重置（每周上限的重置可能更远）、这次运行此前等待不超过两次；用 `claude -p` 或 Agent SDK 的非交互模式、后台会话、Remote Control 会话和 agent team 队友会话里不会暂停（workflows 页；需要 Claude Code 2.1.271 及以上）
 - **`/goal`** 在 claude.ai 用量上限这类重试也只会重复的失败之后暂停，并给出以 `Goal paused` 开头的提示；会话如果在等上限重置后自动继续，重置后 Claude 接着朝目标做（goal 页）
@@ -1578,7 +1581,9 @@ Claude 应用里每个模型的推荐档在菜单里标着 "Default"；发布公
 
 ## 7. 场景 A：写给 Claude Code 执行的任务 prompt
 
-用户在 Claude desktop 里说需求，你产出一段 prompt，他复制到 Claude Code（含 VS Code 插件的图形窗口）里执行。
+用户在 Claude desktop 里说需求，你产出一段 prompt，他复制到 Claude Code（终端、VS Code 插件的图形窗口，或 Claude Desktop 应用的 Code 标签页）里执行。
+
+**用户在 Desktop 应用里跑时**（Claude Code 的 Desktop 页）：Code 标签页只有交互式会话，没有 `claude -p` 和 `--max-turns`、`--max-budget-usd` 这类为脚本设计的参数，`dontAsk` 权限模式只在 CLI 里有，agent teams 也只在 CLI 里有（官方说 Desktop 里的多 agent 工作用 dynamic workflow）。模型和 effort 在输入框那一行的模型选择器里选。下文用到这些东西的建议，对 Desktop 用户换成这里能用的做法，交付说明里不要让他去敲用不了的命令。
 
 这里的主要依据是 Claude Code 文档的 Best practices、Create custom subagents、Model configuration 和 Manage costs effectively 几页；出自别处的会在行内写明。
 
@@ -1628,11 +1633,11 @@ Claude 说做完之后，还可以在会话里跑 `/verify`：它会构建并运
 | 档位 | 是什么 | 官方的说法 |
 |---|---|---|
 | **写在 prompt 里** | `run the auth tests after, and keep going until they pass` | Claude 自己判断什么时候满意。任何任务都能用，不需要配置 |
-| **设成 goal** | `/goal all tests in tests/auth pass and lint is clean`：每轮之后由另一个模型对照会话检查条件 | 在会话里自己盯着时很少需要。它的用处在长时间的后台运行：Claude 有时在还有未完成项时以进度总结结束回合，goal 会把它送回去 |
+| **设成 goal** | `/goal all tests in tests/auth pass and lint is clean`：每轮之后由另一个模型对照会话检查条件。评估器只看对话里出现的内容，不自己跑命令或读文件，所以条件要写成 Claude 自己的输出能证明的东西；goal 不改变权限模式，要让它无人值守地跑，在 auto mode 里用 | 在会话里自己盯着时很少需要。它的用处在长时间的后台运行：Claude 有时在还有未完成项时以进度总结结束回合，goal 会把它送回去 |
 | **`Stop` hook** | Claude 想结束回合时跑你的脚本，脚本以 exit code 2 退出就把它送回去干活 | 由 Claude Code 强制执行。连续拦截八次且中间没有工具调用时，Claude Code 会放行下一次；用 `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP` 调这个上限 |
-| **换个没写这段代码的来评** | 终端里 `/code-review` 在一个没看过你这场对话的全新子智能体里审查 diff | 它不受产生这段代码的那套推理影响 |
+| **换个没写这段代码的来评** | `/code-review` 在一个没看过你这场对话的全新子智能体里审查 diff | 它不受产生这段代码的那套推理影响 |
 
-**这一档位在交付说明里值得点一句。** 用户说的是没人盯着的长时间运行时，告诉他官方的说法：这种运行靠 `/goal` 或 `Stop` hook 来强制。
+用户说的是没人盯着的长时间运行时，在交付说明里告诉他官方的说法：这种运行靠 `/goal` 或 `Stop` hook 来强制。
 
 想让审查对照计划而不是泛泛地找 bug，就自己写审查 prompt。官方例子：
 
@@ -1640,7 +1645,7 @@ Claude 说做完之后，还可以在会话里跑 `/verify`：它会构建并运
 use a subagent to review the rate limiter diff against SPEC.md, check every requirement is implemented and the listed edge cases have tests, report gaps that affect correctness and skip style
 ```
 
-官方特别提醒不要去掉 `skip style`：`A reviewer that's asked to find problems will always find something.` 每条发现都改，最后会多出一堆抽象层和给不可能发生的情况写的测试。官方这个例子里，子智能体审查完直接向你汇报。片段 4.16 出自 Sonnet 5 页面的 "Code review harnesses" 一节，针对的是后面还有单独过滤步骤的 harness，做法是让审查者全报；Opus 5 页面也提醒过：审查 prompt 设了严重度门槛时，模型 `might follow that instruction literally and report less`（在 Opus 5 上测得，Opus 5.5 的页面既没重述也没撤回，见第 6 节）。
+官方特别提醒不要去掉 `skip style`：`A reviewer that's asked to find problems will always find something.` 每条发现都改，最后会多出一堆抽象层和给不可能发生的情况写的测试。官方这个例子里，子智能体审查完直接向你汇报。片段 4.16 出自 Sonnet 5 页面的 "Code review harnesses" 一节，做法相反：让审查者全报，把按置信度和严重度的过滤移出找问题这一步；该页说后面没有真正的第二步也能用，想让模型在一遍里自己过滤，就把报告门槛写具体。Opus 5 页面也提醒过：审查 prompt 设了严重度门槛时，模型 `might follow that instruction literally and report less`（在 Opus 5 上测得，Opus 5.5 的页面既没重述也没撤回，见第 6 节）。
 
 ---
 
@@ -1765,11 +1770,11 @@ workflow 里每个 agent 的模型按和子智能体相同的顺序定：脚本�
 use a workflow to audit every route handler under src/routes/ for missing authentication checks, and adversarially verify each finding before reporting it
 ```
 
-Claude Code 最佳实践另给了两种批量做法。一个大的机械改动要跨很多文件时用 `/batch`，它的例子是 `/batch migrate every handler to the v2 response helpers`：把工作拆成 5 到 30 个单元并先给你看计划，批准后每个单元在自己的 worktree 里做，开 PR 或汇报结果。用脚本循环调 `claude -p` 时：`Try it on three files first, see what goes wrong, fix the prompt, then run the rest.`
+Claude Code 最佳实践另给了两种批量做法。一个大的机械改动要跨很多文件时用 `/batch`，它的例子是 `/batch migrate every handler to the v2 response helpers`：把工作拆成 5 到 30 个单元并先给你看计划，批准后每个单元在自己的 worktree 里做，开 PR 或汇报结果。用脚本循环调 `claude -p` 时：`Try it on three files first, see what goes wrong, fix the prompt, then run the rest.` 脚本里加了 `--bare` 时（Headless 页说它是脚本调用的推荐模式，以后会成为 `-p` 的默认），Claude Code 不加载 CLAUDE.md、hooks、skills 和自定义子智能体，也不能跑后台子智能体，所以这种 prompt 要自带检查命令和必须遵守的规则。
 
 **结果怎么回来**：主会话派出的子智能体默认在后台跑，结果在之后某一轮以完成通知的形式到达。fork 模式开着时（默认），在本机的交互式终端、VS Code 和桌面应用会话里 Claude 不能等一个子智能体跑完再继续；要让它等，先关掉 fork 模式（`CLAUDE_CODE_FORK_SUBAGENT=0`）。子智能体完成时返回的结果会进主会话的上下文，官方的提醒：`Running many subagents that each return detailed results can consume significant context, and each subagent spends tokens of its own while it runs.` 所以交代里要它们回报简短摘要。
 
-**交代里要带什么**：非 fork 的子智能体从全新的上下文开始，看不到对话历史、已经调用过的 skill 和 Claude 读过的文件；它会加载 CLAUDE.md；内置的 Explore 和 Plan、以及定义里设了 `omitClaudeMd` 的子智能体不加载主会话那几层，但处理到某个子目录里的文件时，那里的 CLAUDE.md 仍会加载。子智能体页的说法：主会话读这些子智能体的结果时仍有完整的 CLAUDE.md，所以大多数规则不必传到子智能体；必须传到的规则（它举的例子是忽略 `vendor/` 目录），在让 Claude 委派的那条 prompt 里重述。Agent SDK 的子智能体页：`The only content you pass from parent to subagent is the Agent tool's prompt string, so include any file paths, error messages, or decisions the subagent needs directly in that prompt.`
+**交代里要带什么**：非 fork 的子智能体从全新的上下文开始，看不到对话历史、已经调用过的 skill 和 Claude 读过的文件；它会加载 CLAUDE.md；内置的 Explore 和 Plan 不加载主会话那几层，定义里设了 `omitClaudeMd` 的子智能体只加载 managed policy 那一层。这几种情况下，处理到某个子目录里的文件时，那里的 CLAUDE.md 仍会加载。子智能体页的说法：主会话读这些子智能体的结果时仍有完整的 CLAUDE.md，所以大多数规则不必传到子智能体；必须传到的规则（它举的例子是忽略 `vendor/` 目录），在让 Claude 委派的那条 prompt 里重述。Agent SDK 的子智能体页：`The only content you pass from parent to subagent is the Agent tool's prompt string, so include any file paths, error messages, or decisions the subagent needs directly in that prompt.`
 
 **出错和撞到用量上限时**（子智能体页 "API errors in subagents"）：子智能体因 API 错误结束——官方举的例子是 usage limit 或反复的服务器错误——会把失败回报给 Claude。前台子智能体如果已经产出了文字，Agent 工具返回这段部分输出，并注明它被打断、没做完；什么都没产出、或只产出了工具调用的，以 `Agent terminated early due to an API error` 失败。后台子智能体标记为失败，Claude 收到的消息里写明 API 错误并带上它最后的输出，`so partial work isn't lost`。错误消除后，让 Claude 重试，或用 `SendMessage` 续跑那个子智能体——续跑的子智能体保留完整的对话历史。Explore 和 Plan 是一次性的，不能续跑。子智能体的 transcript 独立于主会话保存，重启 Claude Code 后恢复同一个会话仍可续跑。
 
@@ -1820,7 +1825,7 @@ Anthropic 的「Steering Claude Code」一文列了七种方法；这里 CLAUDE.
 | **Rules** | 会话开始（无 scope）或访问文件时（有 scope） | 中 | 只在代码库某一部分才要紧的规则。**加 `paths:` 过滤**，只在 Claude 真的在那里干活时加载 |
 | **Skills** | 名称加描述在开头，正文在调用时 | 低 | 团队的流程和知识：发版流程、事故手册、API 文档怎么写。有副作用的流程加 `disable-model-invocation: true`，只在你自己输入命令时才跑 |
 | **Subagents** | 名称加描述在开头，正文调用时加载，只返回最终消息 | 对主上下文低；它自己的请求照样计用量 | 只需要结论的侧任务 |
-| **Hooks** | 生命周期事件触发 | 低（在主上下文之外） | 零例外的规则和确定性自动化：格式化、阻断对某个目录的编辑。要真正强制，用 `command` 或 `http` 类型的 hook |
+| **Hooks** | 生命周期事件触发 | 低（在主上下文之外） | 零例外的规则和确定性自动化：格式化、阻断对某个目录的编辑。要真正强制，用 `command` 或 `http` 类型的 hook；hook 自己失败或超时时默认放行，想在这种时候也拦住就设 `onFailure: "block"`（2.1.295 起）。只有退出码 2 才拦，退出码 1 不拦 |
 | **Output styles** | 会话开始，compaction 后仍然生效 | **高** | 每次回复都要的语气、长度或格式，或者让 Claude 以软件工程师之外的角色工作 |
 | **追加 system prompt** | 以 CLI 参数在启动时传入 | 中 | 脚本和自动化里需要放在 system prompt 层的指令（`--append-system-prompt`） |
 
@@ -1828,7 +1833,7 @@ Anthropic 的「Steering Claude Code」一文列了七种方法；这里 CLAUDE.
 
 **怎么写**（Memory 页）：Claude 把 CLAUDE.md 当作上下文，不是强制执行的配置，所以怎么写决定了它被遵守得多可靠。指令要具体到能验证：写 "Use 2-space indentation"，不写 "Format code properly"。两条指令互相矛盾时，Claude 可能随便挑一条，所以定期清掉过时的和冲突的。CLAUDE.md 的内容是作为 system prompt 之后的一条 user 消息送达的，不是 system prompt 的一部分。
 
-**不写什么**：Claude 读代码就能得出的东西。官方把在 CLAUDE.md 里描述架构和文件布局列进了可以停掉的旧做法。个人偏好放 `CLAUDE.local.md` 并加进 `.gitignore`。
+**不写什么**：Claude 读代码就能得出的东西。官方把在 CLAUDE.md 里描述架构和文件布局列进了可以停掉的旧做法。个人偏好放 `CLAUDE.local.md` 并加进 `.gitignore`。仓库用 `AGENTS.md` 当项目指令时要留意（Memory 页）：工作目录或上层只要有 `CLAUDE.md` 或 `CLAUDE.local.md`，Claude 默认就只读 CLAUDE.md 这些文件，不再读 `AGENTS.md`；要两者都生效，在 CLAUDE.md 里导入它。
 
 **某一行老被忽略时**：加 IMPORTANT 多半没用（3.3）。要么文件太长、那一行被淹没了，缩短文件；要么它是不能有例外的规则，做成 hook。
 
@@ -1842,7 +1847,7 @@ Anthropic 的「Steering Claude Code」一文列了七种方法；这里 CLAUDE.
 | 主指令 | `SKILL.md` 正文 | Claude 判断相关时 |
 | 附加文件 | 从 SKILL.md 引用的其他文件 | 只在真正需要那个场景时 |
 
-CLAUDE.md 的那条规则对 skill 同样适用：只写 Claude 自己找不到的。迁移到 Fable 5.2 时，skills 和 agent 文件也在 Fable 5.2 专页要求复查的范围里（3.13）。
+CLAUDE.md 的那条规则对 skill 同样适用：只写 Claude 自己找不到的。Skills 页对正文的写法是 `State what to do rather than narrating how or why`，理由是 skill 加载后一直留在上下文里，每一行都是反复付出的 token；这和给 prompt 里的约束附上原因（3.5）方向不同，写 skill 正文时按 Skills 页。迁移到 Fable 5.2 时，skills 和 agent 文件也在 Fable 5.2 专页要求复查的范围里（3.13）。
 
 Claude Code 文档里两条和截断有关的写法提示：skill 列表里 `description` 和 `when_to_use` 合计超过 1,536 个字符的部分会被截掉，所以把最主要的使用场景写在最前（Skills 页）；compaction 之后重新注入的 skill 正文，大的会按每个 skill 的上限截断并保留文件开头，所以最重要的指令放在 `SKILL.md` 靠前的位置（Context window 页）。
 
@@ -1884,6 +1889,8 @@ Claude Code 最佳实践 "Let Claude run without you"。让一个任务自己跑
 4. 什么能让它停？`--max-turns`、`--max-budget-usd`、spend limit
 5. 结果去哪儿、谁签字？一个 PR、一条评论或一份总结，然后由人批准合并、部署或其他收不回来的事
 
+后台会话（从 agent view、`claude --bg` 或 `/bg` 启动）在 worktree 里改了代码时，默认会不经询问地提交，并在仓库有 remote 时推送分支，任务需要时开 draft PR；它不会推 `main` 或 `master`、不 force-push、不 merge。任务、CLAUDE.md 或 memory 里写了由你自己处理提交和推送时，以你写的为准（Agent view 页）。所以给这种会话写的 prompt 要写明 git 的结束状态。
+
 官方的理由：你盯着的时候，Claude 缺一点上下文不要紧，一两条消息内你就会发现并告诉它；睡前启动的运行里没人告诉它，第二天早上才发现它一整夜都在错误的假设上往下做。
 
 ### 可以停掉的旧做法
@@ -1902,7 +1909,7 @@ Claude Code 最佳实践 "What you can stop doing"。审查用户给的 Claude C
 
 ### 会话没按预期走时
 
-Claude Code 最佳实践开头的诊断，值得随 prompt 一并转告用户：
+Claude Code 最佳实践开头的诊断，用户反馈会话没按预期走时用：
 
 | 现象 | 多半是什么原因 | 去看哪一节 |
 |---|---|---|
@@ -1972,7 +1979,7 @@ Claude Code 最佳实践开头的诊断，值得随 prompt 一并转告用户：
 
 模型和 effort 在发送按钮旁的模型菜单里选，选哪一档按第 2 节。支持站对各档的说法：Low 和 Medium 适合例行任务，也让用量撑得更久；High 在质量和速度之间最均衡；Extra high 面向长时间的编码和 agentic 任务；Max 最彻底。每个模型的推荐档在菜单里标着 "Default"。
 
-同一篇文章按任务给的建议（"Choose the right settings for your task"）：日常任务用默认值就行，简单问题、基本的信息查询和一般的写作不需要额外的 effort，更低的 effort 让用量撑得更久；复杂任务提高 effort、打开 thinking，或两者都做；`For complex coding and agentic tasks on Opus 4.7 or newer, try Extra high (xhigh) first`；最难、对正确性要求最高的工作选 Max，并预期更长的响应时间；不管选哪种设置，把问题说具体。其中 xhigh 那一句和模型页不一致：Opus 5.5 和 Fable 5.2 的页面都把 `xhigh` 留给实测到提升的工作，Sonnet 5.5 和 Haiku 5.5 的页面也只在评测显示质量提升时才用 `xhigh`。这个 skill 按模型页来选（第 2 节），交付说明里把支持站这句话也告诉用户。
+同一篇文章按任务给的建议（"Choose the right settings for your task"）：日常任务用默认值就行，简单问题、基本的信息查询和一般的写作不需要额外的 effort，更低的 effort 让用量撑得更久；复杂任务提高 effort、打开 thinking，或两者都做；`For complex coding and agentic tasks on Opus 4.7 or newer, try Extra high (xhigh) first`；最难、对正确性要求最高的工作选 Max，并预期更长的响应时间；不管选哪种设置，把问题说具体。其中 xhigh 那一句和模型页不一致：Opus 5.5 和 Fable 5.2 的页面都把 `xhigh` 留给实测到提升的工作，Sonnet 5.5 和 Haiku 5.5 的页面也只在评测显示质量提升时才用 `xhigh`。这个 skill 按模型页来选（第 2 节）；任务是复杂编码或 agentic 工作时，交付说明里把支持站这句话也告诉用户。
 
 Fable 5.2、Opus 5.5、Sonnet 5.5、Haiku 5.5 在 Claude 应用里都关不掉 thinking，想让它少思考就选更低的 effort。
 

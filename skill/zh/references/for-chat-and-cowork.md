@@ -55,7 +55,7 @@
 
 模型和 effort 在发送按钮旁的模型菜单里选，选哪一档按 SKILL.md 第 2 节。支持站对各档的说法：Low 和 Medium 适合例行任务，也让用量撑得更久；High 在质量和速度之间最均衡；Extra high 面向长时间的编码和 agentic 任务；Max 最彻底。每个模型的推荐档在菜单里标着 "Default"。
 
-同一篇文章按任务给的建议（"Choose the right settings for your task"）：日常任务用默认值就行，简单问题、基本的信息查询和一般的写作不需要额外的 effort，更低的 effort 让用量撑得更久；复杂任务提高 effort、打开 thinking，或两者都做；`For complex coding and agentic tasks on Opus 4.7 or newer, try Extra high (xhigh) first`；最难、对正确性要求最高的工作选 Max，并预期更长的响应时间；不管选哪种设置，把问题说具体。其中 xhigh 那一句和模型页不一致：Opus 5.5 和 Fable 5.2 的页面都把 `xhigh` 留给实测到提升的工作，Sonnet 5.5 和 Haiku 5.5 的页面也只在评测显示质量提升时才用 `xhigh`。这个 skill 按模型页来选（SKILL.md 第 2 节），交付说明里把支持站这句话也告诉用户。
+同一篇文章按任务给的建议（"Choose the right settings for your task"）：日常任务用默认值就行，简单问题、基本的信息查询和一般的写作不需要额外的 effort，更低的 effort 让用量撑得更久；复杂任务提高 effort、打开 thinking，或两者都做；`For complex coding and agentic tasks on Opus 4.7 or newer, try Extra high (xhigh) first`；最难、对正确性要求最高的工作选 Max，并预期更长的响应时间；不管选哪种设置，把问题说具体。其中 xhigh 那一句和模型页不一致：Opus 5.5 和 Fable 5.2 的页面都把 `xhigh` 留给实测到提升的工作，Sonnet 5.5 和 Haiku 5.5 的页面也只在评测显示质量提升时才用 `xhigh`。这个 skill 按模型页来选（SKILL.md 第 2 节）；任务是复杂编码或 agentic 工作时，交付说明里把支持站这句话也告诉用户。
 
 Fable 5.2、Opus 5.5、Sonnet 5.5、Haiku 5.5 在 Claude 应用里都关不掉 thinking，想让它少思考就选更低的 effort。
 

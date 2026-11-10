@@ -231,7 +231,7 @@ Fable 5 页面曾建议长自主运行时按间隔自查、并说独立的干净
 | Claude API | `high` | `medium` | `high` | `medium` |
 | Claude Code | `medium` | `medium` | `medium` | `medium` |
 
-Claude 应用里每个模型的推荐档在菜单里标着 "Default"；发布公告说 Fable 5.2 在 Claude 应用和 Claude Code 里默认 `medium`。支持站那篇讲应用设置的文章另有一句：Opus 4.7 及更新模型上的复杂编码和 agentic 任务，`try Extra high (xhigh) first`。这和 Opus 5.5、Fable 5.2 各自页面的说法（`xhigh` 留给实测到提升的工作）不一致，Sonnet 5.5 和 Haiku 5.5 的页面同样只在评测显示质量提升时才用 `xhigh`；本文件按各模型自己的页面，场景 B 的交付说明里把两种说法都告诉用户。
+Claude 应用里每个模型的推荐档在菜单里标着 "Default"；发布公告说 Fable 5.2 在 Claude 应用和 Claude Code 里默认 `medium`。支持站那篇讲应用设置的文章另有一句：Opus 4.7 及更新模型上的复杂编码和 agentic 任务，`try Extra high (xhigh) first`。这和 Opus 5.5、Fable 5.2 各自页面的说法（`xhigh` 留给实测到提升的工作）不一致，Sonnet 5.5 和 Haiku 5.5 的页面同样只在评测显示质量提升时才用 `xhigh`；本文件按各模型自己的页面；场景 B 的任务是复杂编码或 agentic 工作时，交付说明里把两种说法都告诉用户。
 
 **effort 页对各档的通用定义**（各模型自己的建议与它不同时，以各模型的为准）：
 
@@ -308,7 +308,7 @@ Claude 应用里每个模型的推荐档在菜单里标着 "Default"；发布公
 
 - SWE-bench Pro 子集（463 题）：Fable 5.2 在 `high` 解出 96.3%，每个解出的任务 $1.39；在 `low` 解出 94.6%、$0.39。Opus 5.5 默认档 93.1%、$0.22；`high` 95.5%、$0.30；`xhigh` 96.5%、$0.75。官方的话：`At a similar pass rate, Claude Opus 5.5 still costs less per solved task on these problems`
 - Opus 5.5 在 `low` 与 Sonnet 5.5 在默认档解出的比例大致相同，每个解出的任务贵约 7%
-- DeepResearch Bench II（研究类；对每个模型都评了分的 44 个任务，Messages API 上的默认 effort）：Opus 5.5 比 Sonnet 5.5 高 2.4 分，每任务成本是 1.5 倍（在全部 50 个任务上，Opus 5.5 没有可测地领先 Sonnet 5.5）；Fable 5.2 的成本是 Sonnet 5.5 的 4.3 倍，分数没有可测的提升；是 Opus 5.5 的 2.9 倍，分数低 1.9 分（同一页的参考注：11 月 6–7 日重跑，43 个任务上 Fable 5.2 在 `high` 比 Opus 5.5 低 0.9 分，95% 区间从高 1.0 分到低 2.7 分）。对比 Fable 5.1，它在各档位成本低 20% 到 61%，分数低 4.7 到 7.0 分。成本页紧挨着这组数字的建议：`Measure what a more expensive model buys on your own workload`，以及 `Price the tail of your workload, not the median`（拿最难的那十分之一任务来比，而不是典型任务）
+- DeepResearch Bench II（研究类；对每个模型都评了分的 44 个任务，Messages API 上的默认 effort）：Opus 5.5 比 Sonnet 5.5 高 2.4 分，每任务成本是 1.5 倍（在全部 50 个任务上，Opus 5.5 没有可测地领先 Sonnet 5.5）；Fable 5.2 的成本是 Sonnet 5.5 的 4.3 倍，分数没有可测的提升；是 Opus 5.5 的 2.9 倍，分数低 1.9 分。对比 Fable 5.1，它在各档位成本低 20% 到 61%，分数低 4.7 到 7.0 分。成本页紧挨着这组数字的建议：`Measure what a more expensive model buys on your own workload`，以及 `Price the tail of your workload, not the median`（拿最难的那十分之一任务来比，而不是典型任务）
 - 对比 Fable 5.1 的另外两组数字（成本页）：SWE-bench Pro 子集上，Fable 5.1 默认档解出 92.4%、每个解出的任务 $1.17，Fable 5.2 在 `high` 解出 96.3%、$1.39——解得更多，每个解出的任务更贵；缺陷搜索基准上，Fable 5.2 在每一档都比 Fable 5.1 分数高、成本低（`low` 高 3.6 分、便宜 32%；`medium` 高 3.8 分、便宜 37%；`high` 高 6.1 分、便宜 21%）
 - 缺陷搜索基准（工作量超出一个上下文窗口）：Fable 5.2 单独做，`low` 到 `high` 比 Opus 5.5 单独在 `high` 高 1.6 到 5.9 分，成本是 1.5 到 2.4 倍
 - 内部 agentic 编码基准：Opus 5.5 在 `medium` 86.6%、每次尝试 $0.84；Fable 5.2 在 `medium` 88.9%（单次运行）、$1.34
@@ -330,16 +330,17 @@ Claude 应用里每个模型的推荐档在菜单里标着 "Default"；发布公
 - Pro 和 Max：一个五小时会话上限加一个每周上限。Ultra：每周上限；**通过验证的 Ultra 账号没有五小时上限**，没通过验证前有一个临时上限。Max 和 Ultra 另有一个单独的 Fable 每周上限（支持站「Use Claude Code with your Pro, Max, or Ultra plan」「What is the Ultra plan?」）
 - Ultra 每周用量是 Pro 的 10 倍。各计划只用 Pro 的倍数描述，官方没有给出绝对的 token 或消息数（支持站「What is the Ultra plan?」）
 - 上限在 Claude 和 Claude Code 之间共用，IDE 里的用量也算在同一个上限里（支持站「Use Claude Code with your Pro, Max, or Ultra plan」）
-- Max 和 Ultra 上，Fable 模型最多可以用掉每周上限的 50%，而且 `use them faster than other Claude models`。到了 Fable 上限后，可以用 usage credits 继续用 Fable，或者换到别的模型在计划内继续。Pro 和 Team 的标准席位上，除限时的发布优惠外，Fable 模型不含在计划额度里，从一开始就走按量付费的 usage credits（支持站「Claude Fable models on your plan」）；发布优惠是 2026-11-09 到 2026-11-16 这一周，这些席位也可以把每周上限的最多 50% 用在 Fable 上（「Claude Fable 5.2 launch offers」）
+- Max 和 Ultra 上，Fable 模型最多可以用掉每周上限的 50%，而且 `use them faster than other Claude models`。到了 Fable 上限后，可以用 usage credits 继续用 Fable，或者换到别的模型在计划内继续。Pro 和 Team 的标准席位上，除限时的发布优惠外，Fable 模型不含在计划额度里，从一开始就走按量付费的 usage credits（支持站「Claude Fable models on your plan」）
 - 用量同时计入会话上限和每周上限；Claude Code 错误参考页的原话：`A single burst of heavy activity, such as a large workflow fanout, can exhaust the weekly allowance before the session window resets.` 开着 ultracode 的会话每个请求用的 token 更多，会更早到会话或每周上限（workflows 页）
 - Ultra 的支持页另写明：为管理容量，可能适用额外的用量限制
 - effort 越高，`you'll reach your usage limits faster`（支持站「Change the model, effort, and thinking settings」）
 
 ### 到了上限会怎样
 
-- 请求会被挡住，直到上限重置。会话上限和每周上限对所有模型共用，`so switching models doesn't restore access`；Opus 或 Sonnet 系列各自的上限只管对那个系列的请求，换到系列外的模型可以继续（错误参考页）；到了单独的 Fable 每周上限，同样可以换到别的模型继续用计划内的额度（见上）。可选的做法：等重置；开 usage credits（按 API 价格计）；`/rate-limit-options` 里选等待并在重置后自动继续（Claude Code 命令页）
-- 无人值守的会话可以设 `CLAUDE_CODE_RETRY_WATCHDOG=1`：它会一直重试容量错误，响应带了重置时间时就等到上限重置，`so a session that hits a usage limit waits out the remaining window`（环境变量页）
-- 在五小时上限处，如果 Claude Code 正在回复中途，可能短暂继续把手上这一步做完，界面显示 `Usage limit reached · wrapping up`；这只对已经在进行的回复有效，而且这项功能在逐步推出，账号上可能还没有。通过验证的 Ultra 账号没有五小时上限，所以不涉及（同一篇支持站文章）
+- 请求会被挡住，直到上限重置。会话上限和每周上限对所有模型共用，`so switching models doesn't restore access`；Opus 或 Sonnet 系列各自的上限只管对那个系列的请求，换到系列外的模型可以继续（错误参考页）；到了单独的 Fable 每周上限，同样可以换到别的模型继续用计划内的额度（见上）。开着的交互式会话默认会等到重置后自动接着做（`autoContinueAtUsageLimit` 默认 `true`；settings 页）。其他做法：开 usage credits（按 API 价格计）；关掉了自动继续的，可以在 `/rate-limit-options` 里手动选等待（Claude Code 命令页）
+- 无人值守的会话可以设 `CLAUDE_CODE_RETRY_WATCHDOG=1`：它会一直重试容量错误，响应带了重置时间时就等到上限重置，`so a session that hits a usage limit waits out the remaining window`；例外是报告 spend limit 或 usage credits 用尽的 429，遇到它会立刻失败（环境变量页）
+- **没人守着的会话里用 Fable**（错误参考页）：后台会话、Remote Control 会话、agent team 队友会话和 Agent SDK 托管的会话里，Fable 走 usage credits 的确认提示没人回答就会关掉，这一轮以 `the prompt to confirm went unanswered — nothing was sent` 结束；到了 Fable 上限、或 Fable 请求开始走 usage credits 时都会这样。处理办法：到会话运行的地方回答提示，`/model` 换到不走 usage credits 的模型，或把 `dialogExpiry` 设长
+- 在五小时上限处，如果 Claude Code 正在回复中途，可能短暂继续把手上这一步做完，界面显示 `Usage limit reached · wrapping up`；这只对已经在进行的回复有效，而且这项功能在逐步推出，账号上可能还没有。通过验证的 Ultra 账号没有五小时上限，所以不涉及（支持站「Use Claude Code with your Pro, Max, or Ultra plan」）
 - **子智能体**因 API 错误（官方举的例子包括 usage limit）结束时：前台子智能体如果已经产出了文字，Agent 工具返回这段部分输出，并注明它被打断、没做完；什么都没产出、或只产出了工具调用的，以 `Agent terminated early due to an API error` 失败。后台子智能体标记为失败，回报里带它最后的输出，`so partial work isn't lost`。错误消除后可以让 Claude 重试，或用 SendMessage 续跑那个子智能体（Explore 和 Plan 不能续跑）（子智能体页 "API errors in subagents"）
 - **dynamic workflow** 里的 agent 撞到 claude.ai 用量上限时，这次运行会暂停而不是失败：撞到上限的 agent 等重置，不再启动新的 agent，重置后自动继续。条件：交互式会话、用 claude.ai 订阅登录、`autoContinueAtUsageLimit` 开着、上限在 24 小时内重置（每周上限的重置可能更远）、这次运行此前等待不超过两次；用 `claude -p` 或 Agent SDK 的非交互模式、后台会话、Remote Control 会话和 agent team 队友会话里不会暂停（workflows 页；需要 Claude Code 2.1.271 及以上）
 - **`/goal`** 在 claude.ai 用量上限这类重试也只会重复的失败之后暂停，并给出以 `Goal paused` 开头的提示；会话如果在等上限重置后自动继续，重置后 Claude 接着朝目标做（goal 页）

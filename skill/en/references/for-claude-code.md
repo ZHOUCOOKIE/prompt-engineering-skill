@@ -1,6 +1,8 @@
 # Scenario A: task prompts destined for Claude Code
 
-The user describes work in Claude desktop; you produce a prompt they paste into Claude Code (including the VS Code extension's graphical window).
+The user describes work in Claude desktop; you produce a prompt they paste into Claude Code (the terminal, the VS Code extension's graphical window, or the Code tab of the Claude Desktop app).
+
+**When the user runs it in the Desktop app** (the Claude Code Desktop page): the Code tab is interactive only. It has no `claude -p` and none of the flags designed for scripting, such as `--max-turns` and `--max-budget-usd`; the `dontAsk` permission mode is available only in the CLI, and so are agent teams (for multi-agent work in Desktop the docs point to dynamic workflows). Model and effort are chosen in the model picker on the prompt box row. Where the advice below relies on any of these, give a Desktop user the equivalent that works there, and do not send them to a command they cannot run in the delivery note.
 
 The main basis here is four pages of the Claude Code docs: Best practices, Create custom subagents, Model configuration, and Manage costs effectively. Anything that comes from elsewhere is cited inline.
 
@@ -50,11 +52,11 @@ The docs give four levels, from Claude deciding for itself to Claude Code enforc
 | Level | What it is | What the docs say |
 |---|---|---|
 | **In the prompt** | `run the auth tests after, and keep going until they pass` | Claude decides for itself when it is satisfied. Works for any task, with no setup |
-| **As a goal** | `/goal all tests in tests/auth pass and lint is clean`: after every turn, a separate model checks the condition against the conversation | Rarely needed when you are watching the session yourself. It matters for long background runs: Claude sometimes ends a turn with a progress summary while items are still open, and the goal sends it back |
+| **As a goal** | `/goal all tests in tests/auth pass and lint is clean`: after every turn, a separate model checks the condition against the conversation. The evaluator judges only what has appeared in the conversation and does not run commands or read files itself, so write the condition as something Claude's own output can demonstrate; a goal does not change the permission mode, so run it in auto mode to let it go unattended | Rarely needed when you are watching the session yourself. It matters for long background runs: Claude sometimes ends a turn with a progress summary while items are still open, and the goal sends it back |
 | **A `Stop` hook** | Runs your script when Claude tries to end its turn, and sends Claude back to work if the script exits with code 2 | Enforced by Claude Code. If the hook blocks eight times in a row with no tool call in between, Claude Code lets the next stop through; `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP` changes this cap |
-| **Review by someone who didn't write the code** | In the terminal, `/code-review` reviews the diff in a fresh subagent that never saw your conversation | It isn't swayed by the reasoning that produced the code |
+| **Review by someone who didn't write the code** | `/code-review` reviews the diff in a fresh subagent that never saw your conversation | It isn't swayed by the reasoning that produced the code |
 
-**This level is worth a line in the delivery note.** When the user describes a long run that nobody will be watching, tell them what the docs say: a run like that is enforced with `/goal` or a `Stop` hook.
+When the user describes a long run that nobody will be watching, tell them in the delivery note what the docs say: a run like that is enforced with `/goal` or a `Stop` hook.
 
 To have the review check the work against the plan rather than hunt for bugs in general, write the review prompt yourself. The official example:
 
@@ -62,7 +64,7 @@ To have the review check the work against the plan rather than hunt for bugs in 
 use a subagent to review the rate limiter diff against SPEC.md, check every requirement is implemented and the listed edge cases have tests, report gaps that affect correctness and skip style
 ```
 
-The docs specifically warn against dropping `skip style`: `A reviewer that's asked to find problems will always find something.` If you fix every finding, you end up with extra abstraction layers and tests for cases that can't happen. In this official example the subagent reviews and reports straight back to you. Snippet 4.16 comes from the Sonnet 5 page's "Code review harnesses" section, which is about a harness with a separate filtering step afterwards, and has the reviewer report everything; the Opus 5 page warns that when a review prompt sets a severity bar, the model `might follow that instruction literally and report less` (measured on Opus 5; the Opus 5.5 pages neither restate nor retract it; see `models.md`).
+The docs specifically warn against dropping `skip style`: `A reviewer that's asked to find problems will always find something.` If you fix every finding, you end up with extra abstraction layers and tests for cases that can't happen. In this official example the subagent reviews and reports straight back to you. Snippet 4.16 comes from the Sonnet 5 page's "Code review harnesses" section and goes the other way: have the reviewer report everything, and move filtering by confidence and severity out of the finding step. That page says the prompt can be used without an actual second step, and that if you do want the model to filter in a single pass you should make the reporting threshold concrete. The Opus 5 page also warns that when a review prompt sets a severity bar, the model `might follow that instruction literally and report less` (measured on Opus 5; the Opus 5.5 pages neither restate nor retract it; see `models.md`).
 
 ---
 
@@ -187,11 +189,11 @@ Each agent in a workflow gets its model in the same order as a subagent: a model
 use a workflow to audit every route handler under src/routes/ for missing authentication checks, and adversarially verify each finding before reporting it
 ```
 
-The Claude Code best practices give two more ways to run bulk work. For one big mechanical change across many files, use `/batch`; the page's example is `/batch migrate every handler to the v2 response helpers`, which splits the work into 5 to 30 units and shows you the plan, and once you approve it each unit gets its own worktree and opens a PR or reports what happened. When you loop over `claude -p` from a script: `Try it on three files first, see what goes wrong, fix the prompt, then run the rest.`
+The Claude Code best practices give two more ways to run bulk work. For one big mechanical change across many files, use `/batch`; the page's example is `/batch migrate every handler to the v2 response helpers`, which splits the work into 5 to 30 units and shows you the plan, and once you approve it each unit gets its own worktree and opens a PR or reports what happened. When you loop over `claude -p` from a script: `Try it on three files first, see what goes wrong, fix the prompt, then run the rest.` When the script adds `--bare` (the Headless page calls it the recommended mode for scripted calls and says it will become the default for `-p`), Claude Code loads no CLAUDE.md, hooks, skills or custom subagents and cannot run background subagents, so such a prompt has to carry its own check command and the rules that must hold.
 
 **How results come back**: subagents the main conversation starts run in the background by default, and their results arrive as completion notices on a later turn. While fork mode is on (the default), Claude can't wait for a subagent in interactive terminal, VS Code or desktop sessions on your machine; to let it wait, turn fork mode off first (`CLAUDE_CODE_FORK_SUBAGENT=0`). The result a subagent returns when it finishes goes into the main conversation's context. The official caution: `Running many subagents that each return detailed results can consume significant context, and each subagent spends tokens of its own while it runs.` So the brief should ask them to report back short summaries.
 
-**What to put in the brief**: a non-fork subagent starts from a fresh context and doesn't see the conversation history, the skills already invoked, or the files Claude has read. It does load CLAUDE.md; the built-in Explore and Plan, and a subagent whose definition sets `omitClaudeMd`, skip the levels the main conversation loads, though a subdirectory's CLAUDE.md still loads when the subagent works with files there. The subagents page puts it this way: the main conversation still has the full CLAUDE.md when it reads these subagents' results, so most rules don't need to reach the subagent; a rule that must reach it (the page's example is ignoring the `vendor/` directory) should be restated in the prompt that asks Claude to delegate. The Agent SDK's subagents page: `The only content you pass from parent to subagent is the Agent tool's prompt string, so include any file paths, error messages, or decisions the subagent needs directly in that prompt.`
+**What to put in the brief**: a non-fork subagent starts from a fresh context and doesn't see the conversation history, the skills already invoked, or the files Claude has read. It does load CLAUDE.md; the built-in Explore and Plan skip the levels the main conversation loads, and a subagent whose definition sets `omitClaudeMd` loads only the managed policy files. In these cases a subdirectory's CLAUDE.md still loads when the subagent works with files there. The subagents page puts it this way: the main conversation still has the full CLAUDE.md when it reads these subagents' results, so most rules don't need to reach the subagent; a rule that must reach it (the page's example is ignoring the `vendor/` directory) should be restated in the prompt that asks Claude to delegate. The Agent SDK's subagents page: `The only content you pass from parent to subagent is the Agent tool's prompt string, so include any file paths, error messages, or decisions the subagent needs directly in that prompt.`
 
 **Errors and usage limits** (subagents page, "API errors in subagents"): a subagent whose run ends on an API error (the docs' examples are a usage limit or a repeated server error) reports the failure back to Claude. If a foreground subagent already produced text, the Agent tool returns that partial output with a note that it was cut off and didn't finish; one that produced nothing, or only tool calls, fails with `Agent terminated early due to an API error`. A background subagent is marked failed, and the message Claude receives names the API error and includes the subagent's last output, `so partial work isn't lost`. Once the error clears, ask Claude to retry, or resume that subagent with `SendMessage`; a resumed subagent keeps its full conversation history. Explore and Plan are one-shot and can't be resumed. Subagent transcripts are saved separately from the main conversation, so a subagent can still be resumed after you restart Claude Code and resume the same session.
 
@@ -242,7 +244,7 @@ Anthropic's "Steering Claude Code" article lists seven methods; CLAUDE.md takes 
 | **Rules** | Session start (unscoped) or on file access (scoped) | Medium | Rules that only matter in one part of the codebase. **Add a `paths:` filter** so they load only when Claude is actually working there |
 | **Skills** | Name and description at start, body on invocation | Low | Team procedures and knowledge: the release process, the incident runbook, how API docs are written. For a workflow with side effects, add `disable-model-invocation: true` so it runs only when you type the command yourself |
 | **Subagents** | Name and description at start, body when called; only the final message returns | Low for the main context; its own requests still count toward usage | Side tasks where you only want the conclusion |
-| **Hooks** | Fire on lifecycle events | Low (outside main context) | Zero-exception rules and deterministic automation: formatting, blocking edits to a directory. For real enforcement, use a `command` or `http` hook |
+| **Hooks** | Fire on lifecycle events | Low (outside main context) | Zero-exception rules and deterministic automation: formatting, blocking edits to a directory. For real enforcement, use a `command` or `http` hook; when the hook itself fails or times out the action still goes through by default, so set `onFailure: "block"` (2.1.295 or later) if it should be stopped then too. Only exit code 2 blocks; exit code 1 does not |
 | **Output styles** | Session start; still in effect after compaction | **High** | Tone, length, or format you want on every reply, or having Claude work in a role other than software engineer |
 | **Appending the system prompt** | Passed as a CLI flag at startup | Moderate | Instructions in scripts and automation that need to sit at the system prompt level (`--append-system-prompt`) |
 
@@ -250,7 +252,7 @@ Anthropic's "Steering Claude Code" article lists seven methods; CLAUDE.md takes 
 
 **How to write it** (Memory page): Claude treats CLAUDE.md as context, not enforced configuration, so how you write an instruction affects how reliably it is followed. Make instructions concrete enough to verify: write "Use 2-space indentation", not "Format code properly". If two instructions contradict each other, Claude may pick one arbitrarily, so remove outdated and conflicting ones from time to time. CLAUDE.md content is delivered as a user message after the system prompt, not as part of the system prompt.
 
-**What does not**: anything Claude can work out by reading the code. The docs list describing architecture and file layout in CLAUDE.md among the old habits you can drop. Personal preferences go in `CLAUDE.local.md`, which you add to `.gitignore`.
+**What does not**: anything Claude can work out by reading the code. The docs list describing architecture and file layout in CLAUDE.md among the old habits you can drop. Personal preferences go in `CLAUDE.local.md`, which you add to `.gitignore`. Take care when the repository uses `AGENTS.md` as its project instructions (Memory page): once there is a `CLAUDE.md` or `CLAUDE.local.md` in the working directory or above it, Claude by default reads the CLAUDE.md files only and no longer reads `AGENTS.md`; to have both apply, import it from CLAUDE.md.
 
 **When one line keeps getting ignored**: adding IMPORTANT probably won't help (SKILL.md 3.3). Either the file is too long and the line gets lost, so shorten the file; or it is a rule that can't have exceptions, so make it a hook.
 
@@ -264,7 +266,7 @@ Anthropic's "Steering Claude Code" article lists seven methods; CLAUDE.md takes 
 | Primary instructions | The `SKILL.md` body | When Claude judges the skill relevant |
 | Bundled files | Files referenced from SKILL.md | Only when that specific scenario arises |
 
-The CLAUDE.md rule applies to skills too: only write down what Claude can't find on its own. When you migrate to Fable 5.2, skills and agent files are also within what the Fable 5.2 page asks you to review (SKILL.md 3.13).
+The CLAUDE.md rule applies to skills too: only write down what Claude can't find on its own. For the body, the Skills page says `State what to do rather than narrating how or why`, because once a skill loads it stays in context and every line is a recurring token cost; this points a different way from attaching a reason to each constraint in a prompt (SKILL.md 3.5), and for a skill body the Skills page is the one to follow. When you migrate to Fable 5.2, skills and agent files are also within what the Fable 5.2 page asks you to review (SKILL.md 3.13).
 
 Two writing tips from the Claude Code docs that concern truncation: in the skill listing, the combined `description` and `when_to_use` text is cut off past 1,536 characters, so put the main use case first (Skills page); after compaction, large skill bodies that are re-injected get truncated to a per-skill cap that keeps the start of the file, so put the most important instructions near the top of `SKILL.md` (Context window page).
 
@@ -306,6 +308,8 @@ Claude Code best practices, "Let Claude run without you". Before you let a task 
 4. What stops it? `--max-turns`, `--max-budget-usd`, a spend limit
 5. Where does the result go, and who signs off? A PR, a comment, or a summary, and then a person approving the merge, the deploy, or anything else that can't be taken back
 
+A background session (started from agent view, `claude --bg` or `/bg`) that has changed code in a worktree will by default commit without asking, push the branch when the repository has a remote, and open a draft PR when the task calls for it; it never pushes to `main` or `master`, force-pushes or merges. If the task, CLAUDE.md or memory says you handle committing or pushing yourself, your instruction takes precedence (Agent view page). So a prompt written for such a session should state the git end state.
+
 The official reasoning: while you are watching, Claude missing some context doesn't matter much, because you notice within a message or two and tell it. In a run started before bed, nobody tells it, and you find out the next morning that it spent the whole night building on the wrong assumption.
 
 ## Old habits you can drop
@@ -324,7 +328,7 @@ Claude Code best practices, "What you can stop doing". When you review a user's 
 
 ## When a session doesn't go as expected
 
-The diagnosis at the top of the Claude Code best practices, worth passing on to the user along with the prompt:
+The diagnosis at the top of the Claude Code best practices, for when the user reports that a session did not go as expected:
 
 | Symptom | Most likely cause | Section to read |
 |---|---|---|

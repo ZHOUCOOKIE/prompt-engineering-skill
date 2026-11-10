@@ -34,7 +34,7 @@ description: Writes, rewrites, reviews, and audits prompts and system prompts us
 | 研究、分析、写作、整理资料、做文档表格幻灯片、日程、信息汇总；在 Claude 应用里直接跑 | **B：给 chat 或 Cowork 的任务 prompt** | `references/for-chat-and-cowork.md` |
 | 用户在聊天途中丢来一段 prompt 问"这样写行不行" | **C：临时检查** | 见第 6 节，走轻量流程 |
 
-判断不了时按用户描述里的**动词**判断：动代码用 A，其余用 B。两边都沾（例如"分析这个仓库的技术债并写成报告"）时按**最终交付物**判断——交付物是代码改动走 A，是文档走 B。
+用户说了在哪里跑，就按他说的：在 Claude Code 里跑的非代码任务（批量读文件、提取、汇总）也走 A。没说、又判断不了时按用户描述里的**动词**判断：动代码用 A，其余用 B。两边都沾（例如"分析这个仓库的技术债并写成报告"）时按**最终交付物**判断——交付物是代码改动走 A，是文档走 B。
 
 ### 补齐变量
 
@@ -61,7 +61,7 @@ description: Writes, rewrites, reviews, and audits prompts and system prompts us
 
 1. **模型和 effort 默认由你自己定。** 只有取舍确实存在、从上下文又推断不出来时，才在输出 prompt 之前问用户一次，并带上选项和推荐项。
 2. **不刻意省用量，也不无依据地往上加。** 用户是 Ultra 订阅：不要仅仅为了省用量，把模型或档位选得比任务对应的那一档低；也不要在没有本节所列依据的情况下，把模型或档位往上提。
-3. **大批量任务里，主会话和批量子智能体分开选模型**，见本节「大批量处理」。
+3. **大批量任务里，主会话和批量子智能体分开选模型**，见本节「大批量处理」。那里给批量子智能体定的模型和档位是用户对这类任务的明确选择，不受规则 2 约束。
 
 官方的起点（Anthropic 2026-11-09 的选型文章「Which Claude model should you build with?」）：`you should start most work on Opus 5.5 at its default effort level`，也就是 `medium`。四个现行模型按价格和能力从低到高是 Haiku 5.5、Sonnet 5.5、Opus 5.5、Fable 5.2。
 
@@ -86,6 +86,8 @@ description: Writes, rewrites, reviews, and audits prompts and system prompts us
 同一篇文章对往下、往上走的补充：范围清楚的日常工作往下到 Sonnet 5.5，但 `Just because you have a clear spec doesn't mean you should use Sonnet`——迁移或性能优化可以 spec 很清楚，难度仍然够得上 Opus 5.5，大的够得上 Fable 5.2。往上到 Fable 5.2 的三种情况：编码、金融和科学里最难的技术项目；Opus 5.5 在 `high` 下仍然不够；长时间无人值守的运行。Claude Code 的 model-config 页：Fable 模型在任何计划上都不是默认，要用 `/model fable` 显式选。
 
 ### 每个模型怎么调档
+
+任务表给的是起步档；任务一开始就符合下表某一格的上调或下调条件时，直接用那一格的档位。
 
 | 模型 | 默认档 | 什么时候上调 | 什么时候下调 |
 |---|---|---|---|
@@ -143,14 +145,14 @@ Claude Code 里没指定模型的子智能体跟主会话用同一个模型，�
 
 **什么时候用**（用户规则 3 的适用范围，是用户定的，不是官方给的触发条件）：场景 A，主会话选的是 Fable 5.2，而起草前就能预判任务要并行派很多子智能体、按同一份口径做批量工作——读几十个文件或阅读包、给成百上千条内容提取 / 标注 / 核对。遇到这种任务直接写进 prompt，并在交付说明里点一句。
 
-**官方对这类工作怎么说**（成本页 "Orchestrator strategy"）：适合编排的是 `Work that fans out across genuinely independent files, documents, or cases, especially more than one context window of it`；做法是拆开、把各部分交给更便宜的模型，编排的那个模型负责 `Plans, dispatches, and synthesizes`。选型文章的说法是把代码编辑和判断留在主模型。官方同时测得两点，写交付说明时要告诉用户：一个上下文装得下、又没有长成本尾巴的工作，编排者模型自己用更低的 effort 做更划算（在更早的模型上测得）；Fable 5.2 自己单独做的分数比带 Sonnet 5.5 子智能体的配置高（见上一小节的数字），拆出去换来的是成本。
+**官方对这类工作怎么说**（成本页 "Orchestrator strategy"）：适合编排的是 `Work that fans out across genuinely independent files, documents, or cases, especially more than one context window of it`；做法是拆开、把各部分交给更便宜的模型，编排的那个模型负责 `Plans, dispatches, and synthesizes`。选型文章的说法是把代码编辑和判断留在主模型。官方同时测得两点，和用户的任务对得上时在交付说明里提：一个上下文装得下、又没有长成本尾巴的工作，编排者模型自己用更低的 effort 做更划算（在更早的模型上测得）；Fable 5.2 自己单独做的分数比带 Sonnet 5.5 子智能体的配置高（见上一小节的数字），拆出去换来的是成本。
 
 **用哪个模型和档位**（用户规则，非官方；2026-11-09 确认）：
 
 - 批量子智能体：派发时 Agent 工具传 `model: "opus"`。官方没有测过「Fable 5.2 主会话配 Opus 5.5 子智能体」这个组合；官方写明并测过的更便宜的选项是 `sonnet`（缺陷搜索基准上配 Opus 5.5 编排者分数相当），以及读文件做摘要、产出能校验的高吞吐工作用 `haiku`
 - effort：提炼、标注、抽样核对、找证据传 `effort: "high"`，最后的独立复核传 `"xhigh"`。这比官方给的起点高：最接近的官方说法是选型文章给搜索、读日志、做摘要这类子智能体的起步档，即模型的默认档（Opus 5.5 是 `medium`），`xhigh` 留给实测到质量提升的工作
 
-`model` 和 `effort` 这两个参数只对非 fork 的子智能体起作用：fork 跑在主会话的模型上，而 fork 模式默认开着，所以 prompt 里要写明这批工作派给非 fork 的子智能体（见 `references/for-claude-code.md` 里 fork 那一条）。每次调用传 `effort` 需要 Claude Code 2.1.292 及以上；并发上限、子智能体出错或撞到用量上限时结果怎么回来，见 `references/for-claude-code.md`「子智能体」一节。
+`model` 和 `effort` 这两个参数只对非 fork 的子智能体起作用：fork 跑在主会话的模型上，而 fork 模式默认开着，所以 prompt 里要写明这批工作派给非 fork 的子智能体（见 `references/for-claude-code.md` 里 fork 那一条）。这批工作改用 dynamic workflow 跑时，让脚本给批量阶段写 `opus`：workflows 页说，脚本给某个阶段写的模型算作每次调用传的那一项；workflow agent 的 effort 官方没有写。每次调用传 `effort` 需要 Claude Code 2.1.292 及以上；并发上限、子智能体出错或撞到用量上限时结果怎么回来，见 `references/for-claude-code.md`「子智能体」一节。
 
 ### 用量与成本
 
@@ -166,7 +168,7 @@ Claude Code 里没指定模型的子智能体跟主会话用同一个模型，�
 | | 场景 A：Claude Code | 场景 B：Claude 应用 | 裸 API |
 |---|---|---|---|
 | 模型 | `/model`、`--model`；子智能体见上 | 发送按钮旁的模型菜单 | `model` |
-| effort | `/effort` 或 `/model` 里调，按模型分别保存；`ultrathink` 只管一轮 | 模型菜单里的 "Effort"，推荐档标着 "Default" | `output_config: {effort}` |
+| effort | `/effort` 或 `/model` 里调，按模型分别保存（`max` 只对当前会话有效）；`ultrathink` 只管一轮 | 模型菜单里的 "Effort"，推荐档标着 "Default" | `output_config: {effort}` |
 | thinking | 由客户端管理 | 现行四个模型上关不掉 | 见 3.2 |
 | `max_tokens` | prompt 里设不了（只有 `CLAUDE_CODE_MAX_OUTPUT_TOKENS` 环境变量） | 没有这个设置 | 你自己设，见 `references/models.md` |
 
@@ -251,7 +253,7 @@ Before building, propose 4 distinct visual directions tailored to this brief (ea
 （片段 4.25，逐字取自 Claude Sonnet 5 页面。）
 
 ### 3.9 不要要求模型复述或展示内部推理
-"show your thinking"、"把思考过程写出来"这类指令在 **Fable 5.2、Opus 5.5、Sonnet 5.5** 上可能触发 `reasoning_extraction` 拒绝（Haiku 5.5 没有这个类别）。thinking 页原文：`On Claude Fable 5.2, Claude Fable 5.1, Claude Opus 5.5, Claude Opus 5, Claude Sonnet 5.5, and Claude Fable 5, a request that attempts to elicit the model's internal reasoning as part of the response text might be refused with stop_details.category: "reasoning_extraction"`。refusals 页列出了常见来源：让模型在回答前填写的 `<thinking>`、`<reasoning>` 或草稿区段；JSON 输出或工具入参里的 `reasoning`、`thinking`、`trace` 字段；模型的私人笔记或推理流水账；要求逐字或完整给出推理。这类措辞可能藏在 system prompt、skill 或 tool description 里，三处都要查。
+"show your thinking"、"把思考过程写出来"这类指令在 **Fable 5.2、Opus 5.5、Sonnet 5.5** 上可能触发 `reasoning_extraction` 拒绝（Haiku 5.5 没有这个类别）。thinking 页原文：`On Claude Fable 5.2, Claude Fable 5.1, Claude Opus 5.5, Claude Opus 5, Claude Sonnet 5.5, and Claude Fable 5, a request that attempts to elicit the model's internal reasoning as part of the response text might be refused with stop_details.category: "reasoning_extraction"`。refusals 页列出了常见来源：让模型在回答前填写的 `<thinking>`、`<reasoning>` 或草稿区段；JSON 输出或工具入参里的 `reasoning`、`thinking`、`trace` 字段；模型的私人笔记或推理流水账；要求逐字或完整给出推理。这类措辞可能藏在 system prompt、skill 或 tool description 里；Claude Code 的错误参考页还列了 CLAUDE.md、子智能体 prompt、output style 和 MCP 工具描述，并给了排查办法：用 `claude --safe-mode` 开一个不加载这些定制的会话，发同一条 prompt。
 
 **仍然允许的：** 简短解释答案、或概括做了哪些操作，以及给出结论背后的依据（refusals 页）。这个类别没有推荐的 fallback 模型，服务端 fallback 不会重试，拒绝会直接返回给你，所以要改 prompt，而不是重发。需要推理可见性就设 `display: "summarized"` 去读 `thinking` 块；需要在长时运行中把进度呈现给用户，设 `display: "updates"`；回合中途有必须原样交给用户的内容，用 send-to-user 工具（片段 4.23）。
 
@@ -335,13 +337,13 @@ Fable 5.2 专页 "Review instructions written for earlier models" 列的，从 F
 |---|---|
 | **`references/for-claude-code.md`** | 场景 A。Claude Code 任务 prompt 的写法、必须给的验证手段、子智能体的模型与 effort 怎么定、该写进 CLAUDE.md 还是写进这次 prompt |
 | **`references/for-chat-and-cowork.md`** | 场景 B。Claude 应用里 chat 与 Cowork 的 prompt 写法、材料摆位、交付物形态 |
-| **`references/models.md`** | 选完模型后读。四个现行模型的已知倾向与对应处方——当前页面明确写了的、和只在前代页面写了的分开——以及 effort 取值、价格、用量上限和省用量做法 |
+| **`references/models.md`** | 选完模型后只读用到的模型那一节（主会话和子智能体用不同模型时各读各的）；要 effort 细节、价格或用量规则时再读文件后半对应的小节。内容：四个现行模型的已知倾向与对应处方——当前页面明确写了的、和只在前代页面写了的分开——以及 effort 取值、价格、用量上限和省用量做法 |
 | **`references/snippets.md`** | 需要现成模块时读。52 条编号条目，其中 51 条是官方文档的**逐字原文**英文片段，每条标了出自哪个模型的页面 |
 | **`references/agents.md`** | prompt 要驱动一个长时间自主运行的 agent 时读。上下文工程、跨窗口工作流、缓存命中、让模型自己编排 |
 
 ### 用到英文片段时
 
-- 逐字片段（4.1 之外的全部）是官方页面上的英文原文；放在哪里按片段所在页面说的来——多数是 system prompt，个别写明放在末尾或紧跟某一段
+- 逐字片段（4.1 之外的全部）是官方页面上的英文原文；放在哪里按片段所在页面说的来——多数是 system prompt，个别写明放在末尾或紧跟某一段。产出是一段要粘贴进 Claude Code 或 Claude 应用的 prompt、没有 system prompt 可改时，放进 prompt 正文；每次都要的放 CLAUDE.md 或项目指令
 - 官方写明可以调整的条目（例如 4.31、4.37、4.40、4.46）和要求逐字使用的条目（4.51），`references/snippets.md` 里逐条标了出来
 
 ---

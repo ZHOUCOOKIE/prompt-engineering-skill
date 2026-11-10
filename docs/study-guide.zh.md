@@ -502,7 +502,7 @@ effort 页给每一档的通用定位（各模型自己的建议与它不同时�
 | Claude API | `high` | `medium` | `high` | `medium` |
 | Claude Code | `medium` | `medium` | `medium` | `medium` |
 
-Claude 应用里每个模型的推荐档在菜单里标着 "Default"；发布公告说 Fable 5.2 在 Claude 应用和 Claude Code 里默认 `medium`。讲应用设置的那篇支持站文章另有一句 `For complex coding and agentic tasks on Opus 4.7 or newer, try Extra high (xhigh) first`；Opus 5.5 和 Fable 5.2 的页面都把 `xhigh` 留给实测到提升的工作，Sonnet 5.5 和 Haiku 5.5 的页面也只在评测显示质量提升时才用 `xhigh`，所以 skill 按模型页选档，并在场景 B 的交付说明里把两种说法都告诉用户。同一个模型、同一个不传 `effort` 的请求，在 API 和 Claude Code 里跑的档位可能不一样，这是 skill 第 2 节把两种界面分开写的原因。
+Claude 应用里每个模型的推荐档在菜单里标着 "Default"；发布公告说 Fable 5.2 在 Claude 应用和 Claude Code 里默认 `medium`。讲应用设置的那篇支持站文章另有一句 `For complex coding and agentic tasks on Opus 4.7 or newer, try Extra high (xhigh) first`；Opus 5.5 和 Fable 5.2 的页面都把 `xhigh` 留给实测到提升的工作，Sonnet 5.5 和 Haiku 5.5 的页面也只在评测显示质量提升时才用 `xhigh`，所以 skill 按模型页选档；场景 B 的任务是复杂编码或 agentic 工作时，在交付说明里把两种说法都告诉用户。同一个模型、同一个不传 `effort` 的请求，在 API 和 Claude Code 里跑的档位可能不一样，这是 skill 第 2 节把两种界面分开写的原因。
 
 > **起步建议改过不止一次。** Opus 5 的起点从 `xhigh` 改成过 `high`，Opus 5.5 又把默认降到 `medium`，Fable 5.2 的默认则按界面分成两个。经过见文末附录。
 
@@ -735,7 +735,7 @@ Anthropic 的「Steering Claude Code」一文列了七种方法（这里 CLAUDE.
 | **Rules** | 会话开始或访问文件时 | 中 | 只在代码库某一部分才要紧的规则。**加 `paths:` 限定路径**，只在 Claude 真在那里干活时加载 |
 | **Skills** | 名称 + 描述常驻，正文按需 | 低 | 团队的流程和知识：发版流程、事故手册。有副作用的流程加 `disable-model-invocation: true`，只在你自己输入命令时才跑 |
 | **Subagents** | 隔离上下文，只回最终结论 | 对主上下文低；它自己的请求照样计用量 | 只要结论的侧任务：日志分析、依赖审计 |
-| **Hooks** | 生命周期事件触发，绕过压缩 | 低 | 零例外的规则和**确定性**自动化：格式化、阻断命令。要真正强制，用 `command` 或 `http` 类型的 hook |
+| **Hooks** | 生命周期事件触发，绕过压缩 | 低 | 零例外的规则和**确定性**自动化：格式化、阻断命令。要真正强制，用 `command` 或 `http` 类型的 hook；hook 自己失败或超时时默认放行，想在这种时候也拦住就设 `onFailure: "block"` |
 | **Output styles** | 会话开始，永不压缩 | **高** | 每次回复都要的语气、长度或格式，或者让 Claude 以软件工程师之外的角色工作 |
 | **追加 system prompt** | 以 CLI 参数在启动时传入 | 中 | 脚本和自动化里需要放在 system prompt 层的指令（`--append-system-prompt`） |
 
@@ -837,7 +837,7 @@ skill 的整个架构就是一件事——**每层信息只在需要时才进上
 | 写在 prompt 里 | `run the auth tests after, and keep going until they pass` | Claude 自己判断什么时候满意；任何任务都能用，不需要配置 |
 | 设成 goal | `/goal all tests in tests/auth pass and lint is clean`：每轮之后由另一个模型对照会话检查条件 | 自己盯着时很少需要；用处在长时间的后台运行——Claude 有时在还有未完成项时以进度总结结束回合，goal 会把它送回去 |
 | `Stop` hook | Claude 想结束回合时跑你的脚本，脚本以 exit code 2 退出就把它送回去干活 | 由 Claude Code 强制执行。连续拦截八次且中间没有工具调用时，Claude Code 会放行下一次；用 `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP` 调这个上限 |
-| 换个没写这段代码的来评 | 终端里 `/code-review` 在一个没看过这场对话的全新子智能体里审查 diff | 它不受产生这段代码的那套推理影响 |
+| 换个没写这段代码的来评 | `/code-review` 在一个没看过这场对话的全新子智能体里审查 diff | 它不受产生这段代码的那套推理影响 |
 
 用户说的是没人盯着的长时间运行时，skill 会在交付说明里点一句官方的说法：这种运行靠 `/goal` 或 `Stop` hook 来强制。
 
@@ -847,7 +847,7 @@ skill 的整个架构就是一件事——**每层信息只在需要时才进上
 use a subagent to review the rate limiter diff against SPEC.md, check every requirement is implemented and the listed edge cases have tests, report gaps that affect correctness and skip style
 ```
 
-官方特别提醒不要去掉 `skip style`：`A reviewer that's asked to find problems will always find something.` 每条发现都改，最后会多出一堆抽象层和给不可能发生的情况写的测试。官方这个例子里，子智能体审查完直接向你汇报。片段 4.16 出自 Sonnet 5 页面的 "Code review harnesses" 一节，针对的是后面还有单独过滤步骤的 harness，做法是让审查者全报（另见第 6.1 节代码审查那一行）；Opus 5 页也提醒，设了严重度门槛时模型 `might follow that instruction literally and report less`；这一倾向 Opus 5.5 页面既没有重述也没有撤回。
+官方特别提醒不要去掉 `skip style`：`A reviewer that's asked to find problems will always find something.` 每条发现都改，最后会多出一堆抽象层和给不可能发生的情况写的测试。官方这个例子里，子智能体审查完直接向你汇报。片段 4.16 出自 Sonnet 5 页面的 "Code review harnesses" 一节，做法相反：让审查者全报，把按置信度和严重度的过滤移出找问题这一步；该页说后面没有真正的第二步也能用（另见第 6.1 节代码审查那一行）。Opus 5 页也提醒，设了严重度门槛时模型 `might follow that instruction literally and report less`；这一倾向 Opus 5.5 页面既没有重述也没有撤回。
 
 ### 8.5 写 prompt 本身：一次说清楚
 
@@ -1002,7 +1002,7 @@ Claude Fable 5.2 和 Claude Mythos 5.2 于 2026-11-09 发布，Fable 5.1 随之�
 
 **所有者的子智能体草稿，以及信源范围。** 仓库所有者有一份没提交的草稿，讲批量子智能体和主会话用不同的模型，其中每一句都拿 Claude Code 文档核过。照文档写进来的：子智能体模型的解析顺序；每次调用传的 `model`（只接受别名）和 `effort`（Claude Code 2.1.292 及以上）；主会话是 Fable、用订阅登录时，Explore 跑在 `opus` 别名指向的模型上；同时运行的上限 20 及其改法，取代了草稿里写的大约 8 个；子智能体因用量上限这类 API 错误结束时回报什么。改正的：草稿说 `.claude/agents/` 下的定义在会话开始时缓存，文档写的是改动几秒内就会被发现，下一次委派就用新定义。文档没有提到、所以删掉的：作为批量检查点的进度文件、每批的模型记录和分层抽查、BLOCKED 约定。（Anthropic 有一篇文章确实建议 Opus 5.5 的长任务把任务清单记在文件里，这样 compaction 之后清单还在；skill 的 for-claude-code.md 照文章的写法收了这一条。）按所有者的决定、标成用户规则保留的：批量子智能体用 `opus`，effort 用 `high` / `xhigh`（第 6.5 节）。信源范围也变了：claude.dev/blog 算作官方信源，claude.com/docs 下的页面和 academy 教程不再算，所以 skill 的 Chat 与 Cowork 文件改按 support.claude.com 重写，Chat 和 Cowork 的对照表删掉了。哪些事没有任何官方页面确认（例如主会话撞到用量上限时正在跑的子智能体会怎样，这一点只有两条 changelog 记录提到；又如该同时跑几个子智能体），以及 Fable 5.2 各页面逐节的覆盖表，见 [SOURCES.md](../SOURCES.md#the-2026-11-09-re-check)。
 
-**同一天的复查。** 独立复查前后一共三轮，分别有 92、100 和 75 条发现；本文在第二、三轮的复查范围内，按第三轮发现做的修改没有再复查。skill 在本文写完之后又复查了一遍，本文跟着改了这几处。第 6.2、6.5 节和本节原来把成本页的 `On research tasks, measure the model you ship` 挂在 Fable 5.2 对 Opus 5.5 那组研究基准数字上；那组数字旁边的原话其实是 `Measure what a more expensive model buys on your own workload`，前一句讲的是 effort 档位。第 7.1 节的标题原来叫「核心约束」，而重写后的 Claude Code 最佳实践把 `The context window is your main constraint, manage it aggressively` 列为可以停掉的旧做法。第 8.4 节原来说一条 prompt 只能做到四档里的第一档，第 7.7 节原来说 Edit 工具的检查正是陈旧性检查那一种，这两句都比页面说的多。还有几处「会让」「会造成」「没有效果」改回了页面的语气（`can make`、`can cause`、`changed nothing`）。
+**同一天的复查。** 独立复查前后一共三轮，分别有 92、100 和 75 条发现；本文在第二、三轮的复查范围内，按第三轮发现做的修改之后逐行对着页面核对过一遍，没有再开第四轮。skill 在本文写完之后又复查了一遍，本文跟着改了这几处。第 6.2、6.5 节和本节原来把成本页的 `On research tasks, measure the model you ship` 挂在 Fable 5.2 对 Opus 5.5 那组研究基准数字上；那组数字旁边的原话其实是 `Measure what a more expensive model buys on your own workload`，前一句讲的是 effort 档位。第 7.1 节的标题原来叫「核心约束」，而重写后的 Claude Code 最佳实践把 `The context window is your main constraint, manage it aggressively` 列为可以停掉的旧做法。第 8.4 节原来说一条 prompt 只能做到四档里的第一档，第 7.7 节原来说 Edit 工具的检查正是陈旧性检查那一种，这两句都比页面说的多。还有几处「会让」「会造成」「没有效果」改回了页面的语气（`can make`、`can cause`、`changed nothing`）。
 
 ### 2026-10-23 这一轮：没有新模型进入适用范围，但官方页面一个月里悄悄改了不少
 

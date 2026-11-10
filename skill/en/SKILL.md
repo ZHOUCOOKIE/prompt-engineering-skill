@@ -34,7 +34,7 @@ The user describes work in Claude desktop, and the resulting prompt goes to one 
 | Research, analysis, writing, organizing source material, producing documents/spreadsheets/decks, scheduling, information synthesis; run directly in the Claude app | **B: a task prompt for chat or Cowork** | `references/for-chat-and-cowork.md` |
 | The user drops a prompt into an ongoing conversation and asks whether it looks right | **C: an inline check** | See Section 6, lightweight path |
 
-When it is not obvious, decide by the **verb** in the request: touching code is A, everything else is B. When both apply (for example, "analyze this repo's tech debt and write it up"), decide by the **final deliverable** — a code change is A, a document is B.
+When the user says where the prompt will run, go by that: non-code work run in Claude Code (reading files in bulk, extracting, summarizing) is also A. When they do not say and it is not obvious, decide by the **verb** in the request: touching code is A, everything else is B. When both apply (for example, "analyze this repo's tech debt and write it up"), decide by the **final deliverable** — a code change is A, a document is B.
 
 ### Filling in variables
 
@@ -61,7 +61,7 @@ This step is mandatory before drafting, and the conclusion belongs in the delive
 
 1. **You decide model and effort by default.** Only when a real trade-off exists and cannot be inferred from context, ask the user once before you output the prompt, with the options and a recommended one.
 2. **Do not deliberately save usage, and do not raise anything without a basis.** The user has an Ultra subscription: do not pick a model or level lower than the tier the task corresponds to just to save usage, and do not raise the model or level without one of the bases listed in this section.
-3. **In bulk tasks, choose the model separately for the main session and for the batch subagents**; see "Bulk processing" in this section.
+3. **In bulk tasks, choose the model separately for the main session and for the batch subagents**; see "Bulk processing" in this section. The model and levels set there for batch subagents are the user's explicit choice for this kind of task, and rule 2 does not apply to them.
 
 The official starting point (Anthropic's model-selection article of 2026-11-09, "Which Claude model should you build with?"): `you should start most work on Opus 5.5 at its default effort level`, which is `medium`. From lowest to highest price and capability, the four current models are Haiku 5.5, Sonnet 5.5, Opus 5.5 and Fable 5.2.
 
@@ -86,6 +86,8 @@ This table is that article's "Pick a model by task", row for row. The selection 
 The same article adds detail on moving down and up. Move down to Sonnet 5.5 for well-scoped everyday work, but `Just because you have a clear spec doesn't mean you should use Sonnet`: a migration or a performance optimization can have a clear spec and still be hard enough to warrant Opus 5.5, or Fable 5.2 for a major one. Move up to Fable 5.2 in three cases: the hardest technical projects in coding, finance and the sciences; Opus 5.5 at `high` still falls short; long unattended runs. The Claude Code model-config page: no Fable model is the default on any plan, and one has to be selected explicitly with `/model fable`.
 
 ### How to adjust effort on each model
+
+The task table gives the starting level; when a task already meets a step-up or step-down condition in the table below from the start, use that cell's level directly.
 
 | Model | Default | When to step up | When to step down |
 |---|---|---|---|
@@ -143,14 +145,14 @@ In Claude Code, a subagent with no model specified uses the same model as the ma
 
 **When to use it** (the scope of user rule 3, which the user set; it is not an official trigger): Scenario A, the main session is on Fable 5.2, and before drafting you can already foresee that the task will dispatch many subagents in parallel to do bulk work to one shared set of criteria: reading dozens of files or reading packets, or extracting / labeling / checking hundreds or thousands of items. For such a task, write this straight into the prompt, and mention it in one line in the delivery note.
 
-**What the official material says about this kind of work** (cost page, "Orchestrator strategy"): what suits orchestration is `Work that fans out across genuinely independent files, documents, or cases, especially more than one context window of it`; the approach is to split the work and hand the parts to cheaper models, and the orchestrating model `Plans, dispatches, and synthesizes`. The selection article's wording is to keep code edits and judgment calls on the main model. The official material also measured two things, and the delivery note should tell the user both: for work that fits in one context without a long cost tail, the orchestrator's model alone at lower effort came out ahead (measured on earlier models); and Fable 5.2 working alone scored higher than the setup with Sonnet 5.5 subagents (see the numbers in the previous subsection), so what splitting buys is lower cost.
+**What the official material says about this kind of work** (cost page, "Orchestrator strategy"): what suits orchestration is `Work that fans out across genuinely independent files, documents, or cases, especially more than one context window of it`; the approach is to split the work and hand the parts to cheaper models, and the orchestrating model `Plans, dispatches, and synthesizes`. The selection article's wording is to keep code edits and judgment calls on the main model. The official material also measured two things; mention in the delivery note whichever applies to the user's task: for work that fits in one context without a long cost tail, the orchestrator's model alone at lower effort came out ahead (measured on earlier models); and Fable 5.2 working alone scored higher than the setup with Sonnet 5.5 subagents (see the numbers in the previous subsection), so what splitting buys is lower cost.
 
 **Which model and level** (User rule, not official guidance; confirmed 2026-11-09):
 
 - Batch subagents: pass `model: "opus"` to the Agent tool when dispatching. The official material has not measured the combination of a Fable 5.2 main session with Opus 5.5 subagents; the cheaper options it states and has measured are `sonnet` (about the same score with an Opus 5.5 orchestrator on the defect-search benchmark), and `haiku` for reading files and summarizing and for high-volume work with outputs you can check
 - Effort: pass `effort: "high"` for distilling, labeling, spot-checking and finding evidence, and `"xhigh"` for the final independent review. This is higher than the official starting point: the closest official statement is the selection article's starting level for subagents that search files, read logs or summarize, which is the model's default (`medium` on Opus 5.5), and `xhigh` is reserved for work where a quality gain has been measured
 
-The `model` and `effort` parameters apply only to non-fork subagents: a fork runs on the main session's model, and fork mode is on by default, so the prompt should say that this batch goes to non-fork subagents (see the fork item in `references/for-claude-code.md`). Passing `effort` per call requires Claude Code 2.1.292 or later; for the concurrency limit, and for how results come back when a subagent errors or hits a usage limit, see the "Subagents" section of `references/for-claude-code.md`.
+The `model` and `effort` parameters apply only to non-fork subagents: a fork runs on the main session's model, and fork mode is on by default, so the prompt should say that this batch goes to non-fork subagents (see the fork item in `references/for-claude-code.md`). If this batch runs as a dynamic workflow instead, have the script name `opus` for the batch stage: the workflows page says a model the script names for a stage counts as the per-invocation model; the official pages do not say what effort a workflow agent runs at. Passing `effort` per call requires Claude Code 2.1.292 or later; for the concurrency limit, and for how results come back when a subagent errors or hits a usage limit, see the "Subagents" section of `references/for-claude-code.md`.
 
 ### Usage and cost
 
@@ -166,7 +168,7 @@ Only what the official material says; the full numbers are in `references/models
 | | Scenario A: Claude Code | Scenario B: Claude app | Raw API |
 |---|---|---|---|
 | Model | `/model`, `--model`; for subagents, see above | The model menu next to the send button | `model` |
-| effort | Set in `/effort` or `/model`, saved per model; `ultrathink` covers one turn only | "Effort" in the model menu, with the recommended level marked "Default" | `output_config: {effort}` |
+| effort | Set in `/effort` or `/model`, saved per model (`max` applies to the current session only); `ultrathink` covers one turn only | "Effort" in the model menu, with the recommended level marked "Default" | `output_config: {effort}` |
 | thinking | Managed by the client | Cannot be turned off on the four current models | See 3.2 |
 | `max_tokens` | Cannot be set in the prompt (only the `CLAUDE_CODE_MAX_OUTPUT_TOKENS` environment variable) | No such setting | You set it; see `references/models.md` |
 
@@ -251,7 +253,7 @@ Before building, propose 4 distinct visual directions tailored to this brief (ea
 (Snippet 4.25, verbatim from the Claude Sonnet 5 page.)
 
 ### 3.9 Do not ask the model to reproduce or display its internal reasoning
-Instructions like "show your thinking" or "explain your reasoning process" **can trigger** the `reasoning_extraction` refusal on **Fable 5.2, Opus 5.5 and Sonnet 5.5** (Haiku 5.5 has no such category). The thinking page: `On Claude Fable 5.2, Claude Fable 5.1, Claude Opus 5.5, Claude Opus 5, Claude Sonnet 5.5, and Claude Fable 5, a request that attempts to elicit the model's internal reasoning as part of the response text might be refused with stop_details.category: "reasoning_extraction"`. The refusals page names the usual sources: a `<thinking>`, `<reasoning>` or scratchpad section the model fills in before it answers; a `reasoning`, `thinking` or `trace` field in JSON output or a tool input; the model's private notes or a running log of its reasoning; reasoning asked for verbatim or in full. The wording can sit in a system prompt, a skill or a tool description, so audit all three.
+Instructions like "show your thinking" or "explain your reasoning process" **can trigger** the `reasoning_extraction` refusal on **Fable 5.2, Opus 5.5 and Sonnet 5.5** (Haiku 5.5 has no such category). The thinking page: `On Claude Fable 5.2, Claude Fable 5.1, Claude Opus 5.5, Claude Opus 5, Claude Sonnet 5.5, and Claude Fable 5, a request that attempts to elicit the model's internal reasoning as part of the response text might be refused with stop_details.category: "reasoning_extraction"`. The refusals page names the usual sources: a `<thinking>`, `<reasoning>` or scratchpad section the model fills in before it answers; a `reasoning`, `thinking` or `trace` field in JSON output or a tool input; the model's private notes or a running log of its reasoning; reasoning asked for verbatim or in full. The wording can sit in a system prompt, a skill or a tool description; the Claude Code error reference also lists CLAUDE.md, a subagent prompt, an output style and an MCP tool description, and gives a way to check: start a session with `claude --safe-mode`, which disables these customizations, and send the same prompt.
 
 **What stays allowed:** a short explanation of the answer or a summary of the actions taken, and the evidence behind a result (the refusals page). This category has no recommended fallback model, server-side fallback does not retry it, and the decline is returned to you, so change the prompt rather than resend it. For reasoning visibility, set `display: "summarized"` and read the `thinking` blocks; to surface progress during a long run, set `display: "updates"`; for content the user must see verbatim partway through a turn, use a send-to-user tool (snippet 4.23).
 
@@ -337,13 +339,13 @@ Read as needed; do not load everything. All are linked directly from this file.
 |---|---|
 | **`references/for-claude-code.md`** | Scenario A. How to write a Claude Code task prompt, the verification affordance you must supply, how to set the model and effort for subagents, and what belongs in CLAUDE.md versus this one prompt |
 | **`references/for-chat-and-cowork.md`** | Scenario B. Writing prompts for chat and Cowork in the Claude app, material placement, deliverable shapes |
-| **`references/models.md`** | After choosing the model. Known behaviors of the four current models with their prescriptions, with what the current page states kept apart from what only a predecessor's page states, plus effort values, prices, usage limits and ways to save usage |
+| **`references/models.md`** | After choosing the model, read only the section for each model you use (one for the main session and one for the subagents when they differ); read the matching subsection in the second half of the file when you need effort detail, prices or usage rules. Contents: known behaviors of the four current models with their prescriptions, with what the current page states kept apart from what only a predecessor's page states, plus effort values, prices, usage limits and ways to save usage |
 | **`references/snippets.md`** | When you need a ready-made block. 52 numbered entries, 51 of them **verbatim** English text from the official docs, each marked with the model page it comes from |
 | **`references/agents.md`** | When the prompt will drive a long-running autonomous agent. Context engineering, multi-window workflows, cache hits, letting the model orchestrate itself |
 
 ### When you use an English snippet
 
-- The verbatim snippets (all except 4.1) are the official pages' own English wording; place each where its source page says: most go in the system prompt, and a few are marked for the end or for right after a particular passage
+- The verbatim snippets (all except 4.1) are the official pages' own English wording; place each where its source page says: most go in the system prompt, and a few are marked for the end or for right after a particular passage. When the output is a prompt to paste into Claude Code or the Claude app and there is no system prompt to edit, put the snippet in the prompt body, and put one that is needed every time in CLAUDE.md or the project instructions
 - The entries the official material says may be adjusted (for example 4.31, 4.37, 4.40, 4.46), and the one it says to use exactly as written (4.51), are marked one by one in `references/snippets.md`
 
 ---
