@@ -81,11 +81,11 @@
 
 这是起草前的必经一步，结论要写进交付说明里。本节只写官方给了依据的东西；官方没给阈值的地方不设阈值。数字和更细的说明在第 6 节。
 
-**三条用户规则**（用户规则，非官方；2026-11-09 确认。它们管的是在官方给的选项之间怎么取，不改变下面各档的官方依据）：
+**三条用户规则**（用户规则，非官方；2026-11-09 确认，规则 3 于 2026-11-10 改定。它们管的是在官方给的选项之间怎么取，不改变下面各档的官方依据）：
 
 1. **模型和 effort 默认由你自己定。** 只有取舍确实存在、从上下文又推断不出来时，才在输出 prompt 之前问用户一次，并带上选项和推荐项。
 2. **不刻意省用量，也不无依据地往上加。** 用户是 Ultra 订阅：不要仅仅为了省用量，把模型或档位选得比任务对应的那一档低；也不要在没有本节所列依据的情况下，把模型或档位往上提。
-3. **大批量任务里，主会话和批量子智能体分开选模型**，见本节「大批量处理」。那里的每一档都取自官方的测量；默认档是官方给这类工作的那一档，不是为了省用量，升档的条件写在表里。
+3. **批量子智能体在质量和消耗之间取平衡。** 整批先用 Sonnet 5.5 子智能体跑（官方测得这样的分数和 Opus 5.5 自己在 `medium` 逐部分做相当、成本更低），只把没通过检查的那些升一档重跑；每一步和它的官方数字见本节「大批量处理」。批量子智能体从哪一档起由这条规则定，不算违反规则 2。
 
 官方的起点（Anthropic 2026-11-09 的选型文章「Which Claude model should you build with?」）：`you should start most work on Opus 5.5 at its default effort level`，也就是 `medium`。四个现行模型按价格和能力从低到高是 Haiku 5.5、Sonnet 5.5、Opus 5.5、Fable 5.2。
 
@@ -159,33 +159,37 @@ Claude Code 里没指定模型的子智能体跟主会话用同一个模型，�
 
 **官方的分工原则**（选型文章）：`Keep small models on work where a mistake is cheap to spot, like finding files, running tests and reading logs. Keep code edits and judgment calls on the main model.` 主模型越大，精简的主上下文越要紧：`Keep the expensive model's context for the decisions, and let cheaper subagents do the verbose reading.`
 
+**用户规则 3 在这张表上的取法**（用户规则，非官方；2026-11-10 确认）：官方给了 Haiku 5.5 或 Sonnet 5.5 两个选项的地方取 `sonnet`；主会话是 Fable 5.2 时的批量工作按下面「大批量处理」的表。
+
 **官方测过什么**（成本页，内部缺陷搜索基准，工作量超出一个上下文窗口）：Opus 5.5 带 Sonnet 5.5 子智能体，比每部分一个 Opus 5.5 会话便宜约三分之一，分数相当；带 Haiku 5.5 子智能体时分数明显更低；把编排者换成 Fable 5.2，成本高 19%，分数相当。Fable 5.2 自己单独做（`low` 到 `high`），比它自己带 Sonnet 5.5 子智能体时高 3.2 到 7.5 分，成本是 2.2 到 3.4 倍。编码任务上的 Haiku 5.5 子智能体，成本页的结论是 `an alternative to lowering effort, not better`。
 
 **什么时候值得派**：官方测得委派只在两种情况下划算——有很长成本尾巴的例行工作（这种情况官方要求先测准确率和成本），和超出一个上下文窗口的工作。工作是一条前后依赖的链、或一个上下文装得下又没有长成本尾巴时，编排者模型自己用更低的 effort 更划算（在更早的模型上测过的每个案例里都是如此）；选型文章的说法是那种情况下规划和合并的花费比省下的多。Claude Code 文档：子智能体带来并行、把长输出挡在主会话外、和一双没看过过程的眼睛，`but not a smarter answer`。成本页对要不要搭配第二个模型的判据：先在现在的模型上扫 effort，`Build a pairing only if it beats the single model's whole curve of score against spend`。
 
 **子智能体的 effort**：选型文章给搜索、读日志、做摘要这类子智能体的起步档是该模型的默认档。effort 页把子智能体列为 `low` 的例子，Fable 5.2 专页说 `low` 适合高吞吐工作里又快又聪明的子智能体。降档前先测：缺陷搜索基准上，Opus 5.5 单独做时 `low` 比 `medium` 低 34 分，Fable 5.2 单独做时 `low` 比 `high` 低 4.3 分、成本少 37%。
 
-### 大批量处理：主会话和批量子智能体分开选模型
+### 大批量处理：批量子智能体的模型和档位
 
 **什么时候用**（用户规则 3 的适用范围，是用户定的，不是官方给的触发条件）：场景 A，主会话选的是 Fable 5.2，而起草前就能预判任务要并行派很多子智能体、按同一份口径做批量工作——读几十个文件或阅读包、给成百上千条内容提取 / 标注 / 核对。遇到这种任务直接写进 prompt，并在交付说明里点一句。
 
 **官方对这类工作怎么说**（成本页 "Orchestrator strategy"）：适合编排的是 `Work that fans out across genuinely independent files, documents, or cases, especially more than one context window of it`；做法是拆开、把各部分交给更便宜的模型，编排的那个模型负责 `Plans, dispatches, and synthesizes`。选型文章的说法是把代码编辑和判断留在主模型。官方同时测得两点，和用户的任务对得上时在交付说明里提：一个上下文装得下、又没有长成本尾巴的工作，编排者模型自己用更低的 effort 做更划算（在更早的模型上测得）；Fable 5.2 自己单独做的分数比带 Sonnet 5.5 子智能体的配置高（见上一小节的数字），拆出去换来的是成本。
 
-**批量子智能体用哪个模型和档位**（用户规则 3，2026-11-10 改定。每一档的数字出自成本页的内部缺陷搜索基准：约 2200 万 token 的语料分成 201 个部分，在 Claude Managed Agents 上测，编排者 `high`、子智能体用各自模型的默认档。数字是平均 F1 和每次运行的成本）：
+**批量子智能体用哪个模型和档位**（用户规则 3，2026-11-10 定。数字出自成本页的内部缺陷搜索基准：约 2200 万 token 的语料分成 201 个部分，在 Claude Managed Agents 上测，编排者 `high`、子智能体用各自模型的默认档。数字是平均 F1 和每次运行的成本）：
 
-| 这批工作 | 派发时传 | 官方测到的 |
-|---|---|---|
-| **默认**：按同一口径提取、标注、核对 | `model: "sonnet"`、`effort: "high"` | Fable 5.2 编排、Sonnet 5.5 子智能体：0.833，$165。测量里 Sonnet 5.5 跑的是它在那个平台上的默认档 `high`；Claude Code 里它默认 `medium`，所以要显式传 |
-| 试跑几份后漏项或判错多 | `model: "opus"`、`effort: "high"` | 官方没有测过 Fable 5.2 配 Opus 5.5 子智能体；最接近的是 Opus 5.5 每部分一个会话：`high` 0.850，$236；`medium` 0.827，$200，不比上一行高 |
-| 每一份都难，判错的代价大 | 不传 `model`（跟主会话的 Fable 5.2）、`effort: "medium"` | 官方测的是 Fable 5.2 自己每部分一个会话，不是 Fable 5.2 带 Fable 5.2 子智能体：`low` 0.866，$357；`medium` 0.877，$378；`high` 0.909，$563。这一档花的是 Fable 的每周上限 |
-| 只读文件做摘要、产出能用脚本校验 | `model: "haiku"` | 成本页：`Try Claude Haiku 5.5 first`。同一基准上 Fable 5.2 配 Haiku 5.5 子智能体是 0.716，$85 |
+| 步骤 | 派发时传 | 官方测到的 | 什么时候用 |
+|---|---|---|---|
+| 1 | `model: "sonnet"`、`effort: "high"` | Fable 5.2 编排、Sonnet 5.5 子智能体：0.833，$165。测量里 Sonnet 5.5 跑的是它在那个平台上的默认档 `high`；Claude Code 里它默认 `medium`，所以要显式传 | **默认**：整批先用这一档跑完 |
+| 2 | `model: "opus"`、`effort: "high"` | 官方没有测过 Fable 5.2 配 Opus 5.5 子智能体；最接近的是 Opus 5.5 每部分一个会话，`high`：0.850，$236（`medium`：0.827，$200，不比第 1 步高） | 只重跑第 1 步里没通过检查的那些 |
+| 3 | 不传 `model`（跟主会话的 Fable 5.2）、`effort: "medium"`，用户要最高分时 `"high"` | Fable 5.2 自己每部分一个会话（不是带 Fable 5.2 子智能体）：`medium` 0.877，$378；`high` 0.909，$563 | 只在用户明说这批要比前两步更高的准确度、并且 Fable 的每周额度还够时。花的是 Fable 的每周额度 |
 
-- 这是一项代码缺陷搜索基准上的数字，成本页说它的测量 `directional, not guarantees`。用户的任务和它差得远时，先拿几份在相邻两档上各试一遍再定
+- 第 2 步的做法出自成本页 "Re-run failures at higher effort"：产出能校验时，全量用低档跑、只把失败的用高档重跑。官方在 Opus 5.5 的 effort 上算得，这样比全部 `high` 便宜约 40%，通过率相同或略高；这里把同一做法用在模型上。它有两个前提：要有失败信号（`a checker that passes bad work lets those failures through`），所以 prompt 里必须带能逐份判定通过与否的检查；失败的那些要花两遍的时间
+- `haiku` 不在这张表里：同一基准上 Fable 5.2 配 Haiku 5.5 子智能体是 0.716，$85。用户自己点名时才用
+- 这是一项代码缺陷搜索基准上的数字，成本页说它的测量 `directional, not guarantees`。用户的任务和它差得远时，先拿几份在相邻两步上各试一遍再定
 - Ultra 上 Fable 模型的用量从同一个每周上限里出，最多占到 50%，而且 `use them faster than other Claude models`；`sonnet` 和 `opus` 子智能体的用量不计入这 50%，但同样算进每周总上限。官方没有公布各模型怎么折算成订阅用量，上面的美元数只能当相对消耗看
+- 两处官方数字指向还能再省的做法，对得上时在交付说明里提。一是同一基准上把编排者从 Opus 5.5 换成 Fable 5.2，成本高 19%、分数相当（测的是编排者 `high`）；据此推断，纯批量的任务用 Opus 5.5 在 `high` 当主会话也可以，这是推断，不是官方的建议。二是这批工作用 dynamic workflow 跑时，同一次运行里模型、effort、agent 类型、工具、输出 schema 和工作目录都相同的 agent，后启动的会读到先启动那个已经缓存的前缀（workflows 页）
 - 最后的独立复核是验证工作：不传 `model`，让它跟主会话，`effort: "high"`（Claude Code 文档对 `high` 的描述是 `Work where verification matters or edge cases are likely`）
-- `xhigh` 只在测到质量提升时用；降到 `low` 之前先测，同一基准上 Opus 5.5 的 `low` 比 `medium` 低 34 分
+- `xhigh` 只在测到质量提升时用；不要为了省把 Sonnet 5.5 降到 `medium`：成本页测得它在 SWE-bench Pro 子集上比 `high` 低约 7 分
 
-`model` 和 `effort` 这两个参数只对非 fork 的子智能体起作用：fork 跑在主会话的模型上，而 fork 模式默认开着，所以 prompt 里要写明这批工作派给非 fork 的子智能体（见第 7 节里 fork 那一条）。这批工作改用 dynamic workflow 跑时，让脚本给批量阶段写上表选定的模型：workflows 页说，脚本给某个阶段写的模型算作每次调用传的那一项；workflow agent 的 effort 官方没有写。每次调用传 `effort` 需要 Claude Code 2.1.292 及以上；并发上限、子智能体出错或撞到用量上限时结果怎么回来，见第 7 节「子智能体」一节。
+`model` 和 `effort` 这两个参数只对非 fork 的子智能体起作用：fork 跑在主会话的模型上，而 fork 模式默认开着，所以 prompt 里要写明这批工作派给非 fork 的子智能体（见第 7 节里 fork 那一条）。这批工作改用 dynamic workflow 跑时，让脚本给批量阶段写上表选定的模型（第 3 步不写，跟会话的模型）：workflows 页说，脚本给某个阶段写的模型算作每次调用传的那一项；workflow agent 的 effort 官方没有写。每次调用传 `effort` 需要 Claude Code 2.1.292 及以上；并发上限、子智能体出错或撞到用量上限时结果怎么回来，见第 7 节「子智能体」一节。
 
 ### 用量与成本
 
