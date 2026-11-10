@@ -2,163 +2,210 @@
 
 用户在 Claude desktop 里说需求，你产出一段 prompt，他复制到 Claude Code（含 VS Code 插件的图形窗口）里执行。
 
+这里的主要依据是 Claude Code 文档的 Best practices、Create custom subagents、Model configuration 和 Manage costs effectively 几页；出自别处的会在行内写明。
+
 ## 目录
 
+- 只告诉它看不见的东西
 - 第一优先：给一个它自己能跑的检查
 - 这个检查「卡」得有多硬
-- 如果这个检查还不存在怎么办
-- 一次说清楚，不要指望多轮补充
+- 一次说清楚
 - 具体到什么程度
-- 只有用户能提供的值怎么处理
-- 探索、规划、实现、提交
-- 大特性：让它先面试用户生成 SPEC
-- 上下文是第一约束
+- 需求没想清楚：让它先面试用户写 SPEC
+- 大改动先要计划
+- 子智能体：模型、effort、并发和出错时
 - 这次的 prompt vs 该沉淀进项目配置
+- 确定性指令和非确定性指令
 - 项目配置放哪：七种方法取舍表
 - 把手工复查固化成验证回路
 - 四种循环
-- 五种常见失败模式
+- 无人值守运行前的五个问题
+- 可以停掉的旧做法
+- 会话没按预期走时
 
 ---
+
+## 只告诉它看不见的东西
+
+Claude 开始任务时先读代码，文件布局、约定、测试框架、现有组件怎么搭的，它自己找得到，通常比你解释更快。它找不到的是从来不在仓库里的信息：团队在会上做的决定、只在某个人脑子里的部署流程、集成测试需要的环境变量。
+
+官方给的判据，写任何东西之前先问两句：它读代码能找到吗？它真的会去找吗？两个都是「是」，就不写。
+
+这条同时管 prompt、CLAUDE.md 和 skill。
 
 ## 第一优先：给一个它自己能跑的检查
 
-这是官方最佳实践里排第一的一条，也是这个场景和场景 B 最大的区别。
+Claude Code 最佳实践的说法，换成对你的用户说的话：Claude 在工作看起来做完了的时候停。没有能运行的东西告诉它是不是真做完了，这就是它唯一的依据，实际上用户成了测试套件，每个错误都要等他碰巧发现。给它一个结果是 pass 或 fail 的东西，它就能自己闭合这个回路：改、跑检查、读输出、修、再跑。
 
-官方原文的第二人称说的是读者，在这里指的是**你的用户**而不是你，所以下面这段是改写而非原文：
+检查可以是任何 Claude 读得懂结果的东西：一个测试文件、构建的退出码、linter、把输出和 fixture 做 diff 的脚本、摆在设计稿旁边的浏览器截图。仓库里已经有其中一样的话，CLAUDE.md 里最有用的一行就是跑它的命令。
 
-> Claude 在"看起来做完了"的时候就会停。如果没有它能运行的检查，"看起来做完了"就是唯一的信号，而**用户自己就变成了验证回路**——每个错误都要等他去发现。给它一个能产出 pass/fail 的东西，这个回路就自己闭合了。
+还要让它**给出证据**：跑了什么命令、输出是什么，或者截图。官方原话：`"All tests pass" on its own tells you very little`；读输出比自己重跑一遍快，对用户没盯着的会话来说，这也是唯一的证据。
 
-检查可以是任何能返回模型读得懂的信号的东西：测试套件、构建的退出码、linter、把输出和 fixture 做 diff 的脚本、和设计稿对比的浏览器截图。
-
-**写 prompt 时的对照**：
-
-| 差 | 好 |
-|---|---|
-| `implement a function that validates email addresses` | `write a validateEmail function. example test cases: user@example.com is true, invalid is false, user@.com is false. run the tests after implementing` |
-| `make the dashboard look better` | `[paste screenshot] implement this design. take a screenshot of the result and compare it to the original. list differences and fix them` |
-| `the build is failing` | `the build fails with this error: [paste error]. fix it and verify the build succeeds. address the root cause, don't suppress the error` |
-
-> **注意与 SKILL.md 3.4 的区别**：3.4 说的是删掉"让模型自己再看一遍"这类主观复查指令。这里给的是**外部确定性检查**——跑测试、看退出码、对比截图。前者要删，后者必须给。
-
-还要求它**给出证据**而不是断言成功：测试输出、跑了什么命令返回了什么、结果截图。审阅证据比自己重跑一遍快，而且对用户没盯着的会话同样有效。
+Claude 说做完之后，还可以在会话里跑 `/verify`：它会构建并运行应用、看结果，能抓到测试和类型检查漏掉的那类问题。
 
 ## 这个检查「卡」得有多硬
 
-检查存在之后还有第二个决定，而这个决定光靠 prompt 做不到。官方给了四档，用配置成本换这趟运行需要多少人盯着：
+官方给了四档，从 Claude 自己判断到 Claude Code 强制执行：
 
-| 档位 | 是什么 | 什么时候值得配 |
+| 档位 | 是什么 | 官方的说法 |
 |---|---|---|
-| **写在一条 prompt 里** | 在同一条消息里要求它跑检查并迭代 | 任何任务，立刻可用。你正在写的这条 prompt 就是这一档 |
-| **贯穿整个会话** | 把检查设成 `/goal` 条件——每轮结束后由独立评估器复查 | 用户希望它一直跑到标准达成为止 |
-| **确定性闸门** | `Stop` hook 把检查当脚本跑，不通过就不许结束这一轮（默认连续续跑 8 次后 Claude Code 会放行下一次阻拦——见 hooks 参考页） | 这个检查不能被跳过 |
-| **换个人评** | 验证子智能体——或者一个会复核自己发现的 dynamic workflow——让干活的和打分的不是同一个。只要查正确性，Claude Code 自带的 `/code-review` skill 会在干净的子智能体里审查当前 diff | 正确性比速度重要 |
+| **写在 prompt 里** | `run the auth tests after, and keep going until they pass` | Claude 自己判断什么时候满意。任何任务都能用，不需要配置 |
+| **设成 goal** | `/goal all tests in tests/auth pass and lint is clean`：每轮之后由另一个模型对照会话检查条件 | 在会话里自己盯着时很少需要。它的用处在长时间的后台运行：Claude 有时在还有未完成项时以进度总结结束回合，goal 会把它送回去 |
+| **`Stop` hook** | Claude 想结束回合时跑你的脚本，脚本以 exit code 2 退出就把它送回去干活 | 由 Claude Code 强制执行。连续拦截八次且中间没有工具调用时，Claude Code 会放行下一次；用 `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP` 调这个上限 |
+| **换个没写这段代码的来评** | 终端里 `/code-review` 在一个没看过你这场对话的全新子智能体里审查 diff | 它不受产生这段代码的那套推理影响 |
 
-**这一档位在交付说明里值得点一句。** 一条 prompt 天然只能做到第一档；如果用户说的是无人值守的长跑，就告诉他真正让它「没人看着也能正确收工」的是 `/goal` 或 `Stop` hook。
+**这一档位在交付说明里值得点一句。** 用户说的是没人盯着的长时间运行时，告诉他官方的说法：这种运行靠 `/goal` 或 `Stop` hook 来强制。
 
-## 如果这个检查还不存在怎么办
+想让审查对照计划而不是泛泛地找 bug，就自己写审查 prompt。官方例子：
 
-上面那条规则的前提是"有一个可跑的检查"。但**最常见的 Claude Code 请求恰恰是没有的**——老代码、覆盖率低、出过事故、不敢动。这时候不要跳过验证直接改，而是**把建立检查本身作为第一阶段**：
+```text
+use a subagent to review the rate limiter diff against SPEC.md, check every requirement is implemented and the listed edge cases have tests, report gaps that affect correctness and skip style
+```
 
-1. **先写钉住现状的测试（characterization test）**：不管当前行为对不对，先把它**如实断言下来**，包括你认为是 bug 的行为。目的是建立一张"改动前后行为是否一致"的网，不是判断对错
-2. **可疑行为照实钉住，另外标记**：发现疑似 bug 时，测试里仍按当前实际行为断言，同时加注释标明"这里可能是 bug，见 X"。**这一条必须在 prompt 里写明**——一个善意的读者被告知"写测试钉住当前行为"时，很自然会顺手把 bug 修掉，那样网就失效了
-3. **网建好之后冻结**：后续重构阶段**不允许修改这些测试**。测试变了就说明行为变了，而重构的定义就是行为不变。确实需要改测试时，必须单独提出来说明理由
-4. **然后才开始重构**，每一步都跑这张网
-
-对应的 prompt 结构是分阶段并在阶段之间设检查点，而不是一句"重构这个模块"。行为变更（修 bug、改逻辑）应该是**重构完成之后的独立一轮**，不要和重构混在一起——混在一起时测试报红你分不清是重构错了还是行为改了。
+官方特别提醒不要去掉 `skip style`：`A reviewer that's asked to find problems will always find something.` 每条发现都改，最后会多出一堆抽象层和给不可能发生的情况写的测试。官方这个例子里，子智能体审查完直接向你汇报。片段 4.16 出自 Sonnet 5 页面的 "Code review harnesses" 一节，针对的是后面还有单独过滤步骤的 harness，做法是让审查者全报；Opus 5 页面也提醒过：审查 prompt 设了严重度门槛时，模型 `might follow that instruction literally and report less`（在 Opus 5 上测得，Opus 5.5 的页面既没重述也没撤回，见 `models.md`）。
 
 ---
 
-## 一次说清楚，不要指望多轮补充
+## 一次说清楚
 
-Opus 5 专页写的是 `performs best when given the complete task specification up front and left to run`，而 Opus 5.5 专页写明 Opus 5 的做法仍是合理起点。Sonnet 5 专页（现已是 legacy 模型的页面）把道理讲得更完整：`Providing well-specified, clear, and accurate task descriptions upfront can help maximize autonomy and intelligence while minimizing extra token usage after user turns`；反过来，`ambiguous or underspecified prompts conveyed progressively over multiple user turns tend to relatively reduce token efficiency and sometimes performance`。
+Claude Code 最佳实践的说法：说出文件名、描述症状、事先讲清修好了是什么样，`you usually save yourself a round of corrections later`。在两个合理做法之间有偏好时也一样——Claude 没法从代码里读出你的偏好，在意就事先说。
 
-这条对场景 A 尤其重要，因为用户是**复制粘贴一次就走**，中途不一定在旁边。
+两个前代页面讲得更直接，它们的后继页面都写明前代的做法仍是合理起点：Opus 5 专页 `performs best when given the complete task specification up front and left to run`；Sonnet 5 专页 `Providing well-specified, clear, and accurate task descriptions upfront can help maximize autonomy and intelligence while minimizing extra token usage after user turns`，反过来，`ambiguous or underspecified prompts conveyed progressively over multiple user turns tend to relatively reduce token efficiency and sometimes performance`。
+
+Opus 5.5 自己也有一篇这样说的官方文章（Anthropic 2026-09-22「Getting the most out of Opus 5.5 in Claude and Claude Code」）：把整个任务放在一条消息里，说出终点线，例如 "the tests pass" 或 "every endpoint is migrated"。文章还给了一条写进 CLAUDE.md 的规则，用在 Opus 5.5 的长任务反复停下来汇报、问要不要继续的时候，并说明要按自己的项目改写：
+
+```text
+When a step doesn't need my input, keep going. Put status notes in the same message as your next action.
+Stop and ask only when you can't continue without me, or before anything destructive: deleting data, force-pushing, or changing anything outside this repository.
+```
+
+文章的配套说明：停下来问要不要继续时，回一句 continue；经常发生的话，这条规则有帮助。规则的最后一行保留了有风险或难撤销的操作之前的确认，破坏性命令的权限确认也要留着。结对编程时可以反过来，要它开始前给一行计划、结束时给一个简短回顾，同样写进 CLAUDE.md。
+
+同一篇文章给 Opus 5.5 长任务的另外两条。一是让它把任务清单记在文件里、边做边更新，文章的写法是 `Keep a checklist in TASKS.md. Tick each item when it's done, and add anything new you find.`；理由是长任务会填满上下文窗口，Claude Code 随后会摘要更早的轮次，而文件里的清单不受影响。二是大范围的审计、迁移或审查，让它拆给子智能体并检查每个结果，文章的例子：
+
+```text
+Audit every service in services/ for the retry bug in the linked issue.
+Give each service to its own subagent. When a subagent reports back, check its evidence before you accept it.
+Finish with one table: service, affected yes or no, and the evidence.
+```
+
+让 Fable 5.2 继续干活或批准某一步时，同样要说清：Fable 5.2 专页要求说明你要它做什么，而不是只发一句 continue；它的例子是在原本会回 "go" 或点个赞的地方，回 `Yes, run the migration on the staging database`。
 
 ---
 
 ## 具体到什么程度
 
-| 策略 | 差 | 好 |
-|---|---|---|
-| **划定范围**：指明哪个文件、什么场景、测试偏好 | `add tests for foo.py` | `write a test for foo.py covering the edge case where the user is logged out. avoid mocks.` |
-| **指向来源**：告诉它去哪儿找答案 | `why does ExecutionFactory have such a weird api?` | `look through ExecutionFactory's git history and summarize how its api came to be` |
-| **引用现有模式**：指出代码库里的样板 | `add a calendar widget` | `look at how existing widgets are implemented on the home page to understand the patterns. HotDogWidget.php is a good example. follow the pattern to implement a new calendar widget...` |
-| **描述症状**：症状加可能位置加"修好"长什么样 | `fix the login bug` | `users report that login fails after session timeout. check the auth flow in src/auth/, especially token refresh. write a failing test that reproduces the issue, then fix it` |
+官方对照（Claude Code 最佳实践）：
 
-模糊 prompt 也有用武之地——探索阶段、可以承受走偏时。`what would you improve in this file?` 可能问出你想不到要问的东西。但那是探索，不是执行。
+| 不这样写 | 这样写 |
+|---|---|
+| `fix the login bug` | `users report login fails after the session times out. look at token refresh in src/auth/, write a failing test that reproduces it, then fix it` |
+| `add a calendar widget` | `follow the pattern in HotDogWidget.php and build a calendar widget that lets you pick a month and page between years. no new libraries` |
 
-**提供丰富输入的几种方式**（写进 prompt 时告诉用户可以这么用）：`@` 引用文件、直接粘贴截图、给文档 URL、`cat error.log | claude -p "explain this error"` 管道输入、或者让 Claude 自己去取（bash、MCP 工具、读文件）。
+**手上已经有它需要的东西，就直接给，不要描述**：`@` 加路径把文件内容带进消息；截图直接粘进 prompt；命令输出从 shell 管道进来，例如 `cat error.log | claude -p "what's going on here"`。支持站的 Claude Code 指南补了一条和用量有关的提醒：`@` 前缀会把整个文件连同它的 CLAUDE.md 树注入上下文，只写路径则让 Claude 自己打开、有选择地读；日志和堆栈先裁到相关的二三十行再贴。
 
-## 只有用户能提供的值怎么处理
+**三条关于措辞的官方说明**：
 
-场景 A 里总有一些东西**既推断不出、也没法提前问**：仓库路径、测试命令、那两次线上事故到底是什么、内部系统的约定。这些往往还是整份 prompt 里价值最高的输入。
-
-做法是在 prompt 正文里留**显式占位**，并给出留空时的兜底：
-
-```
-两次线上事故的具体表现：【填：如果记得就写在这里】
-如果上面留空，先从 git log 和 issue 里检索相关修复记录，把你推断出的事故场景列出来让我确认，再继续。
-```
-
-两个要点：占位要**长得像占位**（用【】或类似标记，让用户一眼扫到），以及**必须给兜底指令**——只留空不给兜底，模型会自己编一个或者直接忽略。填了更好，没填也能跑。
-
----
-
-## 探索、规划、实现、提交
-
-任务范围不明或改动跨多文件时，prompt 应当引导走这四步，而不是直接开写：
-
-1. **探索**（plan mode）：只读不改，先理解现状
-2. **规划**：产出详细实施计划
-3. **实现**：按计划写，并对照计划验证
-4. **提交**：描述性 commit message，开 PR
-
-**什么时候跳过**：范围清楚且改动很小时（改错字、加一行日志、重命名变量）直接做。官方判据很实用——**如果你能用一句话描述这个 diff，就跳过规划。**
-
-**"对照计划验证"算不算 SKILL.md 3.4 要删的自我验证？** 取决于这份计划有没有经过外部确认：
-
-- 模型自己写完计划、没人看过就自己对照着检查 → **算自我验证**，价值有限
-- 计划**经用户看过并确认**（或写进了 SPEC.md 这类文件、成为约定） → **算外部依据**，对照它验证是有效的
-
-所以四阶段流程里的"规划"之后应当有一个确认动作。写 prompt 时把这个检查点显式写出来：让它出完计划**停下来等确认**，再进入实现。用户不在场、无法确认时，就不要写"对照计划验证"，改为依赖测试等真正的外部检查。
-
-规划最有价值的时候：你不确定该怎么做、改动跨多个文件、或者你对要改的代码不熟。
-
----
-
-## 大特性：让它先面试用户生成 SPEC
-
-需求较大且用户自己也没完全想清楚时，产出的 prompt 可以是这个：
+- `think step by step`、`be thorough` 这类话是普通的 prompt 文字，不是关键词。控制它想多深的主要是 effort；这类措辞只能在当前档位之内推一把
+- 仍然管用的一句是 `be ambitious`：Claude 倾向于保守地读请求，做出满足它的最小东西。想要更完整的版本就说出来，这是在告诉它**范围**，而范围只有你知道。官方例子：
 
 ```text
-I want to build [brief description]. Interview me in detail using the AskUserQuestion tool.
-
-Ask about technical implementation, UI/UX, edge cases, concerns, and tradeoffs. Don't ask obvious questions, dig into the hard parts I might not have considered.
-
-Keep interviewing until we've covered everything, then write a complete spec to SPEC.md.
+build the settings page from the mockup. be ambitious: empty and error states, the save flow wired up, keyboard navigation, not just the layout
 ```
 
-然后**开一个全新会话**执行这份 spec——新会话上下文干净、完全聚焦实现。
+- 在探索而不是修某个具体问题时，`what would you improve in this file?` 这种模糊 prompt 完全可以，代价是途中多纠正几次
 
-官方的判断值得转告用户：**把 spec 打磨精确所花的时间，回报高于盯着实现过程看的时间。** 最有用的 spec 是自包含的：点名涉及的文件和接口、写明什么不在范围内、并以一个端到端验证步骤收尾，用它证明这个功能确实可用。
+## 需求没想清楚：让它先面试用户写 SPEC
+
+用户自己也没完全想清楚时，不必先想完再写 prompt。官方例子：
+
+```text
+I want to add rate limiting to the public API but haven't thought it through yet. Interview me until you could write the spec, then write it to SPEC.md.
+```
+
+Claude 会就没定下来的部分提多选题，一直问到答案够写成 spec。`SPEC.md` 有了之后，**开一个全新会话**照它来做：上下文干净，而且有一份写下来的完成定义。之后做审查时指给审查者看的也是这个文件。
+
+## 大改动先要计划
+
+支持站的 Claude Code 指南：凡是会动两三个以上文件的改动，切到 Plan Mode，或者直接问 `Before changing anything, list the files you'll touch and what you'll do in each.`，看完清单用大白话纠正，再让它执行。理由是成本：一份计划几百 token，一个改错了要回滚重来的 400 行 diff 是几千 token 的两倍，还要加上解释哪里错了的那几轮。Claude Code 成本页的说法相同：复杂任务先用 plan mode，方向错了的返工很贵。
+
+同一份指南给的模型搭配：用 Opus 写计划、用 Sonnet 执行，内置为 `/model opusplan`。Anthropic 的文章「What a task costs on Opus 5.5」（2026-09-25，写于 Sonnet 5.5 发布之前）提醒：`opusplan` 把代码编辑放到了 Sonnet 上，和把代码编辑留在主模型的建议相反，`Measure it on your own tasks before you make it a default`。Claude Code 的 prompt caching 页另写明，`opusplan` 下每次进出 plan mode 都是一次换模型，缓存从头开始。
 
 ---
 
-## 上下文是第一约束
+## 子智能体：模型、effort、并发和出错时
 
-Claude Code 的大部分最佳实践都源自同一个约束：**上下文窗口填得快，而且填满后性能下降。** 一次调试或代码库探索可能就消耗几万 token。
+选哪个模型见 SKILL.md 第 2 节。这里是 Claude Code 文档写明的机制，写 prompt 时照这些来。
 
-写 prompt 时能做的：
+**模型按这个顺序定**（子智能体页 "Choose a model"）：
 
-- **把探索隔离出去**：`Use subagents to investigate how our authentication system handles token refresh, and whether we have any existing OAuth utilities I should reuse.` 子智能体在独立上下文里读一堆文件，只回报摘要
+1. 这次调用传的 `model` 参数
+2. 子智能体定义里的 `model` 字段，`inherit` 表示用主会话的模型
+3. `CLAUDE_CODE_SUBAGENT_MODEL` 环境变量
+4. 主会话的模型
 
-> **子智能体的统一判据**（这条散落在几处，这里说全）：**大范围只读探索要鼓励用，让模型在自己的上下文里重看一遍自己的产出不要用。** 换到**干净上下文**的独立 verifier 子智能体是例外，Fable 5 页指出这类 verifier 往往优于自我批评——上文「换个人评」那一档、以及本文末尾对抗式审查那段说的都是这一种。
->
-> 所以：前者是它最大的价值——把读几十个文件的开销挡在主上下文外面；后者基本是模型自己已经会做的事，派子智能体去做只会增加成本、不提升结果（这条是对 Opus 5 写明的；在 Opus 5.5 上把它当成需要实测的事，见 SKILL.md 3.4）。介于两者之间的判断标准是片段 4.10：几次工具调用就能自己做完的，不要派。
+要点：
 
-- **不要写成开放式调研**：`investigate X` 不划范围会让它读几百个文件把上下文填满
-- 提醒用户：不相关的任务之间用 `/clear`；同一个问题纠正两次还不对，就 `/clear` 重来并把学到的写进新 prompt
+- Agent 工具每次调用的 `model` 只接受别名：`sonnet`、`opus`、`haiku`、`fable`，不能传完整模型 ID 或 `inherit`。定义文件里的 `model` 字段可以写别名、完整 ID 或 `inherit`
+- 每次调用传的或定义 `model` 字段里的系列别名（如 `opus`），在主会话模型属于同一个系列时，解析成主会话那个确切的模型。`CLAUDE_CODE_SUBAGENT_MODEL` 里的别名总是解析成别名指向的版本
+- 别名指向哪个版本看 provider（Model configuration 页的表）：Anthropic API 上 `opus`、`sonnet`、`haiku` 是 Opus 5.5、Sonnet 5.5、Haiku 5.5；Claude Platform on AWS 上是 Opus 5.5、Sonnet 4.6、Haiku 4.5；Amazon Bedrock 和 Google Cloud 的 Agent Platform 上是 Opus 5.5、Sonnet 4.5、Haiku 4.5；Microsoft Foundry 上是 Opus 4.6、Sonnet 4.5、Haiku 4.5。没设 `ANTHROPIC_DEFAULT_FABLE_MODEL` 时，`fable` 别名在 Claude apps gateway 会话里指向 Fable 5，其他地方指向 Fable 5.2
+- 每次调用传的 `model` 在这个子智能体被续跑或收到后续消息时仍然生效
+- 这个顺序从 v2.1.251 起成立，更早的版本里环境变量排在最前。三种情况下每次调用传的 `model` 不算数：开了 `CLAUDE_CODE_SUBAGENT_MODEL_FORCE` 时，Claude 启动子智能体时不能传模型，定义里的 `model` 字段也被忽略；组织的 `availableModels` 白名单拦下的值会被换成别的模型；装了的 mod 在 `agent.spawn` hook 里设了模型时，用 mod 设的那个
+- 用 `/model` 切换主会话模型，也会影响之后启动的、继承主会话模型的子智能体
+- 想知道某个子智能体实际跑在哪个模型上，用 `/tasks`：它在子智能体那一行显示模型，设了 effort 的话也显示
+- **fork 不走这个顺序**。fork 继承整个对话，跑在主会话的模型上，和主会话共用 prompt cache；官方说，需要同样上下文的任务上它比全新的子智能体便宜。fork 模式默认开着（v2.1.302 起；交互式终端会话从 v2.1.232 起），开着时 Claude 可以自己把侧任务 fork 出去。所以主会话在 Fable 上时，fork 出去的任务也跑在 Fable 上。不想让 Claude 自己 fork：在 `permissions.deny` 里加 `"Agent(fork)"`，或把 `CLAUDE_CODE_FORK_SUBAGENT` 设为 `0`
+
+**内置子智能体用什么模型**：
+
+| 子智能体 | 模型 |
+|---|---|
+| Explore | 主会话的模型。**主会话是 Fable 时**：用订阅、Console 账号或 `ANTHROPIC_BASE_URL` 网关连接的，跑在 `opus` 别名指向的模型上；在 Amazon Bedrock、Google Cloud、Microsoft Foundry、Claude Platform on AWS 或 Claude apps gateway 上，留在主会话的模型 |
+| Plan | 继承主会话 |
+| general-purpose | 设了 `CLAUDE_CODE_SUBAGENT_MODEL` 且没有别的来源指定模型时用它，否则是主会话的模型 |
+| statusline-setup / claude-code-guide | Sonnet / Haiku |
+| claude | 自己不指定模型；Claude 把它当子智能体派出时走上面的顺序 |
+
+只设 `CLAUDE_CODE_SUBAGENT_MODEL` 不会改变 Explore 和 Plan 的模型。想把 Explore 放到更便宜的模型上，官方的办法是定义一个同名的 `Explore` 子智能体并写 `model: haiku`。
+
+**effort**（子智能体页 "Choose an effort level"）：
+
+- 定义文件里可以设 `effort` 字段（`low`、`medium`、`high`、`xhigh`、`max`，可用档位取决于模型）
+- 要求 Claude 以某个档位跑非 fork 的子智能体时，它可以在那次调用上传 `effort` 参数，覆盖定义里的字段（需要 Claude Code 2.1.292 及以上）。`CLAUDE_CODE_EFFORT_LEVEL` 环境变量优先于这两者
+- 都没设时：和主会话同一个模型的子智能体用会话的档位；在别的模型上，会话的档位不适用，改用那个模型保存的档位或它的默认档（changelog 2.1.317）。`CLAUDE_CODE_SUBAGENT_EFFORT` 可以给没有别处指定档位的子智能体统一设一个（只见于 changelog 2.1.316，环境变量参考页上没有）
+
+**定义文件改了什么时候生效**：Claude Code 监视 `~/.claude/agents/` 和 `.claude/agents/`，原文是 `Claude Code detects the change within a few seconds and the next delegation uses the updated definition, with no restart needed`。三种情况仍要重启：会话开始后才新建的 `agents` 目录里的第一个文件；用 `--add-dir` 或 `/add-dir` 加进来的目录里的 `.claude/agents/`；用 `--disable-slash-commands` 启动的会话。
+
+**并发**（子智能体页 "Concurrent subagent limit"）：默认一个会话里同时在跑的子智能体到 20 个时，再用 Agent 工具派一个会失败并返回 `Concurrent subagent limit reached`，在跑的数量降下来后才能继续派。用 `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` 改这个上限（任意正整数，只能调不能关）。开了 ultracode 的会话不受这个上限约束。一个会话总共能派多少个没有上限。嵌套深度默认三层，用 `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` 改。
+
+官方没有给「该同时跑几个」的建议数字。它给的是规模上的分工：子智能体适合 `A few delegated tasks per turn`；要协调几十到几百个 agent 时用 dynamic workflow，它有自己的上限（默认同时 16 个，每次运行最多 1,000 个），并且计划安排的 agent 超过 25 个或预计 token 超过 150 万时会显示 `Large workflow` 警告。同时 16 个是默认值，Claude Code 可用的 CPU 少时更少，用 `CLAUDE_CODE_WORKFLOW_MAX_CONCURRENT_AGENTS` 改（1 到 256）。
+
+workflow 里每个 agent 的模型按和子智能体相同的顺序定：脚本给某个阶段写的模型算作「这次调用传的」那一项，都没指定时跑在会话的模型上。Dynamic workflows 页给的控制模型成本的两条：平时会切到小模型做例行工作的，大规模运行前先看一眼 `/model`；描述任务时让 Claude 给不需要最强模型的阶段用小一点的模型。想在大任务前估一下花费，先在一小片上跑，例如一个目录而不是整个仓库。同一页还写明：开着 ultracode 的会话里每个请求用的 token 更多，在订阅上会更早到会话上限或每周上限。
+
+**怎么让一条 prompt 用上 workflow**（同一页）：在 prompt 里带上关键词 `ultracode`，或者直接写 "use a workflow"、"run a workflow"，Claude 把这种直接的要求当作同样的许可。关键词只在用户自己输入的 prompt 里算数，用 `-p` 传入的 prompt、定时任务的 prompt 不会因此启动 workflow。size guideline 是给 Claude 的建议而不是上限，prompt 要求别的规模时以 prompt 为准。该页的示例 prompt 之一：
+
+```text
+use a workflow to audit every route handler under src/routes/ for missing authentication checks, and adversarially verify each finding before reporting it
+```
+
+Claude Code 最佳实践另给了两种批量做法。一个大的机械改动要跨很多文件时用 `/batch`，它的例子是 `/batch migrate every handler to the v2 response helpers`：把工作拆成 5 到 30 个单元并先给你看计划，批准后每个单元在自己的 worktree 里做，开 PR 或汇报结果。用脚本循环调 `claude -p` 时：`Try it on three files first, see what goes wrong, fix the prompt, then run the rest.`
+
+**结果怎么回来**：主会话派出的子智能体默认在后台跑，结果在之后某一轮以完成通知的形式到达。fork 模式开着时（默认），在本机的交互式终端、VS Code 和桌面应用会话里 Claude 不能等一个子智能体跑完再继续；要让它等，先关掉 fork 模式（`CLAUDE_CODE_FORK_SUBAGENT=0`）。子智能体完成时返回的结果会进主会话的上下文，官方的提醒：`Running many subagents that each return detailed results can consume significant context, and each subagent spends tokens of its own while it runs.` 所以交代里要它们回报简短摘要。
+
+**交代里要带什么**：非 fork 的子智能体从全新的上下文开始，看不到对话历史、已经调用过的 skill 和 Claude 读过的文件；它会加载 CLAUDE.md；内置的 Explore 和 Plan、以及定义里设了 `omitClaudeMd` 的子智能体不加载主会话那几层，但处理到某个子目录里的文件时，那里的 CLAUDE.md 仍会加载。子智能体页的说法：主会话读这些子智能体的结果时仍有完整的 CLAUDE.md，所以大多数规则不必传到子智能体；必须传到的规则（它举的例子是忽略 `vendor/` 目录），在让 Claude 委派的那条 prompt 里重述。Agent SDK 的子智能体页：`The only content you pass from parent to subagent is the Agent tool's prompt string, so include any file paths, error messages, or decisions the subagent needs directly in that prompt.`
+
+**出错和撞到用量上限时**（子智能体页 "API errors in subagents"）：子智能体因 API 错误结束——官方举的例子是 usage limit 或反复的服务器错误——会把失败回报给 Claude。前台子智能体如果已经产出了文字，Agent 工具返回这段部分输出，并注明它被打断、没做完；什么都没产出、或只产出了工具调用的，以 `Agent terminated early due to an API error` 失败。后台子智能体标记为失败，Claude 收到的消息里写明 API 错误并带上它最后的输出，`so partial work isn't lost`。错误消除后，让 Claude 重试，或用 `SendMessage` 续跑那个子智能体——续跑的子智能体保留完整的对话历史。Explore 和 Plan 是一次性的，不能续跑。子智能体的 transcript 独立于主会话保存，重启 Claude Code 后恢复同一个会话仍可续跑。
+
+**子智能体中途换了模型**：回报以 `⚠ This agent switched to <model> because its earlier model could not be used.` 开头，说明它是在 fallback 模型上跑完的（配置了 fallback model chain、且遇到链条覆盖的失败时会这样，例如它的模型不可用）。请求被安全分类器标记时，子智能体不会停下来问。有 fallback 模型可用时：`/config` 里选的是自动切换、或还没选过，这个请求在 fallback 模型上重跑，主会话的模型不变；选的是每次询问，子智能体以 `Agent terminated early due to an API error` 失败并带上拒绝信息。没有 fallback 模型可用时，两种选择下子智能体都以同样的方式失败。从 2.1.319 起，安全措施拦下一个子智能体之后，Claude 被告知的做法是用更窄的 prompt 重试或者告诉你，而不是自己去做那件事（changelog）。
+
+dynamic workflow 不一样：其中的 agent 撞到 claude.ai 用量上限时，运行暂停而不是让那个 agent 失败：撞到上限的 agent 等待重置，不再启动新的 agent，重置后运行自己继续（条件见 `models.md`「到了上限会怎样」）。
+
+**什么时候派，官方怎么说**（Claude Code 最佳实践 "Know what subagents cost"）。值得的四种情况：同时跑彼此独立的工作；把长输出（完整的测试运行、大范围搜索）挡在主会话外；要一个没看过代码怎么写出来的 reviewer；给某个任务比主会话更少的工具。代价主要是 token，有时还有时间：全新的子智能体要先收集主会话已经有的上下文。同一页的话：`by default it's the same model (or a smaller one) on the same task. You get parallelism or a fresh pair of eyes out of it, but not a smarter answer.`
+
+缓存也算在代价里：prompt cache 在订阅上大约保持一小时，在 API key、云 provider 或 usage credits 上是五分钟，而 `Subagents get five minutes unless you change it`。workflow 的 agent 同样默认五分钟，订阅上也是；把 `subagentPromptCacheTtl` 设成 `1h` 可以保持一小时，1 小时的缓存写入按更高的费率计。
+
+Fable 5.2 专页对 prompt 的要求：system prompt、skills、agent 文件里叫它委派的句子先查一遍；派得比任务需要的多，就删掉不再需要的。
+
+**写子智能体定义时**（子智能体页）：Claude 靠每个子智能体的 `description` 决定什么时候委派，所以要写清它该在什么时候用，并且具体到能和别的子智能体区分开。description 要短：自定义子智能体的 description 合计超过 15,000 token 时，Claude Code 启动时会给警告；细节挪进子智能体自己的 system prompt，它只在那个子智能体运行时才加载。同一页说，在 description 里写 "use proactively" 这类话会鼓励 Claude 主动委派；目标是 Fable 5.2 时把它和上一段放在一起看，Fable 5.2 专页写的是 prompt 鼓励委派的编码产品里它派得很痛快。要保证某个子智能体在这次任务里一定运行，用 @ 点名它；只在话里提到它的名字，用不用仍由 Claude 决定。
 
 ---
 
@@ -168,40 +215,48 @@ Claude Code 的大部分最佳实践都源自同一个约束：**上下文窗口
 
 如果你发现自己在 prompt 里写"我们项目用 pnpm 不用 npm"、"提交前要跑 lint"这类**每次都要说一遍**的话，就该建议用户把它放进 CLAUDE.md 或 hook，而不是每次复制粘贴。
 
+## 确定性指令和非确定性指令
+
+Claude Code 最佳实践把每条指令分成两种：非确定性的由模型读了之后自己决定怎么办（prompt、CLAUDE.md、skill），通常会照做，但没有保证；确定性的由 Claude Code 这个 harness 执行（hook、deny 规则、managed setting），不管模型怎么决定都会生效。
+
+| | 非确定性（Claude 决定） | 确定性（Claude Code 强制） |
+|---|---|---|
+| 做什么 | prompt、CLAUDE.md、Claude 自己会用的 skill | hook、只有你能启动的 skill |
+| 能碰什么 | auto mode 的分类器 | deny 规则、strict mode 的沙箱、managed settings |
+| 什么时候算完 | 要证据、`/goal`、`/code-review` | 测试、类型检查、`Stop` hook、CI |
+| 花多少 | effort 档位、Claude 自己的节奏 | `-p` 下的 `--max-turns` 或 `--max-budget-usd`、你设的 spend limit |
+| 谁说了算 | Claude 对自己做了什么的总结 | 分支保护、批准合并的人 |
+
+官方的取舍：大多数时候让 Claude 决定——几乎每条规范都有例外，眼前有实际代码时它通常比你事先写的规则判断得更好。确定性那一种留给**零例外**的事：`a hook is for a rule with zero exceptions`，有例外的偏好（官方例子 `Prefer named exports`）留在 CLAUDE.md。反过来，如果你给只是偏好的东西配了 hook，删掉，让 Claude 决定。
+
 ---
 
 ## 项目配置放哪：七种方法取舍表
 
-Claude Code 团队的文章列了七种方法；这里 CLAUDE.md 分成根目录和子目录两行。
+Anthropic 的「Steering Claude Code」一文列了七种方法；这里 CLAUDE.md 分成根目录和子目录两行。
 
 | 手段 | 加载时机 | 上下文成本 | 适合放什么 |
 |---|---|---|---|
-| **CLAUDE.md（根）** | 会话开始，全程驻留，compaction 后重新读入 | **高**（始终加载） | 构建命令、目录结构、monorepo 布局、团队约定。**控制在 200 行以内**，且要有人负责审查变更 |
+| **CLAUDE.md（根）** | 会话开始，全程驻留，compaction 后重新读入 | **高**（始终加载） | 确认工作用的命令（测试、类型检查、lint、怎么只跑一个测试文件）、代码里有误导性的地方、不在仓库里的决定、已经纠正过两次的事。**控制在 200 行以内** |
 | **CLAUDE.md（子目录）** | 触及该目录时按需加载 | 低 | 目录级约定 |
-| **Rules** | 会话开始（无 scope）或访问文件时（有 scope） | 中 | 具体约束。**加 `paths:` frontmatter 做路径限定**以降低成本 |
-| **Skills** | 名称加描述在开头，正文在调用时 | 低 | 流程性工作流：部署清单、发版流程、审查流程 |
-| **Subagents** | 名称加描述在开头，正文调用时加载，只返回最终消息 | 低（隔离上下文） | 只需要结论的侧任务：日志分析、依赖审计、深度搜索 |
-| **Hooks** | 生命周期事件触发，绕过 compaction | 低（在主上下文之外） | **确定性**自动化：lint、发通知、阻断特定命令 |
-| **Output styles** | 会话开始，永不压缩 | **高** | 只在需要大幅改变 Claude 角色时用 |
-| **追加 system prompt** | 会话开始，以 CLI 参数传入；永不压缩，只对那一次调用生效 | 中（同一会话首个请求之后会被缓存） | 语气、回复长度、格式偏好 |
+| **Rules** | 会话开始（无 scope）或访问文件时（有 scope） | 中 | 只在代码库某一部分才要紧的规则。**加 `paths:` 过滤**，只在 Claude 真的在那里干活时加载 |
+| **Skills** | 名称加描述在开头，正文在调用时 | 低 | 团队的流程和知识：发版流程、事故手册、API 文档怎么写。有副作用的流程加 `disable-model-invocation: true`，只在你自己输入命令时才跑 |
+| **Subagents** | 名称加描述在开头，正文调用时加载，只返回最终消息 | 对主上下文低；它自己的请求照样计用量 | 只需要结论的侧任务 |
+| **Hooks** | 生命周期事件触发 | 低（在主上下文之外） | 零例外的规则和确定性自动化：格式化、阻断对某个目录的编辑。要真正强制，用 `command` 或 `http` 类型的 hook |
+| **Output styles** | 会话开始，compaction 后仍然生效 | **高** | 每次回复都要的语气、长度或格式，或者让 Claude 以软件工程师之外的角色工作 |
+| **追加 system prompt** | 以 CLI 参数在启动时传入 | 中 | 脚本和自动化里需要放在 system prompt 层的指令（`--append-system-prompt`） |
 
-**反模式**：
+**CLAUDE.md 写什么**（最佳实践 "Keep CLAUDE.md short"）：怎么确认这个仓库里的工作——确切的测试、类型检查、lint 命令，以及怎么只跑一个测试文件；代码有误导性的地方——到处都是但新代码不许照抄的旧模式、看着没用其实在用的目录；不在仓库里的决定；已经不得不纠正过两次的事。
 
-- ✗ 把 "Every time X, always do Y" 写进 CLAUDE.md → 改用 hook。**advisory（建议性）的指令永远不如 deterministic（确定性）的执行**
-- ✗ "Never do this" 这类约束 → 改用 `PreToolUse` hook 或权限配置
-- ✗ 30 行的操作流程写进 CLAUDE.md → 移到 skill
-- ✗ 只跟 API 相关的规则却不限定路径 → 加 `paths:` frontmatter
-- ✗ 个人偏好写进项目共享文件 → 用用户级本地配置
+**怎么写**（Memory 页）：Claude 把 CLAUDE.md 当作上下文，不是强制执行的配置，所以怎么写决定了它被遵守得多可靠。指令要具体到能验证：写 "Use 2-space indentation"，不写 "Format code properly"。两条指令互相矛盾时，Claude 可能随便挑一条，所以定期清掉过时的和冲突的。CLAUDE.md 的内容是作为 system prompt 之后的一条 user 消息送达的，不是 system prompt 的一部分。
 
-**CLAUDE.md 写什么**：模型猜不到的 bash 命令、与默认不同的代码风格、测试方式、仓库礼仪（分支命名、PR 约定）、项目特有的架构决策、环境怪癖、非显而易见的坑。
+**不写什么**：Claude 读代码就能得出的东西。官方把在 CLAUDE.md 里描述架构和文件布局列进了可以停掉的旧做法。个人偏好放 `CLAUDE.local.md` 并加进 `.gitignore`。
 
-**不写什么**：读代码就知道的、语言通用惯例、详细 API 文档（给链接）、频繁变动的信息、逐文件说明、`write clean code` 这类空话。
+**某一行老被忽略时**：加 IMPORTANT 多半没用（SKILL.md 3.3）。要么文件太长、那一行被淹没了，缩短文件；要么它是不能有例外的规则，做成 hook。
 
-**自检**：对每一行问：*删掉它会不会让 Claude 犯错？* 不会就删。
-**故障信号**：明明有规则禁止，Claude 还是反复做你不想要的事，多半是**文件太长、规则被淹没了**。如果它总是跳过某一条指令，官方建议只给那一行加上 "IMPORTANT" 这类强调——强调的行多了，哪一行都不再显眼。
-**工具**：`/doctor` 命令可以帮你精简 skills 和 CLAUDE.md。
+**工具**：`/init` 从代码库生成一个起始版本，之后主要是删行；`/doctor` 建议删掉 Claude 能从代码里得出的内容；`/doctor prompt-audit` 标出为旧模型写的、指向已不存在的文件的、或互相矛盾的指令；会话里 `/context all` 确认文件加载了。
 
-**Skills 怎么写**（三层渐进式披露）：
+**Skills 怎么写**（三层渐进式披露，出自 Anthropic 的 Agent Skills 一文）：
 
 | 层 | 内容 | 何时加载 |
 |---|---|---|
@@ -209,13 +264,15 @@ Claude Code 团队的文章列了七种方法；这里 CLAUDE.md 分成根目录
 | 主指令 | `SKILL.md` 正文 | Claude 判断相关时 |
 | 附加文件 | 从 SKILL.md 引用的其他文件 | 只在真正需要那个场景时 |
 
-`name` 和 `description` 是激活的关键，没触发要先改这两句。正文臃肿就拆文件。有帮助时就打包可执行代码：用 token 生成来排序列表，远比直接跑一个排序算法昂贵。**Fable 5 专页写明，为旧模型写的 skill 对它往往过于规定化，可能降低输出质量** —— 面向 Fable 系列时要定期删减。（Fable 5.1 专页没有重述这条；它写明现有 Fable 5 prompt 应当无需修改就能表现良好，而通用最佳实践页说模型专属的结论要当作在那个模型上测得的。Opus 5.5 的迁移指南对 Opus 系列给的是同一个方向：`Instructions tuned for Claude Opus 5's behavior might no longer be needed`。）
+CLAUDE.md 的那条规则对 skill 同样适用：只写 Claude 自己找不到的。迁移到 Fable 5.2 时，skills 和 agent 文件也在 Fable 5.2 专页要求复查的范围里（SKILL.md 3.13）。
+
+Claude Code 文档里两条和截断有关的写法提示：skill 列表里 `description` 和 `when_to_use` 合计超过 1,536 个字符的部分会被截掉，所以把最主要的使用场景写在最前（Skills 页）；compaction 之后重新注入的 skill 正文，大的会按每个 skill 的上限截断并保留文件开头，所以最重要的指令放在 `SKILL.md` 靠前的位置（Context window 页）。
 
 ---
 
 ## 把手工复查固化成验证回路
 
-判据：**任何用户不得不一遍遍手动执行的检查，都是固化成验证回路的候选。** 尤其是通用 linter 抓不到的确定性规则，官方举的例子是 `reject any migration that drops a column without a backfill step`。
+出自 Anthropic 的「Building verification loops in Claude Code with skills」一文。判据：任何用户不得不一遍遍手动执行的检查，都是固化成验证回路的候选，尤其是通用 linter 抓不到的确定性规则，文中的例子是 `Reject any migration that drops a column without a backfill step`。
 
 | 模式 | 触发 | 适合 |
 |---|---|---|
@@ -224,11 +281,11 @@ Claude Code 团队的文章列了七种方法；这里 CLAUDE.md 分成根目录
 | **Chained 串联** | 一个 skill 完成后调下一个 | 端到端交接；也是给**不可修改的 skill** 加验证的办法 |
 | **On every PR** | CI 上跑 | 把个人习惯变成团队基础设施，不再依赖作者自觉 |
 
-**坑**：内嵌只对可编辑的 skill 有效。内置或插件管理的 skill 会自动更新，改动会被覆盖，那种情况必须用串联。
-
----
+内嵌只对可编辑的 skill 有效。内置或插件管理的 skill 会自动更新，改动会被覆盖，那种情况用串联。
 
 ## 四种循环
+
+出自 Anthropic 的「Getting started with loops」一文。
 
 | 类型 | 命令 | 适合 |
 |---|---|---|
@@ -237,20 +294,43 @@ Claude Code 团队的文章列了七种方法；这里 CLAUDE.md 分成根目录
 | **Time-based** | `/loop 5m check my PR, address review comments, and fix failing CI` | 周期性工作、对接外部系统 |
 | **Proactive** | `/schedule every hour: check #project-feedback for bug reports` | 定义明确的持续工作流：bug 报告、issue 分诊、迁移 |
 
-控成本：**确定性的工作用脚本做**（跑脚本比逐 token 推理便宜），周期匹配实际变化频率，大规模跑之前先试点。官方结论——**模型和 effort 档位属于循环成本上最大的几个杠杆。**
+控成本：确定性的工作用脚本做，周期匹配实际变化频率，大规模跑之前先试点。文中原话：`Your model and effort level choices are among the biggest levers on what a loop costs.` 它给 proactive 循环写的省用量办法是 `Routing routines to smaller, faster models and using the most capable model for judgment calls`。Claude Code 最佳实践补充：`/loop` 的每次运行都是同一个会话里的又一轮，所以不要让它在一个很长的对话里一直跑。
 
----
+## 无人值守运行前的五个问题
 
-## 五种常见失败模式
+Claude Code 最佳实践 "Let Claude run without you"。让一个任务自己跑之前，针对这个具体任务过一遍：
 
-值得随 prompt 一并转告用户、提醒避开：
+1. 它知道做完是什么样吗？一个 goal 条件、一份 spec 文件、或一个它得跑绿的失败测试
+2. 它能检查自己的工作吗？测试套件、`Stop` hook、某种审查步骤
+3. 它被允许碰什么？权限规则、`dontAsk`、沙箱、worktree、它可以推的那一个分支
+4. 什么能让它停？`--max-turns`、`--max-budget-usd`、spend limit
+5. 结果去哪儿、谁签字？一个 PR、一条评论或一份总结，然后由人批准合并、部署或其他收不回来的事
 
-| 失败模式 | 症状 | 解法 |
+官方的理由：你盯着的时候，Claude 缺一点上下文不要紧，一两条消息内你就会发现并告诉它；睡前启动的运行里没人告诉它，第二天早上才发现它一整夜都在错误的假设上往下做。
+
+## 可以停掉的旧做法
+
+Claude Code 最佳实践 "What you can stop doing"。审查用户给的 Claude Code prompt 或 CLAUDE.md 时照这张表查：
+
+| 旧做法 | 官方现在的说法 |
+|---|---|
+| 把上下文窗口当主要约束、激进地管理 | 多数现行模型有 1M token 窗口，compaction 自动发生，很少会用完。任务之间 `/clear` 仍然值得做：上下文聚焦，答案更好、花得更少 |
+| 给老被漏掉的指令加 IMPORTANT 或全大写 | 现行模型照平实的一句话就会做，堆强调多半让它把规则用过头。不能有例外的做成 hook 或 deny 规则；被长文件淹没的，缩短文件 |
+| 用子智能体保护上下文窗口 | 用完上下文很少再是问题。子智能体仍适合并行、挡住嘈杂输出、独立审查，但每一样都多花 token |
+| 派给子智能体以求更好的答案 | 把同一个任务交给子智能体不会让答案更好。全新的 reviewer 有帮助，是因为它没看过你的推理，那是另一回事 |
+| prompt 里写 `think hard`、`think harder`、`be thorough` | 那是 effort 管的事。这些是普通的 prompt 文字。`ultrathink` 仍然有效：它只对那一轮要更深的推理 |
+| 叫它继续、循环到做完、别偷懒 | 现行模型通常不用说就会把说定的任务做下去，这类话更可能造成做过头。给它一个要通过的检查是另一回事，仍然值得。真的停早了就说 `continue`；没人盯着的运行用 `/goal` 或 `Stop` hook 强制。目标是 Fable 5.2 时另看 Fable 5.2 专页的要求：叫它继续时说清要它做什么，不要只发一句 continue（见「一次说清楚」） |
+| 在 CLAUDE.md 里描述架构和文件布局 | Claude 自己会读仓库。只写不在里面的 |
+
+## 会话没按预期走时
+
+Claude Code 最佳实践开头的诊断，值得随 prompt 一并转告用户：
+
+| 现象 | 多半是什么原因 | 去看哪一节 |
 |---|---|---|
-| **大杂烩会话** | 一个任务问到一半岔到别的再岔回来 | 不相关任务之间 `/clear` |
-| **反复纠正** | 纠正一次不对，再纠正还不对 | **两次失败就 `/clear`**，带着学到的写一个更好的初始 prompt |
-| **过度规定的 CLAUDE.md** | 文件太长，重要规则被淹没 | 狠心修剪 |
-| **信任但没验证** | 看起来合理但边界情况没处理 | 永远提供验证手段；**验证不了的东西不要发布** |
-| **无边界探索** | 让它去 "investigate" 却不给范围，结果读了几百个文件 | 收窄范围，或用 subagent 隔离 |
+| 做出来的东西和你想的不一样，或者每个会话都要重新发现同一个事实 | 它缺少读仓库得不到的信息 | 只告诉它看不见的东西 |
+| 它说做完了，其实没完全做完 | 它没有办法检查自己的工作 | 给一个它自己能跑的检查 |
+| 它做了这个仓库里绝不能发生的事，或跳过了必须做的一步 | 光靠 prompt 保证不了 | 确定性指令 |
+| 做对了，但花的时间、token 或权限确认比任务值得的多 | 某个默认值不合适 | `/usage` 看花在哪；SKILL.md 第 2 节 |
 
-**对抗式审查的一个重要提醒**：让一个子智能体在干净上下文里审查 diff 很有效，但官方同时警告——**被要求找问题的审查者通常也会报出一些问题，即使工作本身没问题**，因为那是它被要求做的事。追着每条发现改会导致过度工程。所以审查 prompt 要写明：**只报影响正确性或既定需求的问题，其余视为可选。**这是一条过滤指令，只适用于**由你来做过滤**的场合。如果发现要交给下游的排序或分诊步骤，改用片段 4.16、让审查者全报——Opus 5 页提醒过：审查 prompt 设了严重度门槛时，模型 `might follow that instruction literally and report less`（见 `references/models.md`），而 Opus 5.5 的页面对这个倾向既没重述也没撤回。（早期测试者反馈 Opus 5.5 的代码审查强于 Opus 5——bug 找得更多、误报更少——这是相信它的发现的理由，不是让严重度门槛在上游先过滤一遍的理由。）
+会话里的三个控制（"Steer the session"）：`Esc` 在动作中途停下并保留到那一刻为止的一切；`/rewind` 把代码、对话或两者回滚到之前的某条 prompt；同一件事纠正了两次还不对，就 `/clear`，把学到的并进一条新 prompt——第三次纠正多半只是往一段已经含有两次失败尝试的对话里再加东西。

@@ -24,21 +24,22 @@ SOFTWARE.
 
 NOTICE
 
-This repository quotes verbatim excerpts from Anthropic's public documentation
-and blog posts and from public talks by Anthropic employees. The largest
-concentration is the prompt snippet library in skill/*/references/snippets.md:
-36 numbered entries, of which 35 are verbatim excerpts (4.1 is a decision table,
-not a quotation), carrying 51 quoted blocks of 40 characters or more, roughly
-3,850 words, drawn from six documentation pages. The rest of the skill quotes
-roughly 620 further words of official wording in fenced blocks -- 17 fenced
-blocks in all, roughly 870 words, the remainder being this repository's own
-skeletons -- and roughly 1,250 more inline, as shorter sentences, page headings
-and example prompts, each counted once. The study guides quote roughly 1,330
-more as individual attributed sentences, each counted once across the two
-guides, which quote largely the same English sentences. The Chinese edition of
-the skill translates only this repository's own prose and templates and leaves every
-quoted block byte-identical to the English edition's. That puts the total on
-the order of 7,000 words.
+This repository quotes verbatim excerpts from Anthropic's public documentation,
+articles and support pages, and one sentence from a public talk by an Anthropic
+employee. The largest concentration is the prompt snippet
+library in skill/*/references/snippets.md: 52 numbered entries, of which 51 are
+verbatim excerpts (4.1 is a decision table, not a quotation), carrying 75
+fenced blocks, 72 of them 40 characters or more, roughly 5,450 words, drawn
+from nine documentation pages. The rest of the skill quotes roughly 755 further
+words of official wording in fenced blocks -- 19 fenced blocks in all, roughly
+925 words, the remainder being this repository's own skeletons -- and roughly
+2,900 more inline, as shorter sentences, page headings and example prompts,
+each counted once. The study guides quote roughly 2,200 more as individual
+attributed sentences, each counted once across the two guides, which quote
+largely the same English sentences. The Chinese edition of the skill translates
+only this repository's own prose and templates and leaves every quoted block
+byte-identical to the English edition's. That puts the total on the order of
+11,000 words.
 
 Those excerpts are the property of Anthropic. Each is attributed at the point of
 use -- the snippet index links every quoted entry to its source page -- and in

@@ -1,65 +1,81 @@
-# Scenario B: task prompts for desktop chat or a Cowork session
+# Scenario B: task prompts for the Claude app (chat or Cowork)
 
-The user describes work in Claude desktop and the resulting prompt runs directly in **desktop chat** or a **Cowork session**. Non-coding work: research, analysis, writing, organizing source material, producing documents, spreadsheets and decks, scheduling, information synthesis.
+The user describes work in Claude desktop, and the resulting prompt runs directly in the Claude app. Non-coding work: research, analysis, writing, organizing source material, producing documents, spreadsheets and decks, scheduling, information synthesis.
 
 ## Contents
 
-- Chat or Cowork first
-- Output length must be pinned
+- Chat and Cowork are now one conversation
+- Three things the docs recommend stating when you hand over a task
+- Model, effort, and usage
+- Put output length in the prompt
 - Where the material goes
-- Give examples when format must be locked
+- Use examples to fix format, tone, and structure
 - Research tasks
-- Cowork: deliverables and files
-- Cowork: skills that take over automatically
+- Deliverables and files
+- Scheduled tasks
 - What not to put in
 - A skeleton you can lift
-- Reusable and recurring prompts
-- Sourcing note for this file
+- Sources
 
 ---
 
-## Chat or Cowork first
+## Chat and Cowork are now one conversation
 
-The two are positioned differently, and the writing follows. The table below follows Anthropic's current descriptions of the two surfaces (the third, Claude Code, is Scenario A and is covered in `for-claude-code.md`). The Cowork column follows the Cowork overview, except scheduled tasks, which come from the Claude Desktop Unified Claude page and changelog; the chat column follows the Claude Desktop Chat page, which is written for deployments on third-party clouds and is the page that spells out Chat's limits — chat elsewhere can differ in places.
+The support article "Claude Cowork and chat are one Claude" says the new experience merges the two into a single conversation, so `you don't need to decide which option better suits your task before getting started`: say what you want, and Claude can decide which tool to use. What you could previously do only in Cowork is now available from any conversation. It is rolling out in stages, starting with Pro, Max, and Ultra (web, desktop, and mobile), and even accounts on the same plan see it at different times. An account whose message box still shows "Chat" and "Cowork" options hasn't moved over yet; use it as before, and most of what the support article covers works there too.
 
-| | desktop chat | Cowork session |
+So when you write the prompt, you don't need to choose a mode for the user. Write to these officially documented capabilities:
+
+| What it can do | What the docs say | What it means for the prompt |
 |---|---|---|
-| **Positioning** | A conversational surface for quick questions and drafting | An agentic workspace: describe the outcome, then come back to finished work — polished documents, organized files, synthesized research |
-| **Files and tools** | A deliberately small tool surface: files attached to the conversation, connectors, skills | **Reads and writes local files directly**, no manual upload or download; Claude in Chrome for websites |
-| **Output** | Content in the conversation, plus files it creates in its own scratch space for download | **Finished deliverables**: Excel with functional formulas, PowerPoint, formatted documents |
-| **Long and recurring work** | Cannot run scheduled tasks or hand off to an agentic session; when a request needs more, it suggests Cowork | Runs multi-step tasks autonomously; supports **scheduled tasks** |
-| **Parallelism** | None | **Sub-agent coordination**, dividing complex work into parallel workstreams |
+| Take on a whole task | Describe the outcome you want, and Claude works through the steps on its own: searching the web, reading files, running code, putting the results together. You don't need to break the work into steps | Describe the outcome; there is no need to break the work into steps. Give steps when their order or completeness matters (best practices page) |
+| Keep working after you step away | More involved tasks keep running in the cloud even if you close your laptop or leave the page; when you come back, the result is waiting in the conversation | Tasks that use local files or local apps need Claude Desktop open |
+| Hand back finished files | Documents, spreadsheets with working formulas, presentations you can open in PowerPoint | Say which kind of file you want |
+| Designs, decks, and docs (artifacts) | On paid plans you can ask for a design, deck, or doc: Claude Design, Claude Slides, Claude Docs (all three in beta). Edit it yourself or have Claude change it, then share it by link or export it | This is a route for work that will be shown to or shared with others |
+| Use connected apps | Google Drive, Gmail, Microsoft 365, Slack, and others, which it pulls from as needed while it carries out the task | Say which app the material is in. For Opus 5.5 on tasks that span several connected apps, the official sentence (look through the relevant sources before acting) is snippet 4.32 |
+| Local files and folders | In Claude Desktop, give Claude access to a folder, and it can read, organize, and create files there | To save to the machine, name the folder, and remind the user to grant access first |
+| Browsing and computer use | Opens sites, reads pages, clicks, and fills in forms, using the browser built into Claude Desktop or Claude in Chrome; computer use is in beta on Pro, Max, and Ultra | The built-in browser and computer use are available only while Claude Desktop is open |
+| Scheduled tasks | Have Claude run a task on a schedule; it can run in the cloud and keeps going when the computer is off | See the Scheduled tasks section |
+| Skills and plugins | Teach Claude how you like a task done, and it follows those steps whenever that kind of task comes up | Steps Claude should follow whenever this kind of task comes up can be taught once as a skill |
 
-**One boundary that matters:** Cowork works on the folders you grant, and its code runs in an isolated workspace VM rather than in your own shell. Repository-level operations, git, and build or deploy work belong in Claude Code — Scenario A, not B.
+**How often it checks with you** is set by the permission setting in the message box. Under Auto (the default on Pro, Max, Ultra, and Team), Claude doesn't stop to ask about each step, and automated safety checks run before it takes an action; under Manual, it asks before it takes actions. The support article's caution: for work with real consequences, such as sending messages or changing important files, stay close and review what Claude does.
 
-**The two surfaces are merging.** On Claude Desktop for third-party cloud deployments, Unified Claude (beta) combines Chat and Cowork into one experience with Cowork's agentic capabilities: a message from the home screen starts a Cowork session on any device that can run Cowork. It is opt-in until November 10, 2026, when it becomes enforced for all such deployments, and Anthropic's current desktop-app guide no longer presents chat and Cowork as separate modes. When the user is on that setup there is no choice to make — write for Cowork's capabilities whenever the task needs files, many sources, or a finished deliverable.
+Repository-level operations, git, and build or deploy work belong in Claude Code, which is Scenario A.
 
-**How to decide:** if the deliverable is "content I can just read," chat is enough; if it is "a file I want to keep" or the work needs systematic sourcing across many materials, Cowork.
+## Three things the docs recommend stating when you hand over a task
 
-When the user does not say and the task clearly needs file output or bulk material handling, **default to writing for Cowork and say so in the delivery note**.
+In the support article's words: `describe what you need, the way you'd brief a colleague`. Results are better when you include these three:
 
-**Two Cowork capabilities worth using deliberately:**
+- **The outcome you want**: what you want to end up with, for example "a one-page summary" or "a spreadsheet with a tab for each region"
+- **The format**: how the result should be delivered, for example a Word document, a slide deck, or a message that can be pasted straight into Slack
+- **The inputs Claude needs**: the files, links, or apps it should work from
 
-- **Scheduled recurring tasks.** When the underlying need is "give me an X every Monday," write the prompt as a reusable task description and tell the user to set it up as a scheduled task rather than running it by hand each time.
-  **A scheduled task means nobody is watching.** Any "shall I continue?" stalls the whole thing until next week. So a recurring prompt must say **how to keep going when something goes wrong** — missing material, an unopenable file, an unresolvable source conflict: record it and continue, then collect them under a "needs your decision" section in the output rather than stopping to ask. (Snippet 4.18 on Fable 5.1, or 4.31 on Opus 5.5, is the full treatment; for something light like a weekly report you do not need those blocks, just this rule.)
-  **One more rule that recurring deliverables need:** have it read the previous cycle's output first and **report only the delta** — what changed, whether last cycle's stated next steps happened, what is still open. Without this, every cycle becomes a flat restatement and the reader has to diff it themselves. This holds for weekly reports, standup notes, status updates, digests, and changelogs.
-- **Parallel subagents.** With a lot of material, the prompt can say explicitly: process each source in a parallel subagent and have each return only a structured summary. Faster, and it keeps the main context clean.
+Two more support articles add writing tips. For writing help, give the requirements, the audience and the key points in full, and send a text to be edited whole in one message, not in pieces; for research and analysis, define the research question and focus areas at the start, and put all the relevant data in one well-structured message ("Usage limit best practices"). Keep project instructions short: use them for general context about the project, key guidelines and Claude's role, and keep task-specific instructions in the chat itself ("How do usage and length limits work?").
 
-## Output length must be pinned
+## Model, effort, and usage
 
-This is the most frequent problem in Scenario B. **Do not count on effort to shorten a reply.** On Opus 5 effort governs how much the model thinks, not how much it says; the best practices page calls that an Opus 5 exception on verbosity (the effort page says that in general effort `affects all tokens in the response`), and neither the Opus 5.5 nor the Fable 5.1 page says how lowering effort affects reply length. So state the length in the prompt on every model in scope. (Longer output by default is published for Opus 5: its page says the files it writes to disk `are often longer than on prior models`. Opus 5.5 officially `tends to complete the same task with fewer tokens`, so re-measure rather than assuming, but state the length either way.)
+Model and effort are chosen in the model menu next to the send button; choose the level according to SKILL.md section 2. The support article on the levels: Low and Medium suit routine tasks and also stretch usage further; High offers the best balance of quality and speed; Extra high is designed for long-running coding and agentic tasks; Max is the most thorough. Each model's recommended level is marked "Default" in the menu.
 
-So anything meant to be read needs an explicit length constraint. **How to choose and what stacks is in SKILL.md Section 8, "Choosing a length control"**; in short:
+The same article's advice by task ("Choose the right settings for your task"): for everyday tasks the defaults work well; simple questions, basic information requests, and general writing don't need extra effort, and lower effort stretches usage further; for complex tasks, raise the effort level, turn on thinking, or both; `For complex coding and agentic tasks on Opus 4.7 or newer, try Extra high (xhigh) first`; for the hardest, most correctness-critical work, choose Max and expect longer response times; whichever setting you choose, be specific about the problem. The xhigh line disagrees with the model pages: the Opus 5.5 and Fable 5.2 pages both keep `xhigh` for work where a gain has been measured, and the Sonnet 5.5 and Haiku 5.5 pages likewise use `xhigh` only where evals show a quality gain. This skill chooses by the model pages (SKILL.md section 2); in the delivery note, also tell the user what the support article says.
 
-- Pick one primary mechanism — **give a number when you can** ("300–400 words", "3–6 bullets, each under 15 words", not "keep it brief"); fall back to snippet 4.2 only when a number is impossible
-- When the deliverable is written to a file, **add** snippet 4.4 (a word count usually constrains the body but not the padding sections the model adds on its own)
-- When the system prompt is long, **append** a short `<tone_preference>` reminder at the end
+In the Claude app, thinking can't be turned off on Fable 5.2, Opus 5.5, Sonnet 5.5, or Haiku 5.5; to make the model think less, choose a lower effort level.
+
+Usage: everything you do in Claude counts toward the plan's usage limits, and longer agentic tasks that search the web, run code, or create files generally use more than a quick question. The higher the effort, the sooner you reach the limit. For the allowance rules for Fable models, see "Subscription usage limits" in `models.md`. For documents, spreadsheets and decks, two official sources give different examples: the selection article puts everyday ones on Sonnet 5.5, and a complex financial model or a document built from a large pile of source material on Opus 5.5; the platform selection matrix lists analysis carried through to a finished document, spreadsheet or deck among its examples for Fable 5.2. For the ways to save usage that the support site gives for the Claude app (combine related questions into one message, give the background up front, use a lower effort for routine tasks, turn off connected apps you don't need, ask Claude not to search the web when you don't need current information, start a new conversation when a long one nears the limit), see "Officially recommended ways to save usage" in `models.md`.
+
+---
+
+## Put output length in the prompt
+
+On Fable 5.2 and Opus 5, do not count on effort to shorten replies. The Fable 5.2 page: `Effort barely changes how long the model's replies are. To change the length and tone of a reply, use your prompt.` The Opus 5 page states that lowering effort does not reliably shorten visible output, and says the files the model writes to disk `are often longer than on prior models`. The Opus 5.5 pages do not restate either point; they say only that it `tends to complete the same task with fewer tokens`.
+
+For ready-made wording, see snippets 4.2 and 4.4 (Opus 5 page wording). When the target is Fable 5.2, it follows a hard cap on sentence length closely, which can make its prose choppy; the official step is to remove the style rules you no longer need first. For final reports, use snippet 4.40.
+
+---
 
 ## Where the material goes
 
-When the user wants Claude to work through a body of source material — documents, emails, chat logs, saved web pages:
+When the user wants Claude to work through a body of source material (documents, emails, chat logs, web content):
 
-**Long material at the top, the query and instructions at the end.** Queries at the end can improve response quality by up to 30 percent in tests, especially with complex, multidocument inputs.
+**Long material at the top, the query and instructions at the end.** In Anthropic's tests this can improve response quality by up to 30 percent, especially with complex, multidocument inputs.
 
 ```xml
 <documents>
@@ -82,70 +98,69 @@ When the user wants Claude to work through a body of source material — documen
 
 **One more technique for long documents — grounding in quotes:** ask the model to extract the relevant quotes into `<quotes>` tags first, then answer from those. This helps it focus on the relevant content and ignore the rest of the document.
 
-## Give examples when format must be locked
+---
 
-A large share of Scenario B work is "produce this same shape every time" — weekly reports, meeting notes, retrospectives, briefings, cards. This is exactly the "give examples" branch of SKILL.md Section 4.
+## Use examples to fix format, tone, and structure
 
-- 3–5 of them, wrapped in `<example>`
-- Make them **diverse**, covering edge cases, so the model does not pick up unintended patterns
-- The most valuable examples are **paired**: raw material → finished output. That teaches the compression ratio and the selection criteria, not just the shape
-- If the user has real past samples, have them drop two or three in — this is the single highest-return step
+The best practices page: `Examples are one of the most reliable ways to steer Claude's output format, tone, and structure.` Tasks that produce the same format every time (weekly reports, meeting notes) are that kind of case. What the page asks for:
 
-**When the user has no samples yet** (common in a one-shot delivery where you cannot ask): **give one paired example you wrote, and do not manufacture three to five.** Invented examples in bulk teach an imagined house style as though it were the standard, and the user will find that hard to detect later. Give one that demonstrates the compression ratio and the selection criteria, leave a clearly marked slot in the prompt, and tell the user in the delivery note: **swapping in two or three real ones is the biggest single improvement available.**
+- 3–5 of them, wrapped in `<example>` (with `<examples>` around them when there are several)
+- **Relevant**: mirror the actual use case
+- **Diverse**: cover edge cases, so the model does not pick up unintended patterns
+- You can have Claude evaluate whether your examples are relevant and diverse enough, or generate more based on the ones you gave (`You can also ask Claude to evaluate your examples for relevance and diversity, or to generate additional ones based on your initial set`)
 
-Conversely, when the task is open-ended creation or brainstorming, or you want the model to choose its own angle, **do not give examples** — they narrow the exploration space to their own neighborhood.
+---
 
 ## Research tasks
 
-For work that requires sourcing and synthesizing across many sources, there is a ready-made official block. **Copy it verbatim, including the self-critique sentence** — see the carve-out below it:
+The best practices page lists three things for research tasks: provide clear success criteria, defining what counts as a successful answer; encourage source verification, asking Claude to verify information across multiple sources; and use a structured approach for complex research tasks. For the third it gives a sample prompt:
 
 ```
 Search for this information in a structured way. As you gather data, develop several competing hypotheses. Track your confidence levels in your progress notes to improve calibration. Regularly self-critique your approach and plan. Update a hypothesis tree or research notes file to persist information and provide transparency. Break down this complex research task systematically.
 ```
 
-> **Carve-out for SKILL.md 3.4.** That block contains `Regularly self-critique your approach and plan`, and 3.4 says to remove self-verification instructions on Opus 5 (and to measure before removing them on Opus 5.5). This is the same kind of exception as `you MUST read the file` inside snippet 4.7: it is **tuned official wording, so copy it as is**. The two are not the same instruction — 3.4 removes *end-of-answer self-review*, a last look at a finished deliverable; this sentence is *mid-run course correction*, re-aiming the search while evidence is still coming in. If the task is a single-pass write-up rather than a multi-step search, that sentence has nothing to correct, and you may drop that one line.
+Add more depending on the target model:
 
-Three more: **give clear success criteria** (what constitutes a successful answer to this question), **ask for source verification** across multiple sources, and **explicitly allow it to say it does not know**. The line below is the second sentence of the example in Anthropic's 2025-11 prompt engineering post ("Give permission to Claude to express uncertainty"); it is not on the documentation pages and carries no special tuning, so adapt it freely:
+- **Sonnet 5.5**: it sometimes answers from its training knowledge when a search would show that details have changed. When it has a search tool, use snippet 4.45, and remove prompt language that discourages tool use
+- **Haiku 5.5**: when you give it a search tool, also give it today's date; see snippet 4.47
+- **Fable 5.2**: the model-selection matrix lists multistep deep research under it, but on one research benchmark (DeepResearch Bench II, each at its Messages API default: Fable 5.2 at `high`, Opus 5.5 at `medium`) the cost page measured it at 2.9 times the cost of Opus 5.5, with a score 1.9 points lower; in the official words, `Measure what a more expensive model buys on your own workload`. Tell the user both points in the delivery note
+- **Opus 5.5**: Anthropic's article on using Opus 5.5 suggests adding this line to research and analysis requests: `Mark anything you couldn't confirm, and say where you looked`
+
+**Allow it to say it doesn't know.** The line below comes from Anthropic's 2025-11 prompt engineering article (the example in its "Give permission to Claude to express uncertainty" section) and is not on the documentation pages:
 
 ```
 If the data is insufficient to draw conclusions, say so rather than speculating.
 ```
 
-That last one matters especially for research — without an exit, the model states uncertain things with unwarranted confidence.
+---
 
-## Cowork: deliverables and files
+## Deliverables and files
 
-Cowork produces real files. **Name the file type you want**, because it determines the path taken:
+The support article states that Claude can create documents, spreadsheets with working formulas, and presentations you can open in PowerPoint; these files appear alongside the conversation, and they can be downloaded, or Claude can keep refining them. State the format when you write the prompt (see the three things above).
 
-| Deliverable | How to say it |
-|---|---|
-| Editable document | "output as .docx" |
-| Data table | "output as .xlsx, header row first, columns are …" |
-| Presentation | "build a .pptx, X slides, each slide …" |
-| A shareable page, dashboard, or tracker | "build it as a single self-contained HTML file" |
-| Just text for me to read | Say so explicitly: "give it to me in the conversation, do not create a file" |
+Three points from Anthropic's article on using Opus 5.5 (2026-09-22, written about Opus 5.5) bear on this section: when you want a spreadsheet or a document, ask for the finished file, not an outline; attach the chart, diagram, screenshot or slide itself instead of retyping the numbers, and ask a specific question; and to have it check a long plan, report or deck for mistakes, the article's wording is `Check this deck for anything that contradicts itself: numbers, dates and names. Quote each problem and say where it is.`
 
-**Where it lands:** if the user wants the file in a specific folder on their machine, name the **target folder** in the prompt and make sure that folder is added in Cowork with permission to edit — with that permission, the desktop-app guide says, Claude saves finished work back to it. Without a writable folder it does not land in the user's own folders.
+For work that will be shown to or shared with others, paid plans can also ask for a design, deck, or doc (Claude Design, Claude Slides, Claude Docs; beta), which can be shared by link or exported.
 
-**Bulk processing:** with multiple files, state the processing order and naming rule, and **what to do with the ones it cannot handle** — skip and record, or stop and ask. Without that rule, behavior on a bad file is unpredictable.
+To save a file into a folder on the user's own computer: in Claude Desktop, give Claude access to that folder. Claude can reach local files only while Claude Desktop is open, and by default it asks before permanently deleting any files.
 
-## Cowork: skills that take over automatically
+## Scheduled tasks
 
-Cowork ships output-format skills (docx, xlsx, pptx, pdf, and others) that engage automatically when the corresponding file type is involved. That means:
+The support article: you can have Claude run a task on a schedule, for example a summary of your inbox every Monday morning; scheduled tasks can run in the cloud, so they keep going when the computer is off. When what the user really needs is an X every week, tell the user it can be set up as a scheduled task.
 
-- **Do not teach it how to generate a .docx** in the prompt — that is the skill's job, and writing it is redundant (SKILL.md 3.3)
-- What the prompt should specify is the **content requirements**: structure, terminology, data sources, length
-- But **do state style preferences** — "use the company template," "avoid the default palette" — because the skill cannot guess those
+While a task runs, the user can check its progress, answer Claude's questions, and redirect the work from their phone (the support article's "Check in from your phone").
 
-One ordering rule worth writing in — this skill's own recommendation, not a documented official rule: **gather the facts fully before touching the file mechanics.** Starting the document machinery early anchors on layout while the correct content is not yet in hand.
+---
 
 ## What not to put in
 
-The three things most often over-written in Scenario B:
-
-1. **Self-verification instructions** ("check it once more," "double-check your answer") — on Opus 5 the model does this on its own and adding them causes over-verification; on Opus 5.5 that finding is not restated, so do not add them reflexively but do not assert the Opus 5 result either. See SKILL.md 3.4. Note the distinction that section draws: **reconciling sources against each other is the task, not self-verification** — do not delete that by mistake
-2. **Résumé personas** ("you are a senior analyst with twenty years of experience") — a one-sentence role is enough (the best practices page: `Even a single sentence makes a difference`), stacked credentials only add tokens, and Anthropic's 2025-11 post calls heavy-handed role prompting often unnecessary. To shift the perspective, say what to focus on — the post's example is `Analyze this investment portfolio, focusing on risk tolerance and long-term growth potential` rather than assigning a role
+1. **Self-verification instructions added, or removed, the same way on every model** — the official pages say different things for different models; see SKILL.md 3.4
+2. **Résumé personas** ("you are a senior analyst with twenty years of experience") — the best practices page says a role helps, and that one sentence is enough to make a difference (`Even a single sentence makes a difference`). A long persona is a different matter: Anthropic's 2025-11 article says heavy-handed role prompting is often unnecessary, and that to shift the perspective you should say directly what to focus on; its example is `Analyze this investment portfolio, focusing on risk tolerance and long-term growth potential`
 3. **A long list of "do not"s** — rewrite as positive statements with reasons. See SKILL.md 3.5
+4. **Asking it to write out its thinking** — on Fable 5.2, Opus 5.5, and Sonnet 5.5 this can be refused. See SKILL.md 3.9
+5. **When the target is Fable 5.2**: lines telling it to think less and hard style caps (see SKILL.md 3.13); a blanket instruction to act more freely changed nothing in one simulated setup Anthropic tested (see the Fable 5.2 table in `models.md`)
+
+---
 
 ## A skeleton you can lift
 
@@ -158,13 +173,8 @@ The three things most often over-written in Scenario B:
   </document>
 </documents>
 
-<variables_this_cycle>   (only for a recurring template — see the last section)
-Date range: …
-Material location: …
-</variables_this_cycle>
-
 <task>
-One sentence on what to do, who it is for, and what they will do with the output.
+What to do, who it is for, and what they will do with the output.
 </task>
 
 <requirements>
@@ -174,35 +184,21 @@ One sentence on what to do, who it is for, and what they will do with the output
 </requirements>
 
 <output>
-Shape: (conversation / .docx / .xlsx / .pptx / single-file HTML)
-Length: (a specific number)
+Shape: (conversation / document / spreadsheet / slide deck / a shareable design, deck, or doc)
+Length: (state it)
 Structure: (sections or fields)
 </output>
 
 <examples>
   <example>…</example>
 </examples>
-(only when format must be locked)
+(add when you want to fix format, tone, or structure)
 ```
 
-Close with a **success criterion** — what counts as having done this correctly. Without it you cannot check your own work and the user cannot judge whether to send it back.
-
-## Reusable and recurring prompts
-
-When the user says "I want to fix this and use it every week," write a template rather than a one-off instruction. Add a variables block that collects everything that changes each cycle in one place, so the user edits only that block:
-
-```
-<variables_this_cycle>
-Date range: 2026-07-20 ~ 2026-07-26
-Material location: (folder path)
-Previous output: (path to last cycle's file, for the delta comparison)
-</variables_this_cycle>
-```
-
-**Place it immediately before `<task>`** — that is, after the material, in the slot the skeleton above shows. This keeps the long-context rule intact (material first, instructions last) and still puts the lines the user edits each cycle right next to the instruction they parameterize.
+Close with a **success criterion**: what counts as having done this correctly. Stating the audience and purpose in `<task>` comes from the "Provide context and motivation" section of Anthropic's 2025-11 article (`Explaining the purpose or audience for the output`, `Describing how the output will be used`).
 
 ---
 
-## Sourcing note for this file
+## Sources
 
-The description of chat and Cowork capability boundaries follows Anthropic's Cowork overview and the Claude Desktop documentation — its Chat and Unified Claude pages, written for third-party cloud deployments, are the pages that spell out Chat's limits and the merge, and the Claude Desktop changelog records the workspace VM and scheduled tasks. Anthropic's desktop-app guide no longer compares the modes. The prompting technique sections follow the official prompting best practices. Product capability details can change between releases — when in doubt, defer to what the user actually sees in their interface.
+The descriptions of the Claude app's capabilities in this file follow five support.claude.com articles: "Claude Cowork and chat are one Claude", "Change the model, effort, and thinking settings", "Claude Fable models on your plan", "Usage limit best practices", and "How do usage and length limits work?". The prompting technique sections follow the official prompting best practices and the per-model prompting pages; the six passages that come from Anthropic articles (three from the 2025-11 prompt engineering article, two from the article on using Opus 5.5, one from the model-selection article) are cited inline. Product capabilities change between releases; when in doubt, defer to what the user actually sees in their interface.
