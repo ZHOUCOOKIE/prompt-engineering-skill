@@ -61,7 +61,7 @@ description: Writes, rewrites, reviews, and audits prompts and system prompts us
 
 1. **模型和 effort 默认由你自己定。** 只有取舍确实存在、从上下文又推断不出来时，才在输出 prompt 之前问用户一次，并带上选项和推荐项。
 2. **不刻意省用量，也不无依据地往上加。** 用户是 Ultra 订阅：不要仅仅为了省用量，把模型或档位选得比任务对应的那一档低；也不要在没有本节所列依据的情况下，把模型或档位往上提。
-3. **大批量任务里，主会话和批量子智能体分开选模型**，见本节「大批量处理」。那里给批量子智能体定的模型和档位是用户对这类任务的明确选择，不受规则 2 约束。
+3. **大批量任务里，主会话和批量子智能体分开选模型**，见本节「大批量处理」。那里给批量子智能体定的模型（`opus`）是用户对这类任务的明确选择，不受规则 2 约束；effort 按官方的起点。
 
 官方的起点（Anthropic 2026-11-09 的选型文章「Which Claude model should you build with?」）：`you should start most work on Opus 5.5 at its default effort level`，也就是 `medium`。四个现行模型按价格和能力从低到高是 Haiku 5.5、Sonnet 5.5、Opus 5.5、Fable 5.2。
 
@@ -147,10 +147,16 @@ Claude Code 里没指定模型的子智能体跟主会话用同一个模型，�
 
 **官方对这类工作怎么说**（成本页 "Orchestrator strategy"）：适合编排的是 `Work that fans out across genuinely independent files, documents, or cases, especially more than one context window of it`；做法是拆开、把各部分交给更便宜的模型，编排的那个模型负责 `Plans, dispatches, and synthesizes`。选型文章的说法是把代码编辑和判断留在主模型。官方同时测得两点，和用户的任务对得上时在交付说明里提：一个上下文装得下、又没有长成本尾巴的工作，编排者模型自己用更低的 effort 做更划算（在更早的模型上测得）；Fable 5.2 自己单独做的分数比带 Sonnet 5.5 子智能体的配置高（见上一小节的数字），拆出去换来的是成本。
 
-**用哪个模型和档位**（用户规则，非官方；2026-11-09 确认）：
+**用哪个模型**（用户规则，非官方；2026-11-09 确认）：
 
 - 批量子智能体：派发时 Agent 工具传 `model: "opus"`。官方没有测过「Fable 5.2 主会话配 Opus 5.5 子智能体」这个组合；官方写明并测过的更便宜的选项是 `sonnet`（缺陷搜索基准上配 Opus 5.5 编排者分数相当），以及读文件做摘要、产出能校验的高吞吐工作用 `haiku`
-- effort：提炼、标注、抽样核对、找证据传 `effort: "high"`，最后的独立复核传 `"xhigh"`。这比官方给的起点高：最接近的官方说法是选型文章给搜索、读日志、做摘要这类子智能体的起步档，即模型的默认档（Opus 5.5 是 `medium`），`xhigh` 留给实测到质量提升的工作
+
+**effort 按官方的起点**（2026-11-10 起不再有用户自定的档位）：
+
+- 批量子智能体从模型的默认档起，Opus 5.5 是 `medium`；派发时传 `effort: "medium"`，不传的话它用那个模型保存的档位或默认档。最接近的官方依据是选型文章：搜索文件、读日志、做摘要的子智能体，起步档是 `The model's default`
+- 什么时候传 `effort: "high"`：Claude Code 文档对 `high` 的描述是 `Work where verification matters or edge cases are likely`。先拿几份试跑，发现默认档漏项或判错时升到 `high`；最后的独立复核是验证工作，按这条用 `high`
+- `xhigh`：Opus 5.5 页的原话是 `Reserve xhigh and max for work where you've measured a quality gain`，没测到提升就不用
+- 降到 `low` 之前先测：effort 页把子智能体列为 `low` 的例子，但缺陷搜索基准上 Opus 5.5 单独做时 `low` 比 `medium` 低 34 分
 
 `model` 和 `effort` 这两个参数只对非 fork 的子智能体起作用：fork 跑在主会话的模型上，而 fork 模式默认开着，所以 prompt 里要写明这批工作派给非 fork 的子智能体（见 `references/for-claude-code.md` 里 fork 那一条）。这批工作改用 dynamic workflow 跑时，让脚本给批量阶段写 `opus`：workflows 页说，脚本给某个阶段写的模型算作每次调用传的那一项；workflow agent 的 effort 官方没有写。每次调用传 `effort` 需要 Claude Code 2.1.292 及以上；并发上限、子智能体出错或撞到用量上限时结果怎么回来，见 `references/for-claude-code.md`「子智能体」一节。
 
@@ -378,7 +384,7 @@ Fable 5.2 专页 "Review instructions written for earlier models" 列的，从 F
 - [ ] 目标是 Haiku 5.5：给了搜索工具就给了当天日期（4.47）；`low` 或 `medium` 下做编码、见过它不跑检查就报告完成的，加了 4.46
 - [ ] 目标是 Fable 5.2、Opus 5.5 或 Sonnet 5.5：没有要求它把推理写出来——没有"展示你的思考过程"，没有 `<thinking>` 或草稿区段，没有要它填的 `reasoning` 字段（见 3.9）。要它简短解释、或概括做了哪些操作，是可以的
 - [ ] 主会话是 Fable 5.2 且任务会派子智能体：已经查过子智能体默认跑在哪个模型上，并按第 2 节写明了要用的模型
-- [ ] 主会话是 Fable 5.2、又预判到要并行派大量子智能体做同一口径的批量工作：已按第 2 节「大批量处理」写明批量工作派给非 fork 的子智能体、用 `opus` 和对应的 effort（用户规则）
+- [ ] 主会话是 Fable 5.2、又预判到要并行派大量子智能体做同一口径的批量工作：已按第 2 节「大批量处理」写明批量工作派给非 fork 的子智能体、用 `opus`（用户规则），effort 按第 2 节的官方起点
 - [ ] **你自己写的**约束都是正面表述，且带了「为什么」（**官方片段里的原文措辞不算**——例如 4.25 开头的 `NEVER use generic AI-generated aesthetics…`）
 - [ ] 每条指令都想过：**一个善意的人类会怎么误解它？**（Claude Code 团队 Cat Wu 2026-07 的公开发言，非官方文档；Fable 5.2 专页写明规则会被照字面执行，这个检查对现行模型仍然适用）
 - [ ] 同一条指令没有在 system prompt 和 tool description 里重复出现（什么时候用这个工具的说明不算，见 3.7）
