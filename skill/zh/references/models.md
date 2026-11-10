@@ -313,7 +313,7 @@ Claude 应用里每个模型的推荐档在菜单里标着 "Default"；发布公
 - 缺陷搜索基准（工作量超出一个上下文窗口）：Fable 5.2 单独做，`low` 到 `high` 比 Opus 5.5 单独在 `high` 高 1.6 到 5.9 分，成本是 1.5 到 2.4 倍
 - 内部 agentic 编码基准：Opus 5.5 在 `medium` 86.6%、每次尝试 $0.84；Fable 5.2 在 `medium` 88.9%（单次运行）、$1.34
 - GPQA Diamond：Haiku 5.5 在 `medium` 准确率 85%，Opus 5.5 和 Sonnet 5.5 各 91%；每个正确答案的成本约为 Opus 5.5 的二十分之一、Sonnet 5.5 的十分之一
-- 发布公告（anthropic.com）里的数字：FrontierCode 2.0 上（公告注明是早期测试）Fable 5.2 在 `high` 与 Opus 5.5 在 `max` 大致持平，每任务成本约一半；WANDR 上 Fable 5.2 在 `medium` 追平 Opus 5.5 的最高分，每任务成本约为 40%；Chartography 上 Fable 5.2 在 `medium` 领先 Opus 5.5 在 `max`，每任务成本不到十分之一；Humanity's Last Exam 上 Fable 5.2 在 `low` 追平 Opus 5.5 的最高分，每任务成本不到十分之一
+- 发布公告（anthropic.com）里的数字：FrontierCode 2.0 上（公告注明是早期测试）Fable 5.2 在 `high` 与 Opus 5.5 在 `max` 大致持平，每任务成本约一半；WANDR 上 Fable 5.2 在 `medium` 追平 Opus 5.5 的最高分，每任务成本约为 40%；Chartography 上 Fable 5.2 在 `medium` 领先 Opus 5.5 在 `max`，每任务成本不到十分之一；Humanity's Last Exam 上 Fable 5.2 在 `low` 追平 Opus 5.5 的最高分，每任务成本不到十分之一。公告的五张成本图（上面四项加 BenchCAD 2.1）带着每一档的数据点，公告正文没有写出下面这组比较，差值按数据点算：Fable 5.2 在 `medium` 五项上分数都比 Opus 5.5 在 `high` 高 2.7 到 7.2 分，成本在少 29% 到多 11% 之间；在 `low` 五项上成本都比 Opus 5.5 在 `high` 低（少 1% 到 37%），分数在低 2.8 分到高 5.0 分之间
 
 ### 子智能体与多模型
 

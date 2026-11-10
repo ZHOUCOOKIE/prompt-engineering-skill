@@ -85,7 +85,7 @@
 
 1. **模型和 effort 默认由你自己定。** 只有取舍确实存在、从上下文又推断不出来时，才在输出 prompt 之前问用户一次，并带上选项和推荐项。
 2. **不刻意省用量，也不无依据地往上加。** 用户是 Ultra 订阅：不要仅仅为了省用量，把模型或档位选得比任务对应的那一档低；也不要在没有本节所列依据的情况下，把模型或档位往上提。
-3. **批量子智能体在质量和消耗之间取平衡。** 整批先用 Sonnet 5.5 子智能体跑（官方测得这样的分数和 Opus 5.5 自己在 `medium` 逐部分做相当、成本更低），只把没通过检查的那些升一档重跑；每一步和它的官方数字见本节「大批量处理」。批量子智能体从哪一档起由这条规则定，不算违反规则 2。
+3. **批量子智能体在质量和消耗之间取平衡。** 整批先用 Sonnet 5.5 子智能体跑（官方测得这样的分数和 Opus 5.5 自己在 `medium` 逐部分做相当、成本更低），只把没通过检查的那些交回主会话的模型重跑；每一步和它的官方数字见本节「大批量处理」。批量子智能体从哪一档起由这条规则定，不算违反规则 2。
 
 官方的起点（Anthropic 2026-11-09 的选型文章「Which Claude model should you build with?」）：`you should start most work on Opus 5.5 at its default effort level`，也就是 `medium`。四个现行模型按价格和能力从低到高是 Haiku 5.5、Sonnet 5.5、Opus 5.5、Fable 5.2。
 
@@ -186,14 +186,15 @@ Claude Code 里没指定模型的子智能体跟主会话用同一个模型，�
 | 步骤 | 派发时传 | 官方测到的 | 什么时候用 |
 |---|---|---|---|
 | 1 | `model: "sonnet"`、`effort: "high"` | Fable 5.2 编排、Sonnet 5.5 子智能体：0.833，$165。测量里 Sonnet 5.5 跑的是它在那个平台上的默认档 `high`；Claude Code 里它默认 `medium`，所以要显式传 | **默认**：整批先用这一档跑完 |
-| 2 | `model: "opus"`、`effort: "high"` | 官方没有测过 Fable 5.2 配 Opus 5.5 子智能体；最接近的是 Opus 5.5 每部分一个会话，`high`：0.850，$236（`medium`：0.827，$200，不比第 1 步高） | 只重跑第 1 步里没通过检查的那些 |
-| 3 | 不传 `model`（跟主会话的 Fable 5.2）、`effort: "medium"`，用户要最高分时 `"high"` | Fable 5.2 自己每部分一个会话（不是带 Fable 5.2 子智能体）：`medium` 0.877，$378；`high` 0.909，$563 | 只在用户明说这批要比前两步更高的准确度、并且 Fable 的每周额度还够时。花的是 Fable 的每周额度 |
+| 2 | 不传 `model`（跟主会话）；主会话是 Fable 5.2 时 `effort: "medium"`，是 Opus 5.5 时 `effort: "high"` | 每部分一个会话：Fable 5.2 `medium` 0.877，$378；Opus 5.5 `high` 0.850，$236。这个基准没有测过子智能体和编排者用同一个模型的配置 | 只重跑第 1 步里没通过检查的那些。主会话是 Fable 5.2 时花的是 Fable 的每周额度 |
+| 3 | 整批都不传 `model`（跟主会话的 Fable 5.2）、`effort: "medium"`，用户要最高分时 `"high"` | Fable 5.2 自己每部分一个会话（不是带 Fable 5.2 子智能体）：`medium` 0.877，$378；`high` 0.909，$563 | 只在用户明说这批要比前两步更高的准确度、并且 Fable 的每周额度还够时。花的是 Fable 的每周额度 |
 
-- 第 2 步的做法出自成本页 "Re-run failures at higher effort"：产出能校验时，全量用低档跑、只把失败的用高档重跑。官方在 Opus 5.5 的 effort 上算得，这样比全部 `high` 便宜约 40%，通过率相同或略高；这里把同一做法用在模型上。它有两个前提：要有失败信号（`a checker that passes bad work lets those failures through`），所以 prompt 里必须带能逐份判定通过与否的检查；失败的那些要花两遍的时间
+- 第 2 步的做法出自成本页 "Re-run failures at higher effort"：产出能校验时，全量用低档跑、只把失败的用高档重跑。官方在 Opus 5.5 的 effort 上算得，这样比全部 `high` 便宜约 40%，通过率相同或略高；这里把同一做法用在模型上。重跑交回主会话的模型而不是 `opus`，依据是发布公告的五张成本图（FrontierCode 2.0、WANDR、BenchCAD 2.1、Humanity's Last Exam、Chartography；成本按任务或按次计；下面的差值按图上的数据点算）：Fable 5.2 在 `medium` 五项上分数都比 Opus 5.5 在 `high` 高，高 2.7 到 7.2 分，成本在少 29% 到多 11% 之间。缺陷搜索基准上它高 2.7 分、成本是 1.6 倍。它有两个前提：要有失败信号（`a checker that passes bad work lets those failures through`），所以 prompt 里必须带能逐份判定通过与否的检查；失败的那些要花两遍的时间
 - `haiku` 不在这张表里：同一基准上 Fable 5.2 配 Haiku 5.5 子智能体是 0.716，$85。用户自己点名时才用
-- Fable 5.2 配 `low` 也不在这张表里：同一基准上 Fable 5.2 自己每部分一个会话、`low` 是 0.866，$357。它比 Opus 5.5 自己在 `high` 逐部分做高 1.6 分、成本是 1.5 倍；比第 1 步的配置高 3.2 分，第 1 步比它少花 54%；花的还是主会话也在用的 Fable 每周额度。`medium` 是 0.877，$378，每次运行只比 `low` 多 $21，所以第 3 步从 `medium` 起
-- 主会话是 Opus 5.5 时前两步照用：同一基准上 Opus 5.5 编排、Sonnet 5.5 子智能体是 0.831，$139，比 Opus 5.5 自己在 `high` 逐部分做（0.850，$236）低 1.9 分。第 3 步只在主会话是 Fable 5.2 时有
-- 这是一项代码缺陷搜索基准上的数字，成本页说它的测量 `directional, not guarantees`。用户的任务和它差得远时，先拿几份在相邻两步上各试一遍再定
+- Fable 5.2 配 `low` 也不在这张表里。和 Opus 5.5 的 `high` 比，官方两处数字方向不同：发布公告的五张成本图上它的成本都更低（少 1% 到 37%），分数在低 2.8 分到高 5.0 分之间，比如 FrontierCode 2.0 上是 34.2%、$2.10 对 34.5%、$2.42；缺陷搜索基准上（每部分一个会话，0.866，$357）它高 1.6 分、成本是 1.5 倍。整批的默认档不用它：测过第 1 步这种配置的只有缺陷搜索基准，那里它比第 1 步高 3.2 分，第 1 步少花 54%，而且它花的是主会话也在用的 Fable 每周额度。第 2、3 步也不用它：这六项测量上它比 `medium` 少花 6% 到 29%、低 0.2 到 5.5 分，而这两步要的是准确度。用户点名要 `low` 时照用
+- `opus` 配 `medium` 也不在这张表里。Sonnet 5.5 发布公告的四张成本图上（差值按图上的数据点算），它和 Sonnet 5.5 的 `high` 比：三项编码基准（Terminal-Bench 4.0、FrontierCode v1.1、CursorBench 4.0）上高 4.7 到 14.6 分，成本是 1.5 到 1.9 倍；知识工作基准 AA-Briefcase v1.1 上高 8 Elo，成本是 1.1 倍。缺陷搜索基准上它自己逐部分做是 0.827，$200，不比第 1 步的配置高。第 1 步不用它：AA-Briefcase 上它只比 Sonnet 5.5 的 `high` 高 8 Elo，缺陷搜索基准上它不比第 1 步的配置高，而产出能检查的批量有第 2 步重跑。用户点名时照用
+- 主会话是 Opus 5.5 时：第 1 步相同（同一基准上 Opus 5.5 编排、Sonnet 5.5 子智能体是 0.831，$139，比 Opus 5.5 自己在 `high` 逐部分做（0.850，$236）低 1.9 分）；第 2 步跟主会话的 Opus 5.5，`high`；没有第 3 步
+- 表里的数字出自一项代码缺陷搜索基准，成本页说它的测量 `directional, not guarantees`。用户的任务和它差得远时，先拿几份在相邻两步上各试一遍再定。研究类任务上官方测得的方向相反：DeepResearch Bench II 上，各用默认档时 Fable 5.2 比 Opus 5.5 低 1.9 分、成本是 2.9 倍（见上面「研究类任务」那一条）
 - Ultra 上 Fable 模型的用量从同一个每周上限里出，最多占到 50%，而且 `use them faster than other Claude models`；`sonnet` 和 `opus` 子智能体的用量不计入这 50%，但同样算进每周总上限。官方没有公布各模型怎么折算成订阅用量，上面的美元数只能当相对消耗看
 - 两处官方数字指向还能再省的做法，对得上时在交付说明里提。一是同一基准上把编排者从 Opus 5.5 换成 Fable 5.2，成本高 19%、分数相当（测的是编排者 `high`）；据此推断，纯批量的任务用 Opus 5.5 在 `high` 当主会话也可以，这是推断，不是官方的建议。二是这批工作用 dynamic workflow 跑时，同一次运行里模型、effort、agent 类型、工具、输出 schema 和工作目录都相同的 agent，后启动的会读到先启动那个已经缓存的前缀（workflows 页）
 - 最后的独立复核是验证工作：不传 `model`，让它跟主会话，`effort: "high"`（Claude Code 文档对 `high` 的描述是 `Work where verification matters or edge cases are likely`）
@@ -1548,7 +1549,7 @@ Claude 应用里每个模型的推荐档在菜单里标着 "Default"；发布公
 - 缺陷搜索基准（工作量超出一个上下文窗口）：Fable 5.2 单独做，`low` 到 `high` 比 Opus 5.5 单独在 `high` 高 1.6 到 5.9 分，成本是 1.5 到 2.4 倍
 - 内部 agentic 编码基准：Opus 5.5 在 `medium` 86.6%、每次尝试 $0.84；Fable 5.2 在 `medium` 88.9%（单次运行）、$1.34
 - GPQA Diamond：Haiku 5.5 在 `medium` 准确率 85%，Opus 5.5 和 Sonnet 5.5 各 91%；每个正确答案的成本约为 Opus 5.5 的二十分之一、Sonnet 5.5 的十分之一
-- 发布公告（anthropic.com）里的数字：FrontierCode 2.0 上（公告注明是早期测试）Fable 5.2 在 `high` 与 Opus 5.5 在 `max` 大致持平，每任务成本约一半；WANDR 上 Fable 5.2 在 `medium` 追平 Opus 5.5 的最高分，每任务成本约为 40%；Chartography 上 Fable 5.2 在 `medium` 领先 Opus 5.5 在 `max`，每任务成本不到十分之一；Humanity's Last Exam 上 Fable 5.2 在 `low` 追平 Opus 5.5 的最高分，每任务成本不到十分之一
+- 发布公告（anthropic.com）里的数字：FrontierCode 2.0 上（公告注明是早期测试）Fable 5.2 在 `high` 与 Opus 5.5 在 `max` 大致持平，每任务成本约一半；WANDR 上 Fable 5.2 在 `medium` 追平 Opus 5.5 的最高分，每任务成本约为 40%；Chartography 上 Fable 5.2 在 `medium` 领先 Opus 5.5 在 `max`，每任务成本不到十分之一；Humanity's Last Exam 上 Fable 5.2 在 `low` 追平 Opus 5.5 的最高分，每任务成本不到十分之一。公告的五张成本图（上面四项加 BenchCAD 2.1）带着每一档的数据点，公告正文没有写出下面这组比较，差值按数据点算：Fable 5.2 在 `medium` 五项上分数都比 Opus 5.5 在 `high` 高 2.7 到 7.2 分，成本在少 29% 到多 11% 之间；在 `low` 五项上成本都比 Opus 5.5 在 `high` 低（少 1% 到 37%），分数在低 2.8 分到高 5.0 分之间
 
 #### 子智能体与多模型
 
