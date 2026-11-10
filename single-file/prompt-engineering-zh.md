@@ -159,7 +159,15 @@ Claude Code 里没指定模型的子智能体跟主会话用同一个模型，�
 
 **官方的分工原则**（选型文章）：`Keep small models on work where a mistake is cheap to spot, like finding files, running tests and reading logs. Keep code edits and judgment calls on the main model.` 主模型越大，精简的主上下文越要紧：`Keep the expensive model's context for the decisions, and let cheaper subagents do the verbose reading.`
 
-**用户规则 3 在这张表上的取法**（用户规则，非官方；2026-11-10 确认）：官方给了 Haiku 5.5 或 Sonnet 5.5 两个选项的地方取 `sonnet`；主会话是 Fable 5.2 时的批量工作按下面「大批量处理」的表。
+**用户规则 3 在这张表上的取法**（用户规则，非官方；2026-11-10 确认。用户是 Ultra 订阅，要的是质量有保证、每周用量又撑得住。上表是官方给的选项，这张表是在其中取哪一个）：
+
+| 子智能体做什么 | 派发时传 | 取这一格的依据 |
+|---|---|---|
+| 搜索文件、读日志、做摘要、检查文档链接 | `model: "sonnet"`，effort 用它在 Claude Code 里的默认档 `medium` | 官方给的 `haiku` 或 `sonnet` 里取 `sonnet`。不再往上：官方把这类工作交给小模型的理由是错了容易发现、判断留在主模型 |
+| 批量工作，每份产出能逐份检查（提取、标注、核对） | 「大批量处理」表的第 1 步，没通过检查的走第 2 步 | 官方的 `Try Claude Haiku 5.5 first` 这里不取；两步的官方数字见那张表 |
+| 批量工作，每份要下判断、又写不出逐份的检查（逐文件审查、找缺陷） | 「大批量处理」表的第 1 步；用户明说要更高的准确度、主会话又是 Fable 5.2 时走第 3 步。没有失败信号，第 2 步用不上 | 成本页的缺陷搜索基准测的就是这类工作：Fable 5.2 带 Sonnet 5.5 子智能体，比 Fable 5.2 自己逐部分做低 3.2 到 7.5 分、成本少 54% 到 71%。交付说明里提这组数字 |
+| 改代码、下判断、最后的独立复核 | 不传 `model`（跟主会话）；复核另传 `effort: "high"` | 选型文章的分工原则：`Keep code edits and judgment calls on the main model` |
+| agent team 的队友 | `sonnet` | 和官方相同 |
 
 **官方测过什么**（成本页，内部缺陷搜索基准，工作量超出一个上下文窗口）：Opus 5.5 带 Sonnet 5.5 子智能体，比每部分一个 Opus 5.5 会话便宜约三分之一，分数相当；带 Haiku 5.5 子智能体时分数明显更低；把编排者换成 Fable 5.2，成本高 19%，分数相当。Fable 5.2 自己单独做（`low` 到 `high`），比它自己带 Sonnet 5.5 子智能体时高 3.2 到 7.5 分，成本是 2.2 到 3.4 倍。编码任务上的 Haiku 5.5 子智能体，成本页的结论是 `an alternative to lowering effort, not better`。
 
@@ -169,7 +177,7 @@ Claude Code 里没指定模型的子智能体跟主会话用同一个模型，�
 
 ### 大批量处理：批量子智能体的模型和档位
 
-**什么时候用**（用户规则 3 的适用范围，是用户定的，不是官方给的触发条件）：场景 A，主会话选的是 Fable 5.2，而起草前就能预判任务要并行派很多子智能体、按同一份口径做批量工作——读几十个文件或阅读包、给成百上千条内容提取 / 标注 / 核对。遇到这种任务直接写进 prompt，并在交付说明里点一句。
+**什么时候用**（用户规则 3 的适用范围，是用户定的，不是官方给的触发条件）：场景 A，主会话选的是 Fable 5.2 或 Opus 5.5，而起草前就能预判任务要并行派很多子智能体、按同一份口径做批量工作——读几十个文件或阅读包、给成百上千条内容提取 / 标注 / 核对。遇到这种任务直接写进 prompt，并在交付说明里点一句。
 
 **官方对这类工作怎么说**（成本页 "Orchestrator strategy"）：适合编排的是 `Work that fans out across genuinely independent files, documents, or cases, especially more than one context window of it`；做法是拆开、把各部分交给更便宜的模型，编排的那个模型负责 `Plans, dispatches, and synthesizes`。选型文章的说法是把代码编辑和判断留在主模型。官方同时测得两点，和用户的任务对得上时在交付说明里提：一个上下文装得下、又没有长成本尾巴的工作，编排者模型自己用更低的 effort 做更划算（在更早的模型上测得）；Fable 5.2 自己单独做的分数比带 Sonnet 5.5 子智能体的配置高（见上一小节的数字），拆出去换来的是成本。
 
@@ -183,6 +191,8 @@ Claude Code 里没指定模型的子智能体跟主会话用同一个模型，�
 
 - 第 2 步的做法出自成本页 "Re-run failures at higher effort"：产出能校验时，全量用低档跑、只把失败的用高档重跑。官方在 Opus 5.5 的 effort 上算得，这样比全部 `high` 便宜约 40%，通过率相同或略高；这里把同一做法用在模型上。它有两个前提：要有失败信号（`a checker that passes bad work lets those failures through`），所以 prompt 里必须带能逐份判定通过与否的检查；失败的那些要花两遍的时间
 - `haiku` 不在这张表里：同一基准上 Fable 5.2 配 Haiku 5.5 子智能体是 0.716，$85。用户自己点名时才用
+- Fable 5.2 配 `low` 也不在这张表里：同一基准上 Fable 5.2 自己每部分一个会话、`low` 是 0.866，$357。它比 Opus 5.5 自己在 `high` 逐部分做高 1.6 分、成本是 1.5 倍；比第 1 步的配置高 3.2 分，第 1 步比它少花 54%；花的还是主会话也在用的 Fable 每周额度。`medium` 是 0.877，$378，每次运行只比 `low` 多 $21，所以第 3 步从 `medium` 起
+- 主会话是 Opus 5.5 时前两步照用：同一基准上 Opus 5.5 编排、Sonnet 5.5 子智能体是 0.831，$139，比 Opus 5.5 自己在 `high` 逐部分做（0.850，$236）低 1.9 分。第 3 步只在主会话是 Fable 5.2 时有
 - 这是一项代码缺陷搜索基准上的数字，成本页说它的测量 `directional, not guarantees`。用户的任务和它差得远时，先拿几份在相邻两步上各试一遍再定
 - Ultra 上 Fable 模型的用量从同一个每周上限里出，最多占到 50%，而且 `use them faster than other Claude models`；`sonnet` 和 `opus` 子智能体的用量不计入这 50%，但同样算进每周总上限。官方没有公布各模型怎么折算成订阅用量，上面的美元数只能当相对消耗看
 - 两处官方数字指向还能再省的做法，对得上时在交付说明里提。一是同一基准上把编排者从 Opus 5.5 换成 Fable 5.2，成本高 19%、分数相当（测的是编排者 `high`）；据此推断，纯批量的任务用 Opus 5.5 在 `high` 当主会话也可以，这是推断，不是官方的建议。二是这批工作用 dynamic workflow 跑时，同一次运行里模型、effort、agent 类型、工具、输出 schema 和工作目录都相同的 agent，后启动的会读到先启动那个已经缓存的前缀（workflows 页）
@@ -2317,7 +2327,7 @@ bash 杠杆大，但 harness 只能看到一串命令字符串——每种动作
 - [ ] 目标是 Haiku 5.5：给了搜索工具就给了当天日期（4.47）；`low` 或 `medium` 下做编码、见过它不跑检查就报告完成的，加了 4.46
 - [ ] 目标是 Fable 5.2、Opus 5.5 或 Sonnet 5.5：没有要求它把推理写出来——没有"展示你的思考过程"，没有 `<thinking>` 或草稿区段，没有要它填的 `reasoning` 字段（见 3.9）。要它简短解释、或概括做了哪些操作，是可以的
 - [ ] 主会话是 Fable 5.2 且任务会派子智能体：已经查过子智能体默认跑在哪个模型上，并按第 2 节写明了要用的模型
-- [ ] 主会话是 Fable 5.2、又预判到要并行派大量子智能体做同一口径的批量工作：已按第 2 节「大批量处理」写明批量工作派给非 fork 的子智能体，模型和 effort 按第 2 节「大批量处理」那张表
+- [ ] 主会话是 Fable 5.2 或 Opus 5.5、又预判到要并行派大量子智能体做同一口径的批量工作：已按第 2 节「大批量处理」写明批量工作派给非 fork 的子智能体，模型和 effort 按第 2 节「大批量处理」那张表
 - [ ] **你自己写的**约束都是正面表述，且带了「为什么」（**官方片段里的原文措辞不算**——例如 4.25 开头的 `NEVER use generic AI-generated aesthetics…`）
 - [ ] 每条指令都想过：**一个善意的人类会怎么误解它？**（Claude Code 团队 Cat Wu 2026-07 的公开发言，非官方文档；Fable 5.2 专页写明规则会被照字面执行，这个检查对现行模型仍然适用）
 - [ ] 同一条指令没有在 system prompt 和 tool description 里重复出现（什么时候用这个工具的说明不算，见 3.7）

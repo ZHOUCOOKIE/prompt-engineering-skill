@@ -575,7 +575,7 @@ Claude 应用里每个模型的推荐档在菜单里标着 "Default"；发布公
 
 **在 Claude Code 里**，四个现行模型都从 `medium` 起；Fable 模型在任何计划上都不是默认，要用 `/model fable` 显式选。Claude Code 最佳实践说 `medium` 是 `plenty for everyday feature work with a clear scope`；对错取决于容易漏掉的情况时（不是你写的代码里的 bug、flaky test、要找出旧结构所有读取方的 schema 变更）升到 `high` 或 `xhigh`；来回很快、每个结果都会看时降到 `low`；`max` 留给想让它自己啃下来的难题，普通任务上容易想过头；只有下一条消息需要更深推理时，在那条 prompt 里写 `ultrathink`。
 
-**skill 里的三条用户规则（用户规则，非官方；2026-11-09 确认，第三条 2026-11-10 改定）。** skill 第 2 节另有三条仓库所有者自己的做法，它们只管在官方给的选项之间怎么取，不是官方指引：模型和 effort 默认由写 prompt 的 Claude 自己定，取舍推断不出来时才问用户一次；不刻意省用量，也不无依据地往上加；批量子智能体在质量和消耗之间取平衡。最后一条 2026-11-10 改定过：原来写的是批量子智能体一律用 `opus`、effort 用 `high`、复核用 `xhigh`，官方没有测过「Fable 5.2 主会话配 Opus 5.5 子智能体」这个组合，这两个档位也没有官方依据。现在是一张取自成本页缺陷搜索基准的三步表：整批先用 `sonnet` 配 `high` 跑（Fable 5.2 编排、Sonnet 5.5 子智能体测得 0.833、$165，测量里 Sonnet 5.5 跑的就是 `high`）；只把没通过检查的那些用 `opus` 配 `high` 重跑（最接近的测量是 Opus 5.5 每部分一个会话，0.850、$236），这一步套用的是成本页 "Re-run failures at higher effort" 的做法，所以 prompt 里必须带能逐份判定的检查；用户明说这批要比前两步更高的准确度、Fable 额度又够时，才不传模型、让子智能体跟主会话的 Fable 5.2，effort `medium`（0.877、$378，花的是 Fable 的每周额度）。`haiku` 只在用户点名时用，官方给了 Haiku 或 Sonnet 两个选项的地方取 `sonnet`。最后的独立复核跟主会话的模型、用 `high`，`xhigh` 只在测到质量提升时用。什么时候启用这条规则也是用户定的，不是官方给的触发条件。`model` 和 `effort` 这两个参数只对非 fork 的子智能体起作用：fork 跑在主会话的模型上，而 fork 模式默认开着，所以 skill 要求 prompt 里写明这批工作派给非 fork 的子智能体。skill 还要求和用户的任务对得上时在交付说明里提官方测得的两点：一个上下文装得下、又没有长成本尾巴的工作，编排者模型自己用更低的 effort 做更划算（在更早的模型上测得）；Fable 5.2 单独做的分数比带 Sonnet 5.5 子智能体的配置高，拆出去换来的是成本（6.6 节）。
+**skill 里的三条用户规则（用户规则，非官方；2026-11-09 确认，第三条 2026-11-10 改定）。** skill 第 2 节另有三条仓库所有者自己的做法，它们只管在官方给的选项之间怎么取，不是官方指引：模型和 effort 默认由写 prompt 的 Claude 自己定，取舍推断不出来时才问用户一次；不刻意省用量，也不无依据地往上加；批量子智能体在质量和消耗之间取平衡。最后一条 2026-11-10 改定过：原来写的是批量子智能体一律用 `opus`、effort 用 `high`、复核用 `xhigh`，官方没有测过「Fable 5.2 主会话配 Opus 5.5 子智能体」这个组合，这两个档位也没有官方依据。现在是一张取自成本页缺陷搜索基准的三步表：整批先用 `sonnet` 配 `high` 跑（Fable 5.2 编排、Sonnet 5.5 子智能体测得 0.833、$165，测量里 Sonnet 5.5 跑的就是 `high`）；只把没通过检查的那些用 `opus` 配 `high` 重跑（最接近的测量是 Opus 5.5 每部分一个会话，0.850、$236），这一步套用的是成本页 "Re-run failures at higher effort" 的做法，所以 prompt 里必须带能逐份判定的检查；用户明说这批要比前两步更高的准确度、Fable 额度又够时，才不传模型、让子智能体跟主会话的 Fable 5.2，effort `medium`（0.877、$378，花的是 Fable 的每周额度）。`haiku` 只在用户点名时用，官方给了 Haiku 或 Sonnet 两个选项的地方取 `sonnet`。Fable 5.2 配 `low` 没有进表：同一基准上它自己每部分一个会话是 0.866、$357，比第 1 步的配置高 3.2 分，第 1 步比它少花 54%，花的还是主会话也在用的 Fable 每周额度；`medium` 每次运行只比 `low` 多 $21，所以第 3 步从 `medium` 起。主会话是 Opus 5.5 时前两步照用（Opus 5.5 编排、Sonnet 5.5 子智能体测得 0.831、$139），第 3 步只在主会话是 Fable 5.2 时有。每类子智能体取哪一格，6.6 节有一张表。最后的独立复核跟主会话的模型、用 `high`，`xhigh` 只在测到质量提升时用。什么时候启用这条规则也是用户定的，不是官方给的触发条件。`model` 和 `effort` 这两个参数只对非 fork 的子智能体起作用：fork 跑在主会话的模型上，而 fork 模式默认开着，所以 skill 要求 prompt 里写明这批工作派给非 fork 的子智能体。skill 还要求和用户的任务对得上时在交付说明里提官方测得的两点：一个上下文装得下、又没有长成本尾巴的工作，编排者模型自己用更低的 effort 做更划算（在更早的模型上测得）；Fable 5.2 单独做的分数比带 Sonnet 5.5 子智能体的配置高，拆出去换来的是成本（6.6 节）。
 
 ### 6.6 子智能体与用量
 
@@ -589,6 +589,16 @@ Claude 应用里每个模型的推荐档在菜单里标着 "Default"；发布公
 | agent team 的队友 | `sonnet` | Claude Code 成本页：`Use Sonnet for teammates` |
 
 选型文章给的分工原则：`Keep small models on work where a mistake is cheap to spot, like finding files, running tests and reading logs. Keep code edits and judgment calls on the main model.`
+
+**skill 在这张表上取哪一格**（用户规则，非官方；2026-11-10 确认。仓库所有者是 Ultra 订阅，要的是质量有保证、每周用量又撑得住。上表是官方给的选项，这张表是在其中取哪一个；「大批量处理」表的三步见 6.5 节末尾）：
+
+| 子智能体做什么 | 派发时传 | 取这一格的依据 |
+|---|---|---|
+| 搜索文件、读日志、做摘要、检查文档链接 | `model: "sonnet"`，effort 用它在 Claude Code 里的默认档 `medium` | 官方给的 `haiku` 或 `sonnet` 里取 `sonnet`。不再往上：官方把这类工作交给小模型的理由是错了容易发现、判断留在主模型 |
+| 批量工作，每份产出能逐份检查（提取、标注、核对） | 「大批量处理」表的第 1 步，没通过检查的走第 2 步 | 官方的 `Try Claude Haiku 5.5 first` 这里不取；两步的官方数字见那张表 |
+| 批量工作，每份要下判断、又写不出逐份的检查（逐文件审查、找缺陷） | 「大批量处理」表的第 1 步；用户明说要更高的准确度、主会话又是 Fable 5.2 时走第 3 步。没有失败信号，第 2 步用不上 | 成本页的缺陷搜索基准测的就是这类工作：Fable 5.2 带 Sonnet 5.5 子智能体，比 Fable 5.2 自己逐部分做低 3.2 到 7.5 分、成本少 54% 到 71%。交付说明里提这组数字 |
+| 改代码、下判断、最后的独立复核 | 不传 `model`（跟主会话）；复核另传 `effort: "high"` | 选型文章的分工原则：`Keep code edits and judgment calls on the main model` |
+| agent team 的队友 | `sonnet` | 和官方相同 |
 
 **什么时候值得派。** 成本页测得委派只在两种情况下划算：有很长成本尾巴的例行工作（在更早的模型上测得；这种情况官方要求先测准确率和成本），和超出一个上下文窗口的工作；工作是一条前后依赖的链、或一个上下文装得下又没有长成本尾巴时，编排者模型自己用更低的 effort 更划算（同样是在更早的模型上测的）。同一个缺陷搜索基准上，Fable 5.2 自己单独做（`low` 到 `high`）比它带 Sonnet 5.5 子智能体时高 3.2 到 7.5 分，成本是 2.2 到 3.4 倍，所以拆出去换来的是成本，不是分数。Claude Code 最佳实践说子智能体带来的是并行、把长输出挡在主会话外、一个没看过代码怎么写出来的 reviewer、以及更少的工具，原话是 `You get parallelism or a fresh pair of eyes out of it, but not a smarter answer.` 成本页对要不要搭配第二个模型的判据：先在现在的模型上扫 effort，`Build a pairing only if it beats the single model's whole curve of score against spend`。
 
