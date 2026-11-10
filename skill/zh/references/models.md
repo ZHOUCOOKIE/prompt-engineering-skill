@@ -337,8 +337,8 @@ Claude 应用里每个模型的推荐档在菜单里标着 "Default"；发布公
 
 ### 到了上限会怎样
 
-- 请求会被挡住，直到上限重置。会话上限和每周上限对所有模型共用，`so switching models doesn't restore access`；Opus 或 Sonnet 系列各自的上限只管对那个系列的请求，换到系列外的模型可以继续（错误参考页）；到了单独的 Fable 每周上限，同样可以换到别的模型继续用计划内的额度（见上）。开着的交互式会话默认会等到重置后自动接着做（`autoContinueAtUsageLimit` 默认 `true`；settings 页）。其他做法：开 usage credits（按 API 价格计）；关掉了自动继续的，可以在 `/rate-limit-options` 里手动选等待（Claude Code 命令页）
-- 无人值守的会话可以设 `CLAUDE_CODE_RETRY_WATCHDOG=1`：它会一直重试容量错误，响应带了重置时间时就等到上限重置，`so a session that hits a usage limit waits out the remaining window`；例外是报告 spend limit 或 usage credits 用尽的 429，遇到它会立刻失败（环境变量页）
+- 请求会被挡住，直到上限重置。会话上限和每周上限对所有模型共用，`so switching models doesn't restore access`；Opus 或 Sonnet 系列各自的上限只管对那个系列的请求，换到系列外的模型可以继续（错误参考页）；到了单独的 Fable 每周上限，同样可以换到别的模型继续用计划内的额度（见上）。开着的交互式会话默认会等到重置后自动接着做（CLI 的 `autoContinueAtUsageLimit` 默认 `true`；settings 页）。Desktop 应用的 Code 标签页是另一套：只有会话上限的卡片提供 `Auto-continue when limits reset` 勾选框，每周上限的卡片没有（错误参考页）。其他做法：开 usage credits（按 API 价格计）；关掉了自动继续的，可以在 `/rate-limit-options` 里手动选等待（Claude Code 命令页）
+- 无人值守的会话可以设 `CLAUDE_CODE_RETRY_WATCHDOG=1`：它会一直重试容量错误，响应带了重置时间时就等到上限重置，`so a session that hits a usage limit waits out the remaining window`；例外是标准速度的请求收到报告 spend limit 或 usage credits 用尽的 429，这时会立刻失败（环境变量页）
 - **没人守着的会话里用 Fable**（错误参考页）：后台会话、Remote Control 会话、agent team 队友会话和 Agent SDK 托管的会话里，Fable 走 usage credits 的确认提示没人回答就会关掉，这一轮以 `the prompt to confirm went unanswered — nothing was sent` 结束；到了 Fable 上限、或 Fable 请求开始走 usage credits 时都会这样。处理办法：到会话运行的地方回答提示，`/model` 换到不走 usage credits 的模型，或把 `dialogExpiry` 设长
 - 在五小时上限处，如果 Claude Code 正在回复中途，可能短暂继续把手上这一步做完，界面显示 `Usage limit reached · wrapping up`；这只对已经在进行的回复有效，而且这项功能在逐步推出，账号上可能还没有。通过验证的 Ultra 账号没有五小时上限，所以不涉及（支持站「Use Claude Code with your Pro, Max, or Ultra plan」）
 - **子智能体**因 API 错误（官方举的例子包括 usage limit）结束时：前台子智能体如果已经产出了文字，Agent 工具返回这段部分输出，并注明它被打断、没做完；什么都没产出、或只产出了工具调用的，以 `Agent terminated early due to an API error` 失败。后台子智能体标记为失败，回报里带它最后的输出，`so partial work isn't lost`。错误消除后可以让 Claude 重试，或用 SendMessage 续跑那个子智能体（Explore 和 Plan 不能续跑）（子智能体页 "API errors in subagents"）

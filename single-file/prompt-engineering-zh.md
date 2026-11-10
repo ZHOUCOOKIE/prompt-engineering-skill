@@ -1549,8 +1549,8 @@ Claude 应用里每个模型的推荐档在菜单里标着 "Default"；发布公
 
 #### 到了上限会怎样
 
-- 请求会被挡住，直到上限重置。会话上限和每周上限对所有模型共用，`so switching models doesn't restore access`；Opus 或 Sonnet 系列各自的上限只管对那个系列的请求，换到系列外的模型可以继续（错误参考页）；到了单独的 Fable 每周上限，同样可以换到别的模型继续用计划内的额度（见上）。开着的交互式会话默认会等到重置后自动接着做（`autoContinueAtUsageLimit` 默认 `true`；settings 页）。其他做法：开 usage credits（按 API 价格计）；关掉了自动继续的，可以在 `/rate-limit-options` 里手动选等待（Claude Code 命令页）
-- 无人值守的会话可以设 `CLAUDE_CODE_RETRY_WATCHDOG=1`：它会一直重试容量错误，响应带了重置时间时就等到上限重置，`so a session that hits a usage limit waits out the remaining window`；例外是报告 spend limit 或 usage credits 用尽的 429，遇到它会立刻失败（环境变量页）
+- 请求会被挡住，直到上限重置。会话上限和每周上限对所有模型共用，`so switching models doesn't restore access`；Opus 或 Sonnet 系列各自的上限只管对那个系列的请求，换到系列外的模型可以继续（错误参考页）；到了单独的 Fable 每周上限，同样可以换到别的模型继续用计划内的额度（见上）。开着的交互式会话默认会等到重置后自动接着做（CLI 的 `autoContinueAtUsageLimit` 默认 `true`；settings 页）。Desktop 应用的 Code 标签页是另一套：只有会话上限的卡片提供 `Auto-continue when limits reset` 勾选框，每周上限的卡片没有（错误参考页）。其他做法：开 usage credits（按 API 价格计）；关掉了自动继续的，可以在 `/rate-limit-options` 里手动选等待（Claude Code 命令页）
+- 无人值守的会话可以设 `CLAUDE_CODE_RETRY_WATCHDOG=1`：它会一直重试容量错误，响应带了重置时间时就等到上限重置，`so a session that hits a usage limit waits out the remaining window`；例外是标准速度的请求收到报告 spend limit 或 usage credits 用尽的 429，这时会立刻失败（环境变量页）
 - **没人守着的会话里用 Fable**（错误参考页）：后台会话、Remote Control 会话、agent team 队友会话和 Agent SDK 托管的会话里，Fable 走 usage credits 的确认提示没人回答就会关掉，这一轮以 `the prompt to confirm went unanswered — nothing was sent` 结束；到了 Fable 上限、或 Fable 请求开始走 usage credits 时都会这样。处理办法：到会话运行的地方回答提示，`/model` 换到不走 usage credits 的模型，或把 `dialogExpiry` 设长
 - 在五小时上限处，如果 Claude Code 正在回复中途，可能短暂继续把手上这一步做完，界面显示 `Usage limit reached · wrapping up`；这只对已经在进行的回复有效，而且这项功能在逐步推出，账号上可能还没有。通过验证的 Ultra 账号没有五小时上限，所以不涉及（支持站「Use Claude Code with your Pro, Max, or Ultra plan」）
 - **子智能体**因 API 错误（官方举的例子包括 usage limit）结束时：前台子智能体如果已经产出了文字，Agent 工具返回这段部分输出，并注明它被打断、没做完；什么都没产出、或只产出了工具调用的，以 `Agent terminated early due to an API error` 失败。后台子智能体标记为失败，回报里带它最后的输出，`so partial work isn't lost`。错误消除后可以让 Claude 重试，或用 SendMessage 续跑那个子智能体（Explore 和 Plan 不能续跑）（子智能体页 "API errors in subagents"）
@@ -1583,7 +1583,7 @@ Claude 应用里每个模型的推荐档在菜单里标着 "Default"；发布公
 
 用户在 Claude desktop 里说需求，你产出一段 prompt，他复制到 Claude Code（终端、VS Code 插件的图形窗口，或 Claude Desktop 应用的 Code 标签页）里执行。
 
-**用户在 Desktop 应用里跑时**（Claude Code 的 Desktop 页）：Code 标签页只有交互式会话，没有 `claude -p` 和 `--max-turns`、`--max-budget-usd` 这类为脚本设计的参数，`dontAsk` 权限模式只在 CLI 里有，agent teams 也只在 CLI 里有（官方说 Desktop 里的多 agent 工作用 dynamic workflow）。模型和 effort 在输入框那一行的模型选择器里选。下文用到这些东西的建议，对 Desktop 用户换成这里能用的做法，交付说明里不要让他去敲用不了的命令。
+**用户在 Desktop 应用里跑时**（Claude Code 的 Desktop 页）：Code 标签页只有交互式会话，没有 `claude -p` 和 `--max-turns`、`--max-budget-usd` 这类为脚本设计的参数，`dontAsk` 权限模式只在 CLI 里有，agent teams 也只在 CLI 里有（官方说 Desktop 里的多 agent 工作用 dynamic workflow）。模型和 effort 在输入框下面那一行的模型选择器里选。下文用到这些东西的建议，对 Desktop 用户换成这里能用的做法，交付说明里不要让他去敲用不了的命令。
 
 这里的主要依据是 Claude Code 文档的 Best practices、Create custom subagents、Model configuration 和 Manage costs effectively 几页；出自别处的会在行内写明。
 
@@ -1770,11 +1770,11 @@ workflow 里每个 agent 的模型按和子智能体相同的顺序定：脚本�
 use a workflow to audit every route handler under src/routes/ for missing authentication checks, and adversarially verify each finding before reporting it
 ```
 
-Claude Code 最佳实践另给了两种批量做法。一个大的机械改动要跨很多文件时用 `/batch`，它的例子是 `/batch migrate every handler to the v2 response helpers`：把工作拆成 5 到 30 个单元并先给你看计划，批准后每个单元在自己的 worktree 里做，开 PR 或汇报结果。用脚本循环调 `claude -p` 时：`Try it on three files first, see what goes wrong, fix the prompt, then run the rest.` 脚本里加了 `--bare` 时（Headless 页说它是脚本调用的推荐模式，以后会成为 `-p` 的默认），Claude Code 不加载 CLAUDE.md、hooks、skills 和自定义子智能体，也不能跑后台子智能体，所以这种 prompt 要自带检查命令和必须遵守的规则。
+Claude Code 最佳实践另给了两种批量做法。一个大的机械改动要跨很多文件时用 `/batch`，它的例子是 `/batch migrate every handler to the v2 response helpers`：把工作拆成 5 到 30 个单元并先给你看计划，批准后每个单元在自己的 worktree 里做，开 PR 或汇报结果。用脚本循环调 `claude -p` 时：`Try it on three files first, see what goes wrong, fix the prompt, then run the rest.` 脚本里加了 `--bare` 时（Headless 页说它是脚本调用的推荐模式，以后会成为 `-p` 的默认），Claude Code 跳过对 CLAUDE.md、hooks、skills、自定义子智能体、插件和 MCP server 的自动发现，要用的得在命令行上显式传进去，hooks 在 bare 模式下始终不运行；也不能跑后台子智能体。所以这种 prompt 要自带检查命令和必须遵守的规则。
 
 **结果怎么回来**：主会话派出的子智能体默认在后台跑，结果在之后某一轮以完成通知的形式到达。fork 模式开着时（默认），在本机的交互式终端、VS Code 和桌面应用会话里 Claude 不能等一个子智能体跑完再继续；要让它等，先关掉 fork 模式（`CLAUDE_CODE_FORK_SUBAGENT=0`）。子智能体完成时返回的结果会进主会话的上下文，官方的提醒：`Running many subagents that each return detailed results can consume significant context, and each subagent spends tokens of its own while it runs.` 所以交代里要它们回报简短摘要。
 
-**交代里要带什么**：非 fork 的子智能体从全新的上下文开始，看不到对话历史、已经调用过的 skill 和 Claude 读过的文件；它会加载 CLAUDE.md；内置的 Explore 和 Plan 不加载主会话那几层，定义里设了 `omitClaudeMd` 的子智能体只加载 managed policy 那一层。这几种情况下，处理到某个子目录里的文件时，那里的 CLAUDE.md 仍会加载。子智能体页的说法：主会话读这些子智能体的结果时仍有完整的 CLAUDE.md，所以大多数规则不必传到子智能体；必须传到的规则（它举的例子是忽略 `vendor/` 目录），在让 Claude 委派的那条 prompt 里重述。Agent SDK 的子智能体页：`The only content you pass from parent to subagent is the Agent tool's prompt string, so include any file paths, error messages, or decisions the subagent needs directly in that prompt.`
+**交代里要带什么**：非 fork 的子智能体从全新的上下文开始，看不到对话历史、已经调用过的 skill 和 Claude 读过的文件；它会加载 CLAUDE.md；内置的 Explore 和 Plan 不加载主会话那几层，定义里设了 `omitClaudeMd` 的子智能体只加载 managed policy 那一层（定义本身来自 managed settings 时一层都不加载）。这几种情况下，处理到某个子目录里的文件时，那里的 CLAUDE.md 仍会加载。子智能体页的说法：主会话读这些子智能体的结果时仍有完整的 CLAUDE.md，所以大多数规则不必传到子智能体；必须传到的规则（它举的例子是忽略 `vendor/` 目录），在让 Claude 委派的那条 prompt 里重述。Agent SDK 的子智能体页：`The only content you pass from parent to subagent is the Agent tool's prompt string, so include any file paths, error messages, or decisions the subagent needs directly in that prompt.`
 
 **出错和撞到用量上限时**（子智能体页 "API errors in subagents"）：子智能体因 API 错误结束——官方举的例子是 usage limit 或反复的服务器错误——会把失败回报给 Claude。前台子智能体如果已经产出了文字，Agent 工具返回这段部分输出，并注明它被打断、没做完；什么都没产出、或只产出了工具调用的，以 `Agent terminated early due to an API error` 失败。后台子智能体标记为失败，Claude 收到的消息里写明 API 错误并带上它最后的输出，`so partial work isn't lost`。错误消除后，让 Claude 重试，或用 `SendMessage` 续跑那个子智能体——续跑的子智能体保留完整的对话历史。Explore 和 Plan 是一次性的，不能续跑。子智能体的 transcript 独立于主会话保存，重启 Claude Code 后恢复同一个会话仍可续跑。
 
@@ -1825,7 +1825,7 @@ Anthropic 的「Steering Claude Code」一文列了七种方法；这里 CLAUDE.
 | **Rules** | 会话开始（无 scope）或访问文件时（有 scope） | 中 | 只在代码库某一部分才要紧的规则。**加 `paths:` 过滤**，只在 Claude 真的在那里干活时加载 |
 | **Skills** | 名称加描述在开头，正文在调用时 | 低 | 团队的流程和知识：发版流程、事故手册、API 文档怎么写。有副作用的流程加 `disable-model-invocation: true`，只在你自己输入命令时才跑 |
 | **Subagents** | 名称加描述在开头，正文调用时加载，只返回最终消息 | 对主上下文低；它自己的请求照样计用量 | 只需要结论的侧任务 |
-| **Hooks** | 生命周期事件触发 | 低（在主上下文之外） | 零例外的规则和确定性自动化：格式化、阻断对某个目录的编辑。要真正强制，用 `command` 或 `http` 类型的 hook；hook 自己失败或超时时默认放行，想在这种时候也拦住就设 `onFailure: "block"`（2.1.295 起）。只有退出码 2 才拦，退出码 1 不拦 |
+| **Hooks** | 生命周期事件触发 | 低（在主上下文之外） | 零例外的规则和确定性自动化：格式化、阻断对某个目录的编辑。要真正强制，用 `command` 或 `http` 类型的 hook；多数事件上，hook 自己失败或超时时仍会放行，想在这种时候也拦住就设 `onFailure: "block"`（2.1.295 起）。用来执行策略的 hook 以退出码 2 退出：退出码 1 又没有有效 JSON 输出，算非阻断错误 |
 | **Output styles** | 会话开始，compaction 后仍然生效 | **高** | 每次回复都要的语气、长度或格式，或者让 Claude 以软件工程师之外的角色工作 |
 | **追加 system prompt** | 以 CLI 参数在启动时传入 | 中 | 脚本和自动化里需要放在 system prompt 层的指令（`--append-system-prompt`） |
 
@@ -1889,7 +1889,7 @@ Claude Code 最佳实践 "Let Claude run without you"。让一个任务自己跑
 4. 什么能让它停？`--max-turns`、`--max-budget-usd`、spend limit
 5. 结果去哪儿、谁签字？一个 PR、一条评论或一份总结，然后由人批准合并、部署或其他收不回来的事
 
-后台会话（从 agent view、`claude --bg` 或 `/bg` 启动）在 worktree 里改了代码时，默认会不经询问地提交，并在仓库有 remote 时推送分支，任务需要时开 draft PR；它不会推 `main` 或 `master`、不 force-push、不 merge。任务、CLAUDE.md 或 memory 里写了由你自己处理提交和推送时，以你写的为准（Agent view 页）。所以给这种会话写的 prompt 要写明 git 的结束状态。
+后台会话（从 agent view、`claude --bg` 或 `/bg` 启动）在 Claude 自己进入的 worktree 里改了代码时，默认会不经询问地提交，并在仓库有 remote 时推送分支，任务需要时开 draft PR；它不会推 `main` 或 `master`、不 force-push、不 merge。任务、CLAUDE.md 或 memory 里写了由你自己处理提交和推送时，以你写的为准；会话是在已有的 worktree 里启动的、或没有做隔离时，提交前仍会询问（Agent view 页）。所以给这种会话写的 prompt 要写明 git 的结束状态。
 
 官方的理由：你盯着的时候，Claude 缺一点上下文不要紧，一两条消息内你就会发现并告诉它；睡前启动的运行里没人告诉它，第二天早上才发现它一整夜都在错误的假设上往下做。
 

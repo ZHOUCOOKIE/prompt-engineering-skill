@@ -735,7 +735,7 @@ Anthropic 的「Steering Claude Code」一文列了七种方法（这里 CLAUDE.
 | **Rules** | 会话开始或访问文件时 | 中 | 只在代码库某一部分才要紧的规则。**加 `paths:` 限定路径**，只在 Claude 真在那里干活时加载 |
 | **Skills** | 名称 + 描述常驻，正文按需 | 低 | 团队的流程和知识：发版流程、事故手册。有副作用的流程加 `disable-model-invocation: true`，只在你自己输入命令时才跑 |
 | **Subagents** | 隔离上下文，只回最终结论 | 对主上下文低；它自己的请求照样计用量 | 只要结论的侧任务：日志分析、依赖审计 |
-| **Hooks** | 生命周期事件触发，绕过压缩 | 低 | 零例外的规则和**确定性**自动化：格式化、阻断命令。要真正强制，用 `command` 或 `http` 类型的 hook；hook 自己失败或超时时默认放行，想在这种时候也拦住就设 `onFailure: "block"` |
+| **Hooks** | 生命周期事件触发，绕过压缩 | 低 | 零例外的规则和**确定性**自动化：格式化、阻断命令。要真正强制，用 `command` 或 `http` 类型的 hook；多数事件上，hook 自己失败或超时时仍会放行，想在这种时候也拦住就设 `onFailure: "block"` |
 | **Output styles** | 会话开始，永不压缩 | **高** | 每次回复都要的语气、长度或格式，或者让 Claude 以软件工程师之外的角色工作 |
 | **追加 system prompt** | 以 CLI 参数在启动时传入 | 中 | 脚本和自动化里需要放在 system prompt 层的指令（`--append-system-prompt`） |
 
